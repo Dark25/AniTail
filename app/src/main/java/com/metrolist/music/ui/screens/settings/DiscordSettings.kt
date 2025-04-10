@@ -250,7 +250,7 @@ fun RichPresence(song: Song?) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Listening to Metrolist",
+                text = "Listening to AniTail",
                 style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Start,
                 fontWeight = FontWeight.ExtraBold,

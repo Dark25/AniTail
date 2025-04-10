@@ -211,7 +211,7 @@ class MusicService :
                 R.string.music_player
             )
                 .apply {
-                    setSmallIcon(R.drawable.small_icon)
+                    setSmallIcon(R.drawable.ic_ani)
                 },
         )
         player =
@@ -277,16 +277,13 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null) {
-                // Calculamos los tiempos correctamente
-                val currentPos = (player.currentPosition / 1000).coerceAtLeast(0)  // Aseguramos que no sea negativo
-                val duration = if (player.duration > 0) (player.duration / 1000).coerceAtLeast(0) else null
-
-
                 try {
                     discordRpc?.updateSong(
                         song = song,
-                        elapsedTime = currentPos,
-                        remainingTime = duration
+                        timeStart = if (player.isPlaying)
+                            System.currentTimeMillis() - player.currentPosition else 0L,
+                        timeEnd = if (player.isPlaying)
+                            (System.currentTimeMillis() - player.currentPosition) + player.duration else 0L
                     )
                 } catch (e: Exception) {
                     Timber.e(e, "Error updating Discord RPC")
@@ -355,8 +352,10 @@ class MusicService :
                     currentSong.value?.let {
                         discordRpc?.updateSong(
                             song = it,
-                            elapsedTime = player.currentPosition / 1000,
-                            remainingTime = player.duration / 1000,
+                            timeStart = if (player.isPlaying)
+                                System.currentTimeMillis() - player.currentPosition else 0L,
+                            timeEnd = if (player.isPlaying)
+                                (System.currentTimeMillis() - player.currentPosition) + player.duration else 0L
                         )
                     }
                 }

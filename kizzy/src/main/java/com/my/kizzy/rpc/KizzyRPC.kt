@@ -49,8 +49,8 @@ open class KizzyRPC(token: String) {
         largeText: String? = null,
         smallText: String? = null,
         buttons: List<Pair<String, String>>? = null,
-        startTime: Long? = null,
-        endTime: Long? = null,
+        startTime: Long,
+        endTime: Long,
         type: Type = Type.LISTENING,
         streamUrl: String? = null,
         applicationId: String? = null,
@@ -67,7 +67,10 @@ open class KizzyRPC(token: String) {
                     state = state,
                     details = details,
                     type = type.value,
-                    timestamps = Timestamps(startTime, endTime),
+                    timestamps = Timestamps(
+                        start = startTime,
+                        end = endTime
+                    ),
                     assets = Assets(
                         largeImage = largeImage?.resolveImage(kizzyRepository),
                         smallImage = smallImage?.resolveImage(kizzyRepository),
