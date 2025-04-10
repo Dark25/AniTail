@@ -1,9 +1,11 @@
 package com.anitail.music.ui.screens.settings
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -34,6 +37,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -69,6 +74,7 @@ import com.anitail.music.utils.rememberPreference
 import com.my.kizzy.rpc.KizzyRPC
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -232,9 +238,29 @@ fun DiscordSettings(
     )
 }
 
+@SuppressLint("AutoboxingStateValueProperty")
 @Composable
 fun RichPresence(song: Song?) {
     val context = LocalContext.current
+    val playerConnection = LocalPlayerConnection.current
+
+    val playbackPosition = remember {
+        mutableLongStateOf(playerConnection?.player?.currentPosition ?: 0L)
+    }
+    val songDuration = song?.song?.duration?.let { it * 1000L } ?: 0L // Ensure duration is in milliseconds
+
+    LaunchedEffect(playerConnection) {
+        while (true) {
+            playbackPosition.value = playerConnection?.player?.currentPosition ?: 0L
+            kotlinx.coroutines.delay(1000L) // Update every second
+        }
+    }
+
+    val progress = if (playerConnection != null && songDuration > 0L) {
+        (playbackPosition.value.toFloat() / songDuration.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -347,6 +373,41 @@ fun RichPresence(song: Song?) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Progress bar with time indicators
+            Column(
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LinearProgressIndicator(
+                    progress = progress, // Pass progress directly as a value
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = formatTime(playbackPosition.value),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = formatTime(songDuration),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedButton(
                 enabled = song != null,
                 onClick = {
@@ -375,4 +436,11 @@ fun RichPresence(song: Song?) {
             }
         }
     }
+}
+
+@Composable
+fun formatTime(milliseconds: Long): String {
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(milliseconds)
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(milliseconds) % 60
+    return String.format("%02d:%02d", minutes, seconds)
 }
