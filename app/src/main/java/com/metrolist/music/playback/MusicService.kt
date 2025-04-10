@@ -127,6 +127,7 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import timber.log.Timber
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.net.ConnectException
@@ -276,7 +277,21 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null) {
-                discordRpc?.updateSong(song)
+                // Calculamos los tiempos correctamente
+                val currentPos = (player.currentPosition / 1000).coerceAtLeast(0)  // Aseguramos que no sea negativo
+                val duration = if (player.duration > 0) (player.duration / 1000).coerceAtLeast(0) else null
+
+
+                try {
+                    discordRpc?.updateSong(
+                        song = song,
+                        elapsedTime = currentPos,
+                        remainingTime = duration
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "Error updating Discord RPC")
+                    discordRpc?.closeRPC()
+                }
             } else {
                 discordRpc?.closeRPC()
             }
@@ -338,7 +353,11 @@ class MusicService :
                 if (key != null && enabled) {
                     discordRpc = DiscordRPC(this, key)
                     currentSong.value?.let {
-                        discordRpc?.updateSong(it)
+                        discordRpc?.updateSong(
+                            song = it,
+                            elapsedTime = player.currentPosition / 1000,
+                            remainingTime = player.duration / 1000,
+                        )
                     }
                 }
             }
