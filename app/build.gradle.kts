@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-    namespace = "com.metrolist.music"
+    namespace = "com.anitail.music"
     compileSdk = 35
     ndkVersion = "25.1.8937393"
 
@@ -18,8 +18,8 @@ android {
         applicationId = "com.anitail.music"
         minSdk = 21
         targetSdk = 35
-        versionCode = 115
-        versionName = "11.5.0"
+        versionCode = 1
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
