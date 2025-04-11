@@ -9,12 +9,22 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.sharp.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -23,8 +33,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.R
+import com.anitail.music.db.entities.Song
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.PreferenceEntry
+import com.anitail.music.ui.menu.AddToPlaylistDialogOnline
+import com.anitail.music.ui.menu.LoadingScreen
 import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.viewmodels.BackupRestoreViewModel
 import java.time.LocalDateTime
@@ -37,6 +50,19 @@ fun BackupAndRestore(
     scrollBehavior: TopAppBarScrollBehavior,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
 ) {
+    var importedTitle by remember { mutableStateOf("") }
+    val importedSongs = remember { mutableStateListOf<Song>() }
+    var showChoosePlaylistDialogOnline by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var isProgressStarted by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var progressPercentage by rememberSaveable {
+        mutableIntStateOf(0)
+    }
     val context = LocalContext.current
     val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
@@ -50,6 +76,18 @@ fun BackupAndRestore(
                 viewModel.restore(context, uri)
             }
         }
+    val importM3uLauncherOnline = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val result = viewModel.loadM3UOnline(context, uri)
+        importedSongs.clear()
+        importedSongs.addAll(result)
+
+
+        if (importedSongs.isNotEmpty()) {
+            showChoosePlaylistDialogOnline = true
+        }
+
+    }
 
     Column(
         Modifier
@@ -83,6 +121,13 @@ fun BackupAndRestore(
                 restoreLauncher.launch(arrayOf("application/octet-stream"))
             },
         )
+        PreferenceEntry(
+            title = {Text(stringResource(R.string.import_online))},
+            icon = { Icon(Icons.Sharp.Add, null) },
+            onClick = {
+                importM3uLauncherOnline.launch(arrayOf("audio/*"))
+            }
+        )
     }
 
     TopAppBar(
@@ -98,5 +143,20 @@ fun BackupAndRestore(
                 )
             }
         }
+    )
+    AddToPlaylistDialogOnline(
+        isVisible = showChoosePlaylistDialogOnline,
+        allowSyncing = false,
+        initialTextFieldValue = importedTitle,
+        songs = importedSongs,
+        onDismiss = { showChoosePlaylistDialogOnline = false},
+        onProgressStart =  { newVal -> isProgressStarted = newVal},
+        onPercentageChange = {newPercentage -> progressPercentage = newPercentage}
+    )
+
+
+    LoadingScreen(
+        isVisible = isProgressStarted,
+        value = progressPercentage,
     )
 }
