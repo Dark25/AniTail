@@ -447,4 +447,7 @@
         <item quantity="one">1 segundo</item>
         <item quantity="other">%d segundos</item>
     </plurals>
+    <string name="import_online">Importar una lista de reproducción (m3u) (búsqueda automática)</string>
+    <string name="playlist_add_local_to_synced_note">Nota: No se admite agregar canciones locales a listas de reproducción sincronizadas o remotas. Cualquier otra combinación es válida.</string>
+
 </resources>
