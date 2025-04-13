@@ -16,6 +16,7 @@ import com.anitail.music.db.entities.LocalItem
 import com.anitail.music.db.entities.Playlist
 import com.anitail.music.db.entities.Song
 import com.anitail.music.models.SimilarRecommendation
+import com.anitail.music.utils.SyncUtils
 import com.anitail.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,6 +30,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     @ApplicationContext context: Context,
     val database: MusicDatabase,
+    val syncUtils: SyncUtils,
 ) : ViewModel() {
     val isRefreshing = MutableStateFlow(false)
     val isLoading = MutableStateFlow(false)
@@ -170,6 +172,11 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             load()
+            viewModelScope.launch(Dispatchers.IO) { syncUtils.syncLikedSongs() }
+            viewModelScope.launch(Dispatchers.IO) { syncUtils.syncLibrarySongs() }
+            viewModelScope.launch(Dispatchers.IO) { syncUtils.syncSavedPlaylists() }
+            viewModelScope.launch(Dispatchers.IO) { syncUtils.syncLikedAlbums() }
+            viewModelScope.launch(Dispatchers.IO) { syncUtils.syncArtistsSubscriptions() }
         }
     }
 }

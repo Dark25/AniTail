@@ -69,6 +69,8 @@ import com.anitail.music.ui.component.SortHeader
 import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
 import com.anitail.music.viewmodels.LibraryPlaylistsViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -146,7 +148,9 @@ fun LibraryPlaylistsScreen(
 
     LaunchedEffect(Unit) {
         if (ytmSync) {
-            viewModel.sync()
+            withContext(Dispatchers.IO) {
+                viewModel.sync()
+            }
         }
     }
 
