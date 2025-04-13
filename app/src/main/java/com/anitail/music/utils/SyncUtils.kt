@@ -13,6 +13,11 @@ import com.anitail.music.db.entities.PlaylistEntity
 import com.anitail.music.db.entities.PlaylistSongMap
 import com.anitail.music.db.entities.SongEntity
 import com.anitail.music.models.toMediaMetadata
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import java.time.LocalDateTime
@@ -23,6 +28,15 @@ import javax.inject.Singleton
 class SyncUtils @Inject constructor(
     val database: MusicDatabase,
 ) {
+    @OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
+    val syncCoroutine = newSingleThreadContext("syncUtils")
+
+    fun likeSong(s: SongEntity) {
+        CoroutineScope(syncCoroutine).launch {
+            YouTube.likeVideo(s.id, s.liked)
+        }
+    }
+
     suspend fun syncLikedSongs() {
         YouTube.playlist("LM").completed().onSuccess { page ->
             val songs = page.songs.reversed()
@@ -156,7 +170,7 @@ class SyncUtils @Inject constructor(
         }
     }
 
-    suspend fun syncPlaylist(browseId: String, playlistId: String) {
+    private suspend fun syncPlaylist(browseId: String, playlistId: String) {
         val playlistPage = YouTube.playlist(browseId).completed().getOrNull() ?: return
         database.transaction {
             clearPlaylist(playlistId)

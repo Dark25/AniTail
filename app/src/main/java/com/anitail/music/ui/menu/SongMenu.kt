@@ -54,6 +54,7 @@ import com.anitail.innertube.YouTube
 import com.anitail.music.LocalDatabase
 import com.anitail.music.LocalDownloadUtil
 import com.anitail.music.LocalPlayerConnection
+import com.anitail.music.LocalSyncUtils
 import com.anitail.music.R
 import com.anitail.music.constants.ListItemHeight
 import com.anitail.music.constants.ListThumbnailSize
@@ -93,6 +94,7 @@ fun SongMenu(
     val download by LocalDownloadUtil.current.getDownload(originalSong.id)
         .collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
+    val syncUtils = LocalSyncUtils.current
     val scope = rememberCoroutineScope()
     var refetchIconDegree by remember { mutableFloatStateOf(0f) }
 
@@ -236,9 +238,12 @@ fun SongMenu(
         trailingContent = {
             IconButton(
                 onClick = {
+                    val s = song.song.toggleLike()
                     database.query {
-                        update(song.song.toggleLike())
-                    }
+                        update(s)
+                     }
+
+                        syncUtils.likeSong(s)
                 },
             ) {
                 Icon(

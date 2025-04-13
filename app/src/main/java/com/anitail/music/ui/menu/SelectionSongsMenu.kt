@@ -32,6 +32,7 @@ import com.anitail.innertube.YouTube
 import com.anitail.music.LocalDatabase
 import com.anitail.music.LocalDownloadUtil
 import com.anitail.music.LocalPlayerConnection
+import com.anitail.music.LocalSyncUtils
 import com.anitail.music.R
 import com.anitail.music.db.entities.PlaylistSongMap
 import com.anitail.music.db.entities.Song
@@ -61,6 +62,7 @@ fun SelectionSongMenu(
     val downloadUtil = LocalDownloadUtil.current
     val coroutineScope = rememberCoroutineScope()
     val playerConnection = LocalPlayerConnection.current ?: return
+    val syncUtils = LocalSyncUtils.current
 
     val allInLibrary by remember {
         mutableStateOf(
@@ -281,7 +283,9 @@ fun SelectionSongMenu(
             database.query {
                 songSelection.forEach { song ->
                     if ((!allLiked && !song.song.liked) || allLiked) {
-                        update(song.song.toggleLike())
+                        val s = song.song.toggleLike()
+                         update(s)
+                         syncUtils.likeSong(s)
                     }
                 }
             }
