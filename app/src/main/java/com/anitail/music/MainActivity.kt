@@ -148,6 +148,7 @@ import com.anitail.music.ui.theme.extractThemeColor
 import com.anitail.music.ui.utils.appBarScrollBehavior
 import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.ui.utils.resetHeightOffset
+import com.anitail.music.utils.LocaleManager
 import com.anitail.music.utils.SyncUtils
 import com.anitail.music.utils.Updater
 import com.anitail.music.utils.dataStore
@@ -155,7 +156,6 @@ import com.anitail.music.utils.get
 import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
 import com.anitail.music.utils.reportException
-import com.anitail.music.utils.LocaleManager
 import com.valentinilk.shimmer.LocalShimmerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers

@@ -54,14 +54,14 @@ import com.anitail.music.constants.LyricsClickKey
 import com.anitail.music.constants.LyricsTextPositionKey
 import com.anitail.music.constants.PlayerBackgroundStyle
 import com.anitail.music.constants.PlayerBackgroundStyleKey
-import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.PlayerButtonsStyle
 import com.anitail.music.constants.PlayerButtonsStyleKey
+import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.SliderStyle
 import com.anitail.music.constants.SliderStyleKey
 import com.anitail.music.constants.SlimNavBarKey
-import com.anitail.music.constants.SwipeThumbnailKey
 import com.anitail.music.constants.SwipeSongToAddKey
+import com.anitail.music.constants.SwipeThumbnailKey
 import com.anitail.music.ui.component.DefaultDialog
 import com.anitail.music.ui.component.EnumListPreference
 import com.anitail.music.ui.component.IconButton

@@ -21,9 +21,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import com.anitail.music.R
 import com.anitail.music.BuildConfig
 import com.anitail.music.LocalPlayerAwareWindowInsets
+import com.anitail.music.R
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.PreferenceEntry
 import com.anitail.music.ui.component.ReleaseNotesCard

@@ -1,5 +1,9 @@
 package com.anitail.music.ui.screens.artist
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -92,10 +96,6 @@ import com.anitail.music.ui.utils.fadingEdge
 import com.anitail.music.ui.utils.resize
 import com.anitail.music.viewmodels.ArtistViewModel
 import com.valentinilk.shimmer.shimmer
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.widget.Toast
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable

@@ -15,11 +15,11 @@ import com.anitail.music.db.entities.SongEntity
 import com.anitail.music.models.toMediaMetadata
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton

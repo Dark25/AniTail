@@ -21,6 +21,9 @@ package com.anitail.music.ui.screens
  import androidx.compose.ui.unit.dp
  import androidx.hilt.navigation.compose.hiltViewModel
  import androidx.navigation.NavController
+ import com.anitail.innertube.models.AlbumItem
+ import com.anitail.innertube.models.ArtistItem
+ import com.anitail.innertube.models.PlaylistItem
  import com.anitail.music.LocalPlayerAwareWindowInsets
  import com.anitail.music.LocalPlayerConnection
  import com.anitail.music.constants.GridThumbnailHeight
@@ -34,11 +37,8 @@ package com.anitail.music.ui.screens
  import com.anitail.music.ui.menu.YouTubePlaylistMenu
  import com.anitail.music.ui.utils.backToMain
  import com.anitail.music.viewmodels.BrowseViewModel
- import com.anitail.innertube.models.AlbumItem
- import com.anitail.innertube.models.ArtistItem
- import com.anitail.innertube.models.PlaylistItem
- 
- @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
  @Composable
  fun BrowseScreen(
      navController: NavController,

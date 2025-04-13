@@ -36,10 +36,10 @@ import com.anitail.music.models.toMediaMetadata
 import com.anitail.music.playback.queues.YouTubeQueue
 import com.anitail.music.ui.component.ChoiceChipsRow
 import com.anitail.music.ui.component.IconButton
-import com.anitail.music.ui.component.LocalSongsGrid
-import com.anitail.music.ui.component.LocalArtistsGrid
 import com.anitail.music.ui.component.LocalAlbumsGrid
+import com.anitail.music.ui.component.LocalArtistsGrid
 import com.anitail.music.ui.component.LocalMenuState
+import com.anitail.music.ui.component.LocalSongsGrid
 import com.anitail.music.ui.component.NavigationTitle
 import com.anitail.music.ui.menu.AlbumMenu
 import com.anitail.music.ui.menu.ArtistMenu

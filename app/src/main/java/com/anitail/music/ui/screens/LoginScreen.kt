@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.anitail.innertube.YouTube
 import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.R
 import com.anitail.music.constants.AccountChannelHandleKey
@@ -32,7 +33,6 @@ import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.utils.rememberPreference
 import com.anitail.music.utils.reportException
-import com.anitail.innertube.YouTube
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

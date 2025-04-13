@@ -3,8 +3,6 @@ package com.anitail.music.utils
 import android.net.ConnectivityManager
 import android.util.Log
 import androidx.media3.common.PlaybackException
-import com.anitail.music.constants.AudioQuality
-import com.anitail.music.db.entities.FormatEntity
 import com.anitail.innertube.NewPipeUtils
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.YouTubeClient
@@ -12,6 +10,8 @@ import com.anitail.innertube.models.YouTubeClient.Companion.IOS
 import com.anitail.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
 import com.anitail.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.anitail.innertube.models.response.PlayerResponse
+import com.anitail.music.constants.AudioQuality
+import com.anitail.music.db.entities.FormatEntity
 import com.anitail.music.utils.potoken.PoTokenGenerator
 import com.anitail.music.utils.potoken.PoTokenResult
 import okhttp3.OkHttpClient

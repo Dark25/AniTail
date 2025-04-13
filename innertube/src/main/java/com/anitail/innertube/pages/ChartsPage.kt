@@ -1,6 +1,6 @@
 package com.anitail.innertube.pages
 
-import com.anitail.innertube.models.*
+import com.anitail.innertube.models.YTItem
 
 data class ChartsPage(
     val sections: List<ChartSection>,

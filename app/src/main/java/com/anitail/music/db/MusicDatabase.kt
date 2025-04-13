@@ -22,8 +22,8 @@ import com.anitail.music.db.entities.ArtistEntity
 import com.anitail.music.db.entities.Event
 import com.anitail.music.db.entities.FormatEntity
 import com.anitail.music.db.entities.LyricsEntity
-import com.anitail.music.db.entities.PlaylistEntity
 import com.anitail.music.db.entities.PlayCountEntity
+import com.anitail.music.db.entities.PlaylistEntity
 import com.anitail.music.db.entities.PlaylistSongMap
 import com.anitail.music.db.entities.PlaylistSongMapPreview
 import com.anitail.music.db.entities.RelatedSongMap

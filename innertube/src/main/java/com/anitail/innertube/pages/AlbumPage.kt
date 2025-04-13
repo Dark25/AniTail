@@ -5,11 +5,11 @@ import com.anitail.innertube.models.AlbumItem
 import com.anitail.innertube.models.Artist
 import com.anitail.innertube.models.MusicResponsiveListItemRenderer
 import com.anitail.innertube.models.SongItem
-import com.anitail.innertube.models.oddElements
-import com.anitail.innertube.utils.parseTime
 import com.anitail.innertube.models.getItems
+import com.anitail.innertube.models.oddElements
 import com.anitail.innertube.models.response.BrowseResponse
 import com.anitail.innertube.models.splitBySeparator
+import com.anitail.innertube.utils.parseTime
 
 data class AlbumPage(
     val album: AlbumItem,

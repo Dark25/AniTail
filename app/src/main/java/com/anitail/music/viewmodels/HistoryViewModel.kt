@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.pages.HistoryPage
 import com.anitail.music.constants.HistorySource
-import com.anitail.music.utils.reportException
 import com.anitail.music.db.MusicDatabase
+import com.anitail.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

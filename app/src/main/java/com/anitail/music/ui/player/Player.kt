@@ -91,14 +91,14 @@ import com.anitail.music.R
 import com.anitail.music.constants.DarkModeKey
 import com.anitail.music.constants.PlayerBackgroundStyle
 import com.anitail.music.constants.PlayerBackgroundStyleKey
+import com.anitail.music.constants.PlayerButtonsStyle
+import com.anitail.music.constants.PlayerButtonsStyleKey
 import com.anitail.music.constants.PlayerHorizontalPadding
 import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.QueuePeekHeight
 import com.anitail.music.constants.ShowLyricsKey
 import com.anitail.music.constants.SliderStyle
 import com.anitail.music.constants.SliderStyleKey
-import com.anitail.music.constants.PlayerButtonsStyle
-import com.anitail.music.constants.PlayerButtonsStyleKey
 import com.anitail.music.extensions.togglePlayPause
 import com.anitail.music.extensions.toggleRepeatMode
 import com.anitail.music.models.MediaMetadata

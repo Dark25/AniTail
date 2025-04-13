@@ -10,14 +10,30 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.request.CachePolicy
-import com.anitail.music.constants.*
-import com.anitail.music.extensions.*
-import com.anitail.music.utils.dataStore
-import com.anitail.music.utils.get
-import com.anitail.music.utils.reportException
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.YouTubeLocale
 import com.anitail.kugou.KuGou
+import com.anitail.music.constants.AccountChannelHandleKey
+import com.anitail.music.constants.AccountEmailKey
+import com.anitail.music.constants.AccountNameKey
+import com.anitail.music.constants.ContentCountryKey
+import com.anitail.music.constants.ContentLanguageKey
+import com.anitail.music.constants.CountryCodeToName
+import com.anitail.music.constants.DataSyncIdKey
+import com.anitail.music.constants.InnerTubeCookieKey
+import com.anitail.music.constants.LanguageCodeToName
+import com.anitail.music.constants.MaxImageCacheSizeKey
+import com.anitail.music.constants.ProxyEnabledKey
+import com.anitail.music.constants.ProxyTypeKey
+import com.anitail.music.constants.ProxyUrlKey
+import com.anitail.music.constants.SYSTEM_DEFAULT
+import com.anitail.music.constants.UseLoginForBrowse
+import com.anitail.music.constants.VisitorDataKey
+import com.anitail.music.extensions.toEnum
+import com.anitail.music.extensions.toInetSocketAddress
+import com.anitail.music.utils.dataStore
+import com.anitail.music.utils.get
+import com.anitail.music.utils.reportException
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +45,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.net.Proxy
-import java.util.*
+import java.util.Locale
 
 @HiltAndroidApp
 class App : Application(), ImageLoaderFactory {

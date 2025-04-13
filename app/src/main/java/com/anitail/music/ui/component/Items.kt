@@ -83,11 +83,11 @@ import com.anitail.music.LocalDatabase
 import com.anitail.music.LocalDownloadUtil
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
-import com.anitail.music.constants.SwipeSongToAddKey
 import com.anitail.music.constants.GridThumbnailHeight
 import com.anitail.music.constants.ListItemHeight
 import com.anitail.music.constants.ListThumbnailSize
 import com.anitail.music.constants.SmallGridThumbnailHeight
+import com.anitail.music.constants.SwipeSongToAddKey
 import com.anitail.music.constants.ThumbnailCornerRadius
 import com.anitail.music.db.entities.Album
 import com.anitail.music.db.entities.Artist
