@@ -83,6 +83,7 @@
     <string name="liked">Me gusta</string>
     <string name="offline">Descargados</string>
     <string name="my_top">Mis favoritos</string>
+    <string name="cached_playlist">En caché</string>
     <string name="library_song_empty">Las canciones de la biblioteca aparecerán aquí</string>
     <string name="library_artist_empty">Los artistas de la biblioteca aparecerán aquí</string>
     <string name="library_album_empty">Los álbumes de la biblioteca aparecerán aquí</string>

@@ -32,6 +32,7 @@ import com.anitail.music.ui.screens.settings.PlayerSettings
 import com.anitail.music.ui.screens.settings.PrivacySettings
 import com.anitail.music.ui.screens.settings.SettingsScreen
 import com.anitail.music.ui.screens.settings.StorageSettings
+import com.metrolist.music.ui.screens.playlist.CachePlaylistScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -202,6 +203,17 @@ fun NavGraphBuilder.navigationBuilder(
         ),
     ) {
         AutoPlaylistScreen(navController, scrollBehavior)
+    }
+    composable(
+        route = "cache_playlist/{playlist}",
+        arguments =
+            listOf(
+                navArgument("playlist") {
+                    type = NavType.StringType
+            },
+        ),
+    ) {
+        CachePlaylistScreen(navController, scrollBehavior)
     }
     composable(
         route = "top_playlist/{top}",
