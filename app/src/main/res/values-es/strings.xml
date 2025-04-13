@@ -390,6 +390,7 @@
     <string name="listen_history">Historial de escucha</string>
     <string name="search_history">Historial de búsqueda</string>
     <string name="pause_listen_history">Pausar historial de escucha</string>
+    <string name="pause_remote_listen_history">Pausar el historial de reproducción compartida con YouTube Music</string>
     <string name="clear_listen_history">Borrar historial de escucha</string>
     <string name="clear_listen_history_confirm">¿Estás seguro de que quieres borrar todo el historial de escucha?</string>
     <string name="pause_search_history">Pausar historial de búsqueda</string>
