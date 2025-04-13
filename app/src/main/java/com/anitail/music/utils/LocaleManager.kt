@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.anitail.music.utils
 
 import android.annotation.TargetApi

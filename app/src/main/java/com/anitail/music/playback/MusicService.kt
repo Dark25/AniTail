@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.anitail.music.playback
 
 import android.app.PendingIntent
@@ -49,7 +51,6 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.MoreExecutors
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.SongItem
 import com.anitail.innertube.models.WatchEndpoint
@@ -67,6 +68,7 @@ import com.anitail.music.constants.MediaSessionConstants.CommandToggleLike
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleRepeatMode
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleShuffle
 import com.anitail.music.constants.PauseListenHistoryKey
+import com.anitail.music.constants.PauseRemoteListenHistoryKey
 import com.anitail.music.constants.PersistentQueueKey
 import com.anitail.music.constants.PlayerVolumeKey
 import com.anitail.music.constants.RepeatModeKey
@@ -105,6 +107,7 @@ import com.anitail.music.utils.enumPreference
 import com.anitail.music.utils.get
 import com.anitail.music.utils.isInternetAvailable
 import com.anitail.music.utils.reportException
+import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -139,7 +142,6 @@ import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
-import com.anitail.music.constants.PauseRemoteListenHistoryKey
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @AndroidEntryPoint
