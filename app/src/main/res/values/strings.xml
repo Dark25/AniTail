@@ -423,9 +423,24 @@
     <string name="open_app_settings_error">Couldn\'t open app settings</string>
 
     <string name="release_notes">Release Notes</string>
-
+    <!--about screen-->
     <string name="about">About</string>
     <string name="app_version">App version</string>
+    <string name="links_about" translatable="false">Links</string>
+    <string name="developer_about" translatable="false">Developers</string>
+    <string name="build_type">App Status |</string>
+    <string name="version">Version |</string>
+    <string name="official_build" translatable="false">Build |</string>
+    <string name="official">Official and Verified</string>
+    <string name="device">Device |</string>
+    <string name="donate_info">Support me and projects</string>
+    <string name="developer">Developer</string>
+    <string name="info_dev">Developed by a technology enthusiast</string>
+    <string name="info_app">Information</string>
+    <string name="other_apps">Other Android Apps</string>
+    <string name="other_apps_info">All Animetailapp Software android apps</string>
+    <string name="my_channel">Discord Server</string>
+    <string name="my_channel_info">Animetailapp Software | Official Discord Server</string>
 
     <string name="new_version_available">New version available</string>
     <string name="translation_models">Translation Models</string>

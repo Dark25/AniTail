@@ -424,8 +424,22 @@
 
     <string name="release_notes">Notas de la versión</string>
 
+    <!--pantalla de información-->
     <string name="about">Acerca de</string>
-    <string name="app_version">Versión de la aplicación</string>
+    <string name="app_version">Versión de la app</string>
+    <string name="build_type">Estado de la app |</string>
+    <string name="version">Versión |</string>
+    <string name="official">Oficial y verificada</string>
+    <string name="device">Dispositivo |</string>
+    <string name="donate_info">Apóyame y a mis proyectos</string>
+    <string name="developer">Desarrollador</string>
+    <string name="info_dev">Desarrollado por un entusiasta de la tecnología</string>
+    <string name="info_app">Información</string>
+    <string name="other_apps">Otras apps para Android</string>
+    <string name="other_apps_info">Todas las apps Android de Animetailapp Software</string>
+    <string name="my_channel">Servidor de Discord</string>
+    <string name="my_channel_info">Animetailapp Software | Servidor oficial de Discord</string>
+
 
     <string name="new_version_available">Nueva versión disponible</string>
     <string name="translation_models">Modelos de traducción</string>

@@ -194,4 +194,5 @@ dependencies {
     implementation(libs.timber)
 
     implementation(libs.ktor.serialization.json)
+    implementation(libs.compose.icons.extended)
 }

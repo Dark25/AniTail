@@ -1,5 +1,5 @@
 [versions]
-androidGradlePlugin = "8.7.2"
+androidGradlePlugin = "8.7.3"
 annotation = "1.9.1"
 json = "20250107"
 jsoup = "1.18.1"
@@ -34,6 +34,8 @@ compose-ui-util = { group = "androidx.compose.ui", name = "ui-util", version.ref
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "compose" }
 compose-animation = { group = "androidx.compose.animation", name = "animation-graphics", version.ref = "compose" }
 compose-reorderable = { group = "org.burnoutcrew.composereorderable", name = "reorderable", version = "0.9.6" }
+compose-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose" }
+
 
 
 squigglyslider = { group = "me.saket.squigglyslider", name = "squigglyslider", version = "1.0.0" }
