@@ -75,6 +75,19 @@ fun BackupAndRestore(
                 viewModel.restore(context, uri)
             }
         }
+
+    val importPlaylistFromCsv =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            val result = viewModel.importPlaylistFromCsv(context, uri)
+            importedSongs.clear()
+            importedSongs.addAll(result)
+
+            if (importedSongs.isNotEmpty()) {
+                showChoosePlaylistDialogOnline = true
+            }
+        }
+
     val importM3uLauncherOnline = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         val result = viewModel.loadM3UOnline(context, uri)
@@ -125,6 +138,13 @@ fun BackupAndRestore(
             icon = { Icon(Icons.Sharp.Add, null) },
             onClick = {
                 importM3uLauncherOnline.launch(arrayOf("audio/*"))
+            }
+        )
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.import_csv)) },
+            icon = { Icon(Icons.Sharp.Add, null) },
+            onClick = {
+                importPlaylistFromCsv.launch(arrayOf("text/csv"))
             }
         )
     }

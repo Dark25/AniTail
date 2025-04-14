@@ -450,5 +450,6 @@
         <item quantity="other">%d seconds</item>
     </plurals>
     <string name="import_online">Import a playlist (m3u) (autosearch)</string>
+    <string name="import_csv">Import a playlist (csv) (autosearch)</string>
     <string name="playlist_add_local_to_synced_note">Note: Adding local songs to synced/remote playlists is unsupported. Any other combination is valid</string>
 </resources>
