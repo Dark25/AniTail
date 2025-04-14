@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -39,6 +40,7 @@ import com.anitail.music.ui.menu.AddToPlaylistDialogOnline
 import com.anitail.music.ui.menu.LoadingScreen
 import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.viewmodels.BackupRestoreViewModel
+import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -168,14 +170,24 @@ fun BackupAndRestore(
         allowSyncing = false,
         initialTextFieldValue = importedTitle,
         songs = importedSongs,
-        onDismiss = { showChoosePlaylistDialogOnline = false},
-        onProgressStart =  { newVal -> isProgressStarted = newVal},
-        onPercentageChange = {newPercentage -> progressPercentage = newPercentage}
+        onDismiss = { showChoosePlaylistDialogOnline = false },
+        onProgressStart = { newVal -> isProgressStarted = newVal },
+        onPercentageChange = { newPercentage -> progressPercentage = newPercentage }
     )
 
+    LaunchedEffect(progressPercentage, isProgressStarted) {
+        if (isProgressStarted && progressPercentage == 99) {
+            delay(10000)
+            if (progressPercentage == 99) {
+                isProgressStarted = false
+                progressPercentage = 0
+            }
+        }
+    }
 
     LoadingScreen(
         isVisible = isProgressStarted,
         value = progressPercentage,
     )
 }
+
