@@ -941,6 +941,11 @@ interface DatabaseDao {
     )
 
     @Transaction
+    @Query("UPDATE song SET liked = 1 WHERE id = :songId")
+    suspend fun toggleLikedToTrue(songId: String)
+
+
+    @Transaction
     @Query("SELECT COUNT(1) FROM related_song_map WHERE songId = :songId LIMIT 1")
     fun hasRelatedSongs(songId: String): Boolean
 
@@ -1275,6 +1280,9 @@ interface DatabaseDao {
 
     @Delete
     fun delete(event: Event)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM artist WHERE id = :artistId LIMIT 1)")
+    suspend fun artistIdExists(artistId: String):Boolean
 
     @Transaction
     @Query("SELECT * FROM playlist_song_map WHERE songId = :songId")
