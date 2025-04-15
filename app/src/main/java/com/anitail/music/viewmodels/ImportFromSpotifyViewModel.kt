@@ -19,9 +19,9 @@ import com.anitail.music.models.SpotifyUserProfile
 import com.anitail.music.models.spotify.playlists.SpotifyPlaylistPaginatedResponse
 import com.anitail.music.models.spotify.tracks.SpotifyResultPaginatedResponse
 import com.anitail.music.models.spotify.tracks.TrackItem
-import com.anitail.music.ui.screens.settings.content.import_from_spotify.model.ImportFromSpotifyScreenState
-import com.anitail.music.ui.screens.settings.content.import_from_spotify.model.ImportProgressEvent
-import com.anitail.music.ui.screens.settings.content.import_from_spotify.model.Playlist
+import com.anitail.music.ui.screens.settings.import_from_spotify.model.ImportFromSpotifyScreenState
+import com.anitail.music.ui.screens.settings.import_from_spotify.model.ImportProgressEvent
+import com.anitail.music.ui.screens.settings.import_from_spotify.model.Playlist
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -184,11 +184,13 @@ class ImportFromSpotifyViewModel @Inject constructor(
             httpClient.get(url) {
                 bearerAuth(authToken)
             }.body<SpotifyPlaylistPaginatedResponse>().let { response ->
-                playlists.addAll(response.items.map {
-                    Playlist(
-                        name = it.playlistName, id = it.playlistId
-                    )
-                })
+                if (response.items.isNotEmpty()) {
+                    playlists.addAll(response.items.map {
+                        Playlist(
+                            name = it.playlistName, id = it.playlistId
+                        )
+                    })
+                }
                 logTheString(url.toString())
                 url = response.nextUrl
             }

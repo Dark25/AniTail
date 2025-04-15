@@ -1,4 +1,4 @@
-package com.anitail.music.ui.screens.settings.content.import_from_spotify.model
+package com.anitail.music.ui.screens.settings.import_from_spotify.model
 
 import com.anitail.music.models.spotify.playlists.SpotifyPlaylistItem
 

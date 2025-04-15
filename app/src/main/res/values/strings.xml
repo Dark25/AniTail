@@ -320,6 +320,7 @@
     <string name="advanced_login">Advanced login (token)</string>
     <string name="logout">Logout</string>
     <string name="import_from_spotify">Import from spotify</string>
+    <string name="title_spotify">Spotify</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="token_hidden">Tap to show token</string>
     <string name="token_shown">Tap again to copy or edit</string>

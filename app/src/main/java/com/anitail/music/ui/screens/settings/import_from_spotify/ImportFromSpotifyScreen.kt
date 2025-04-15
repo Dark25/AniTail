@@ -1,4 +1,4 @@
-package com.anitail.music.ui.screens.settings.content.import_from_spotify
+package com.anitail.music.ui.screens.settings.import_from_spotify
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -77,7 +77,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.anitail.music.ui.screens.settings.content.import_from_spotify.model.Playlist
+import com.anitail.music.ui.screens.settings.import_from_spotify.model.Playlist
 import com.anitail.music.viewmodels.ImportFromSpotifyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -249,7 +249,7 @@ fun ImportFromSpotifyScreen(
                                 modifier = Modifier.fillMaxWidth(0.75f)
                             ) {
                                 AsyncImage(
-                                    model = playlist.images.first().url,
+                                    model = playlist.images.firstOrNull()?.url ?: "",
                                     contentDescription = null,
                                     modifier = Modifier
                                         .size(50.dp)

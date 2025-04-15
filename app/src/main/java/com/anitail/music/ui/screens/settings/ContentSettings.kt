@@ -43,7 +43,6 @@ import com.anitail.music.constants.TopSize
 import com.anitail.music.ui.component.EditTextPreference
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.ListPreference
-import com.anitail.music.ui.component.PreferenceEntry
 import com.anitail.music.ui.component.PreferenceGroupTitle
 import com.anitail.music.ui.component.SwitchPreference
 import com.anitail.music.ui.utils.backToMain
@@ -137,14 +136,6 @@ fun ContentSettings(
         )
 
         PreferenceGroupTitle(title = stringResource(R.string.app_language))
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.import_from_spotify)) },
-            description = null,
-            icon = { Icon(painterResource(R.drawable.download), null) },
-            onClick = {
-                navController.navigate("settings/content/import_from_spotify")
-            }
-        )
         ListPreference(
             title = { Text(stringResource(R.string.app_language)) },
             icon = { Icon(painterResource(R.drawable.language), null) },
