@@ -500,4 +500,5 @@
     <string name="client_id">ID de Cliente</string>
     <string name="client_secret">Secreto de Cliente</string>
     <string name="authorization_code">Código de autorización</string>
+    <string name="import_from_spotify">Importar desde Spotify</string>
 </resources>
