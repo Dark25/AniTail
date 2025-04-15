@@ -17,6 +17,7 @@ import com.anitail.music.ui.screens.artist.ArtistScreen
 import com.anitail.music.ui.screens.artist.ArtistSongsScreen
 import com.anitail.music.ui.screens.library.LibraryScreen
 import com.anitail.music.ui.screens.playlist.AutoPlaylistScreen
+import com.anitail.music.ui.screens.playlist.CachePlaylistScreen
 import com.anitail.music.ui.screens.playlist.LocalPlaylistScreen
 import com.anitail.music.ui.screens.playlist.OnlinePlaylistScreen
 import com.anitail.music.ui.screens.playlist.TopPlaylistScreen
@@ -32,7 +33,6 @@ import com.anitail.music.ui.screens.settings.PlayerSettings
 import com.anitail.music.ui.screens.settings.PrivacySettings
 import com.anitail.music.ui.screens.settings.SettingsScreen
 import com.anitail.music.ui.screens.settings.StorageSettings
-import com.metrolist.music.ui.screens.playlist.CachePlaylistScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(

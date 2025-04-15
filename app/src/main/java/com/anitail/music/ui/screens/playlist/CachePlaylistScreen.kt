@@ -1,4 +1,4 @@
-package com.metrolist.music.ui.screens.playlist
+package com.anitail.music.ui.screens.playlist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
