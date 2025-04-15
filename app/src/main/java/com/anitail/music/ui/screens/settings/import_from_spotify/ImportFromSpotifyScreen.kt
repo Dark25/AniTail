@@ -66,17 +66,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.anitail.music.R
 import com.anitail.music.ui.screens.settings.import_from_spotify.model.Playlist
 import com.anitail.music.viewmodels.ImportFromSpotifyViewModel
 
@@ -133,7 +133,11 @@ fun ImportFromSpotifyScreen(
             ) {
                 Spacer(Modifier.windowInsetsPadding(WindowInsets.statusBars))
                 Text(
-                    text = "Logged in as ${importFromSpotifyScreenState.value.userName}. Found ${importFromSpotifyScreenState.value.totalPlaylistsCount} playlists.\n\nNow, select the items you want to import:",
+                    text = stringResource(
+                        id = R.string.logged_in_as,
+                        importFromSpotifyScreenState.value.userName,
+                        importFromSpotifyScreenState.value.totalPlaylistsCount
+                    ),
                     fontSize = 16.sp,
                     modifier = Modifier.padding(start = 15.dp, bottom = 7.5.dp)
                 )
@@ -163,7 +167,7 @@ fun ImportFromSpotifyScreen(
                                 selectAll.value = it
                             })
                         Spacer(Modifier.width(5.dp))
-                        Text(text = "Select All")
+                        Text(text = stringResource(id = R.string.select_all))
                     }
                 }
                 HorizontalDivider(
@@ -205,7 +209,8 @@ fun ImportFromSpotifyScreen(
                                 }
                                 Spacer(Modifier.width(15.dp))
                                 Text(
-                                    text = "Liked Songs", modifier = Modifier.fillMaxWidth(0.75f)
+                                    text = stringResource(id = R.string.liked_songs),
+                                    modifier = Modifier.fillMaxWidth(0.75f)
                                 )
                             }
                             Checkbox(
@@ -328,10 +333,10 @@ fun ImportFromSpotifyScreen(
                                 strokeWidth = 2.5.dp
                             )
                             Spacer(Modifier.width(10.dp))
-                            Text(text = "Fetching all playlists...")
+                            Text(text = stringResource(id = R.string.fetching_all_playlists))
                         }
                     } else {
-                        Text(text = "Import Selected Items")
+                        Text(text = stringResource(id = R.string.import_selected_items))
                     }
                 }
             }
@@ -360,7 +365,7 @@ fun ImportFromSpotifyScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    text = "Instructions to get required credentials",
+                    text = stringResource(id = R.string.instructions_title),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
@@ -378,71 +383,45 @@ fun ImportFromSpotifyScreen(
             }
             if (isInstructionExpanded.value) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    val colorScheme = MaterialTheme.colorScheme
                     val instructionPadding = remember {
                         PaddingValues(start = 15.dp, bottom = 7.5.dp, end = 7.5.dp)
                     }
-                    val firstInstruction = remember {
-                        buildAnnotatedString {
-                            append("1. Visit ")
-                            pushStringAnnotation(
-                                tag = "spotify for developers",
-                                annotation = "https://developer.spotify.com/dashboard/"
-                            )
-                            withStyle(SpanStyle(color = colorScheme.primary)) {
-                                append("Spotify for developers dashboard")
-                            }
-                            pop()
-                            append(" and click on \"Create app\".")
-                        }
-                    }
                     ClickableText(
-                        text = firstInstruction,
+                        text = buildAnnotatedString {
+                            append(stringResource(id = R.string.instruction_1))
+                        },
                         onClick = { offset ->
-                            firstInstruction.getStringAnnotations(
-                                tag = "spotify for developers", start = offset, end = offset
-                            ).first().let {
-                                localUriHandler.openUri(it.item)
-                            }
+                            localUriHandler.openUri("https://developer.spotify.com/dashboard/")
                         },
                         style = TextStyle(fontSize = 16.sp, color = LocalContentColor.current),
                         modifier = Modifier.padding(instructionPadding)
                     )
                     SelectionContainer {
-                        Text(fontSize = 16.sp, text = buildAnnotatedString {
-                            append("2. Enter the necessary details and use ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                append("http://127.0.0.1:8888")
-                            }
-                            append(" as the ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                append("Redirect URIs")
-                            }
-                            append(".")
-                        }, modifier = Modifier.padding(instructionPadding))
+                        Text(
+                            fontSize = 16.sp,
+                            text = stringResource(id = R.string.instruction_2),
+                            modifier = Modifier.padding(instructionPadding)
+                        )
                     }
                     Text(
                         fontSize = 16.sp,
-                        text = "3. Make sure to click \"Add\" once you've entered the local path above.",
-                        modifier = Modifier.padding(instructionPadding)
-                    )
-                    Text(fontSize = 16.sp, text = buildAnnotatedString {
-                        append("4. Toggle ")
-                        withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                            append("Web API")
-                        }
-                        append(". The checkbox should now have a tick mark.")
-                    }, modifier = Modifier.padding(instructionPadding))
-
-                    Text(
-                        fontSize = 16.sp,
-                        text = "5. Accept the terms of service and click \"Save\".",
+                        text = stringResource(id = R.string.instruction_3),
                         modifier = Modifier.padding(instructionPadding)
                     )
                     Text(
                         fontSize = 16.sp,
-                        modifier = Modifier.padding(instructionPadding),
-                        text = "You’ll be redirected to a new page. Click on Settings, then copy the Client ID and Client Secret, and paste them into the text fields below in this app."
+                        text = stringResource(id = R.string.instruction_4),
+                        modifier = Modifier.padding(instructionPadding)
+                    )
+                    Text(
+                        fontSize = 16.sp,
+                        text = stringResource(id = R.string.instruction_5),
+                        modifier = Modifier.padding(instructionPadding)
+                    )
+                    Text(
+                        fontSize = 16.sp,
+                        text = stringResource(id = R.string.instruction_6),
+                        modifier = Modifier.padding(instructionPadding)
                     )
                     HorizontalDivider(
                         modifier = Modifier
@@ -452,26 +431,9 @@ fun ImportFromSpotifyScreen(
                     )
                     Text(
                         fontSize = 16.sp,
-                        modifier = Modifier.padding(instructionPadding),
-                        text = buildAnnotatedString {
-                            append("Now, click the ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                append("Authorize and Continue")
-                            }
-                            append(" button below and login with your account from which you want to import from, and Authorize and Continue, which will redirect you to a site which should start from ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                append("http://127.0.0.1:8888/?code=")
-                            }
-                            append("\n\nPaste that entire URL in the below text field which says ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                append("Authorization Code")
-                            }
-                            append(" and click the ")
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                append("Authenticate")
-                            }
-                            append(" button.")
-                        })
+                        text = stringResource(id = R.string.instruction_7),
+                        modifier = Modifier.padding(instructionPadding)
+                    )
                 }
             }
             HorizontalDivider(
@@ -485,7 +447,7 @@ fun ImportFromSpotifyScreen(
                 }
                 Text(
                     text = importFromSpotifyScreenState.value.exception?.message
-                        ?: "Well, that’s embarrassing. We have no clue what happened either.",
+                        ?: stringResource(id = R.string.error_message),
                     modifier = Modifier.padding(start = 15.dp, end = 15.dp),
                     color = MaterialTheme.colorScheme.error
                 )
@@ -498,7 +460,7 @@ fun ImportFromSpotifyScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Stacktrace", fontWeight = FontWeight.Bold)
+                        Text(text = stringResource(id = R.string.stacktrace), fontWeight = FontWeight.Bold)
                         importFromSpotifyScreenState.value.exception?.stackTrace?.joinToString()
                             ?.let {
                                 IconButton(onClick = {
@@ -523,7 +485,7 @@ fun ImportFromSpotifyScreen(
                 if (isStackTraceVisible.value) {
                     Text(
                         text = importFromSpotifyScreenState.value.exception?.stackTrace?.joinToString()
-                            ?: "Something went wrong. We’re just as confused as you are.",
+                            ?: stringResource(id = R.string.error_stacktrace),
                         modifier = Modifier.padding(start = 15.dp, end = 15.dp)
                     )
                 }
@@ -534,7 +496,7 @@ fun ImportFromSpotifyScreen(
                 )
             }
             Text(
-                text = "Login with Spotify API Credentials",
+                text = stringResource(id = R.string.login_with_spotify_api_credentials),
                 fontSize = 16.sp,
                 modifier = Modifier.padding(start = 15.dp, bottom = 7.5.dp),
                 fontWeight = FontWeight.SemiBold
@@ -548,7 +510,7 @@ fun ImportFromSpotifyScreen(
                     spotifyClientId.value = it
                 },
                 label = {
-                    Text(text = "Client ID")
+                    Text(text = stringResource(id = R.string.client_id))
                 },
                 readOnly = importFromSpotifyScreenState.value.isRequesting
             )
@@ -559,7 +521,7 @@ fun ImportFromSpotifyScreen(
                     .fillMaxWidth()
                     .padding(start = 15.dp, end = 15.dp)
             ) {
-                Text(text = "Authorize and Continue")
+                Text(text = stringResource(id = R.string.authorize_and_continue))
             }
             HorizontalDivider(
                 modifier = Modifier
@@ -575,7 +537,7 @@ fun ImportFromSpotifyScreen(
                     spotifyClientSecret.value = it
                 },
                 label = {
-                    Text(text = "Client secret")
+                    Text(text = stringResource(id = R.string.client_secret))
                 },
                 readOnly = importFromSpotifyScreenState.value.isRequesting
             )
@@ -589,7 +551,7 @@ fun ImportFromSpotifyScreen(
                         it.substringAfter("http://127.0.0.1:8888/?code=").trim()
                 },
                 label = {
-                    Text(text = "Authorization Code")
+                    Text(text = stringResource(id = R.string.authorization_code))
                 },
                 readOnly = importFromSpotifyScreenState.value.isRequesting
             )
@@ -607,7 +569,7 @@ fun ImportFromSpotifyScreen(
                         .fillMaxWidth()
                         .padding(start = 15.dp, bottom = 15.dp, end = 15.dp)
                 ) {
-                    Text(text = "Authenticate")
+                    Text(text = stringResource(id = R.string.authenticate))
                 }
             } else {
                 LinearProgressIndicator(
@@ -625,10 +587,10 @@ fun ImportFromSpotifyScreen(
                 .fillMaxWidth()
                 .padding(15.dp)
                 .windowInsetsPadding(WindowInsets.statusBars)) {
-                Text("Import in progress...", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text(stringResource(id = R.string.import_in_progress), fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                 Spacer(Modifier.height(5.dp))
                 Text(
-                    "Don't close the app or go back. This operation doesn't run in the background, so stay put until it's done!\nDO NOT PANIC IF IT LOOKS STUCK; sometimes retrieval may take some time.",
+                    stringResource(id = R.string.import_in_progress_message),
                     fontSize = 14.sp
                 )
                 Spacer(Modifier.height(5.dp))
@@ -666,12 +628,12 @@ fun ImportFromSpotifyScreen(
             }) {
             Column(modifier = Modifier.padding(15.dp)) {
                 Text(
-                    text = "Choose \"Liked Songs\" Destination",
+                    text = stringResource(id = R.string.choose_liked_songs_destination),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(Modifier.height(5.dp))
-                Text(text = "Where should the liked songs be imported?")
+                Text(text = stringResource(id = R.string.liked_songs_destination_message))
                 Spacer(Modifier.height(15.dp))
                 Button(onClick = {
                     saveToDefaultLikedSongs.value = false
@@ -680,7 +642,7 @@ fun ImportFromSpotifyScreen(
                     )
                     isLikedSongsDestinationDialogShown.value = false
                 }, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "A new playlist named \"Liked Songs\"")
+                    Text(text = stringResource(id = R.string.new_playlist_liked_songs))
                 }
                 Spacer(Modifier.height(5.dp))
                 Button(onClick = {
@@ -690,14 +652,14 @@ fun ImportFromSpotifyScreen(
                     )
                     isLikedSongsDestinationDialogShown.value = false
                 }, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "In the default \"Liked Songs\"")
+                    Text(text = stringResource(id = R.string.default_liked_songs))
                 }
             }
         }
     }
     LaunchedEffect(importFromSpotifyViewModel.isImportingCompleted.value) {
         if (importFromSpotifyViewModel.isImportingCompleted.value) {
-            Toast.makeText(context, "Import Succeeded!", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, context.getString(R.string.import_succeeded), Toast.LENGTH_LONG).show()
             navController.navigateUp()
         }
     }
@@ -705,7 +667,7 @@ fun ImportFromSpotifyScreen(
         if (importFromSpotifyViewModel.isImportingInProgress.value) {
             Toast.makeText(
                 context,
-                "Don't close the app or go back. This operation doesn't run in the background, so stay put until it's done!",
+                context.getString(R.string.import_in_progress_warning),
                 Toast.LENGTH_SHORT
             ).show()
         } else {
@@ -718,3 +680,4 @@ fun ImportFromSpotifyScreen(
         }
     }
 }
+

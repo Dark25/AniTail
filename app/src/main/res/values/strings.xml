@@ -469,4 +469,38 @@
     <string name="import_online">Import a playlist (m3u) (autosearch)</string>
     <string name="import_csv">Import a playlist (csv) (autosearch)</string>
     <string name="playlist_add_local_to_synced_note">Note: Adding local songs to synced/remote playlists is unsupported. Any other combination is valid</string>
+    <string name="logged_in_as">Logged in as %1$s. Found %2$d playlists.\n\nNow, select the items you want to import:</string>
+    <string name="select_all">Select All</string>
+    <string name="fetching_all_playlists">Fetching all playlists...</string>
+    <string name="import_selected_items">Import Selected Items</string>
+    <string name="instruction_1">1. Visit <a href="https://developer.spotify.com/dashboard/">Spotify for developers dashboard</a> and click on "Create app".</string>
+    <string name="instruction_2">2. Enter the necessary details and use <b>http://127.0.0.1:8888</b> as the <b>Redirect URIs</b>.</string>
+    <string name="instruction_3">3. Make sure to click "Add" once you ve entered the local path above.</string>
+    <string name="instruction_4">4. Toggle <b>Web API</b>. The checkbox should now have a tick mark.</string>
+    <string name="instruction_5">5. Accept the terms of service and click "Save".</string>
+    <string name="instruction_6">You’ll be redirected to a new page. Click on Settings, then copy the Client ID and Client Secret, and paste them into the text fields below in this app.</string>
+    <string name="instruction_7">Now, click the <b>Authorize and Continue</b> button below and login with your account from which you want to import from, and Authorize and Continue, which will redirect you to a site which should start from <b>http://127.0.0.1:8888/?code=</b>\n\nPaste that entire URL in the below text field which says <b>Authorization Code</b> and click the <b>Authenticate</b> button.</string>
+    <string name="instruction_8">Make sure to click "Add" once you ve entered the local path above.</string>
+    <string name="instruction_9">Toggle <b>Web API</b>. The checkbox should now have a tick mark.</string>
+    <string name="instructions_title">Instructions to get required credentials</string>
+    <string name="spotify_dashboard">Spotify for developers dashboard</string>
+    <string name="spotify_redirect_uri">http://127.0.0.1:8888</string>
+    <string name="spotify_redirect_uri_label">Redirect URIs</string>
+    <string name="authorize_and_continue">Authorize and Continue</string>
+    <string name="authenticate">Authenticate</string>
+    <string name="import_in_progress">Import in progress…</string>
+    <string name="import_in_progress_message">Dont  close the app or go back. This operation doesn t run in the background, so stay put until it s done!</string>
+    <string name="choose_liked_songs_destination">Choose "Liked Songs" Destination</string>
+    <string name="liked_songs_destination_message">Where should the liked songs be imported?</string>
+    <string name="new_playlist_liked_songs">A new playlist named "Liked Songs"</string>
+    <string name="default_liked_songs">In the default "Liked Songs"</string>
+    <string name="import_succeeded">Import succeeded!</string>
+    <string name="import_in_progress_warning">Import in progress. Please wait!</string>
+    <string name="error_message">An error occurred</string>
+    <string name="stacktrace">Stacktrace</string>
+    <string name="error_stacktrace">No stacktrace available</string>
+    <string name="login_with_spotify_api_credentials">Login with Spotify API credentials</string>
+    <string name="client_id">Client ID</string>
+    <string name="client_secret">Client Secret</string>
+    <string name="authorization_code">Authorization Code</string>
 </resources>
