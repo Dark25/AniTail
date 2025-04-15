@@ -40,7 +40,7 @@
     <string name="no_title">Sin título</string>
     <string name="unknown_artist">Artista desconocido</string>
     <string name="unknown_item_type">Tipo de elemento desconocido</string>
-    <string name="loading_charts">Cargando listas...</string>
+    <string name="loading_charts">Cargando listas…</string>
     <string name="retry_button">Reintentar</string>
     <string name="album_cover_desc">Portada del álbum</string>
     <string name="top_music_videos">Videos musicales más populares</string>
@@ -57,8 +57,8 @@
 
     <!-- Búsqueda -->
     <string name="search">Buscar</string>
-    <string name="search_yt_music">Buscar en YouTube Music...</string>
-    <string name="search_library">Buscar en biblioteca...</string>
+    <string name="search_yt_music">Buscar en YouTube Music…</string>
+    <string name="search_library">Buscar en biblioteca…</string>
     <string name="filter_library">Biblioteca</string>
     <string name="filter_liked">Me gusta</string>
     <string name="filter_downloaded">Descargados</string>
@@ -464,6 +464,41 @@
         <item quantity="other">%d segundos</item>
     </plurals>
     <string name="import_online">Importar una lista de reproducción (m3u) (búsqueda automática)</string>
-    <string name="playlist_add_local_to_synced_note">Nota: No se admite agregar canciones locales a listas de reproducción sincronizadas o remotas. Cualquier otra combinación es válida.</string>
-
+    <string name="import_csv">Importar una lista de reproducción (csv) (búsqueda automática)</string>
+    <string name="playlist_add_local_to_synced_note">Nota: No se admite agregar canciones locales a listas sincronizadas/remotas. Cualquier otra combinación es válida</string>
+    <string name="logged_in_as">Has iniciado sesión como %1$s. Se encontraron %2$d listas de reproducción.\n\nAhora, selecciona los elementos que deseas importar:</string>
+    <string name="select_all">Seleccionar todo</string>
+    <string name="fetching_all_playlists">Obteniendo todas las listas de reproducción…</string>
+    <string name="import_selected_items">Importar elementos seleccionados</string>
+    <string name="instruction_1">1. Visita el <a href="https://developer.spotify.com/dashboard/">panel de desarrolladores de Spotify</a> y haz clic en "Crear aplicación".</string>
+    <string name="instruction_2">2. Ingresa los datos necesarios y usa <b>http://127.0.0.1:8888</b> como las <b>URIs de redirección</b>.</string>
+    <string name="instruction_3">3. Asegúrate de hacer clic en "Agregar" una vez que hayas ingresado la ruta local anterior.</string>
+    <string name="instruction_4">4. Activa <b>Web API</b>. La casilla debe estar marcada.</string>
+    <string name="instruction_5">5. Acepta los términos del servicio y haz clic en "Guardar".</string>
+    <string name="instruction_6">Serás redirigido a una nueva página. Haz clic en Configuración, luego copia el ID de Cliente y el Secreto de Cliente, y pégalos en los campos de texto a continuación en esta app.</string>
+    <string name="instruction_7">Ahora, haz clic en el botón <b>Autorizar y continuar</b> abajo e inicia sesión con la cuenta desde la que deseas importar, luego autoriza y continúa, lo que te redirigirá a un sitio que debería comenzar con <b>http://127.0.0.1:8888/?code=</b>\n\nPega esa URL completa en el campo de texto inferior que dice <b>Código de autorización</b> y haz clic en el botón <b>Autenticar</b>.</string>
+    <string name="instruction_8">Asegúrate de hacer clic en "Agregar" una vez que hayas ingresado la ruta local anterior.</string>
+    <string name="instruction_9">Activa <b>Web API</b>. La casilla debe estar marcada.</string>
+    <string name="instructions_title">Instrucciones para obtener las credenciales necesarias</string>
+    <string name="spotify_dashboard">Panel de desarrolladores de Spotify</string>
+    <string name="spotify_redirect_uri">http://127.0.0.1:8888</string>
+    <string name="spotify_redirect_uri_label">URIs de redirección</string>
+    <string name="authorize_and_continue">Autorizar y continuar</string>
+    <string name="authenticate">Autenticar</string>
+    <string name="import_in_progress">Importación en curso…</string>
+    <string name="import_in_progress_message">No cierres la app ni regreses. Esta operación no se ejecuta en segundo plano, ¡así que espera hasta que finalice!</string>
+    <string name="choose_liked_songs_destination">Elegir destino para "Canciones que te gustan"</string>
+    <string name="liked_songs_destination_message">¿Dónde se deben importar las canciones que te gustan?</string>
+    <string name="new_playlist_liked_songs">Una nueva lista llamada "Canciones que te gustan"</string>
+    <string name="default_liked_songs">En la lista predeterminada "Canciones que te gustan"</string>
+    <string name="import_succeeded">¡Importación completada con éxito!</string>
+    <string name="import_in_progress_warning">Importación en curso. ¡Por favor espera!</string>
+    <string name="error_message">Ocurrió un error</string>
+    <string name="stacktrace">Trazado de pila</string>
+    <string name="error_stacktrace">No hay trazado de pila disponible</string>
+    <string name="login_with_spotify_api_credentials">Iniciar sesión con credenciales de la API de Spotify</string>
+    <string name="client_id">ID de Cliente</string>
+    <string name="client_secret">Secreto de Cliente</string>
+    <string name="authorization_code">Código de autorización</string>
+    <string name="import_from_spotify">Importar desde Spotify</string>
 </resources>
