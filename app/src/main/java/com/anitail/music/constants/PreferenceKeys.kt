@@ -63,6 +63,8 @@ val DiscordUsernameKey = stringPreferencesKey("discordUsername")
 val DiscordNameKey = stringPreferencesKey("discordName")
 val EnableDiscordRPCKey = booleanPreferencesKey("discordRPCEnable")
 
+val SpotifyAccessTokenKey = stringPreferencesKey("spotify_access_token")
+val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
 val ChipSortTypeKey = stringPreferencesKey("chipSortType")
 val SongSortTypeKey = stringPreferencesKey("songSortType")
 val SongSortDescendingKey = booleanPreferencesKey("songSortDescending")

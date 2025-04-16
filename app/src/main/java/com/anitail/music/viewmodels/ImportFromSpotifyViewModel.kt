@@ -4,10 +4,13 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.datastore.preferences.core.edit // Added import
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.SongItem
+import com.anitail.music.constants.SpotifyAccessTokenKey
+import com.anitail.music.constants.SpotifyRefreshTokenKey
 import com.anitail.music.db.MusicDatabase
 import com.anitail.music.db.entities.ArtistEntity
 import com.anitail.music.db.entities.PlaylistEntity
@@ -22,7 +25,9 @@ import com.anitail.music.models.spotify.tracks.TrackItem
 import com.anitail.music.ui.screens.settings.import_from_spotify.model.ImportFromSpotifyScreenState
 import com.anitail.music.ui.screens.settings.import_from_spotify.model.ImportProgressEvent
 import com.anitail.music.ui.screens.settings.import_from_spotify.model.Playlist
+import com.anitail.music.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.basicAuth
@@ -39,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -49,6 +55,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ImportFromSpotifyViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val httpClient: HttpClient, private val localDatabase: MusicDatabase
 ) : ViewModel() {
     val importFromSpotifyScreenState = mutableStateOf(
@@ -68,6 +75,134 @@ class ImportFromSpotifyViewModel @Inject constructor(
     val isLikedSongsSelectedForImport = mutableStateOf(false)
     val isImportingCompleted = mutableStateOf(false)
     val isImportingInProgress = mutableStateOf(false)
+
+    init {
+        checkAndUseExistingTokens()
+    }
+
+    private fun checkAndUseExistingTokens() {
+        viewModelScope.launch {
+            importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(isRequesting = true)
+            val accessToken = context.dataStore.data.firstOrNull()?.get(SpotifyAccessTokenKey)
+            val refreshToken = context.dataStore.data.firstOrNull()?.get(SpotifyRefreshTokenKey)
+
+            if (accessToken != null) {
+                try {
+                    // Try using the existing access token
+                    val userProfile = getUserProfileFromSpotify(accessToken, context)
+                    if (userProfile.displayName.isNotEmpty()) { // Check if token is valid by fetching profile
+                        importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                            accessToken = accessToken,
+                            userName = userProfile.displayName,
+                            isObtainingAccessTokenSuccessful = true,
+                            isRequesting = false
+                        )
+                        fetchInitialPlaylists(accessToken)
+                    } else {
+                        if (refreshToken != null) {
+                            refreshAccessToken(refreshToken)
+                        } else {
+                            clearTokensAndResetState()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.tag("SpotifyAuth").e(e, "Error validating access token")
+                    //
+                    if (refreshToken != null) {
+                        importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                            isRequesting = false,
+                            error = true,
+                            exception = Exception("Client credentials required for token refresh"),
+                            needsCredentialsForRefresh = true,
+                            storedRefreshToken = refreshToken
+                        )
+                    } else {
+                        // No refresh token, need to login
+                        clearTokensAndResetState()
+                    }
+                }
+            } else {
+                // No access token found, need to login
+                importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(isRequesting = false, isObtainingAccessTokenSuccessful = false)
+            }
+        }
+    }
+
+    private suspend fun refreshAccessToken(refreshToken: String, spotifyClientId: String = "", spotifyClientSecret: String = "") {
+        // Check if credentials are provided
+        if (spotifyClientId.isBlank() || spotifyClientSecret.isBlank()) {
+            importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                isRequesting = false,
+                error = true,
+                exception = Exception("Client credentials required to refresh token"),
+                isObtainingAccessTokenSuccessful = false
+            )
+            return
+        }
+        try {
+            val response = httpClient.post(urlString = "https://accounts.spotify.com/api/token") {
+                basicAuth(spotifyClientId, spotifyClientSecret) // Use injected credentials
+                setBody(FormDataContent(Parameters.build {
+                    append("grant_type", "refresh_token")
+                    append("refresh_token", refreshToken)
+                }))
+            }
+
+            if (response.status.isSuccess()) {
+                val authResponse = response.body<SpotifyAuthResponse>()
+                val newAccessToken = authResponse.accessToken
+                // Spotify might issue a new refresh token, store it if provided
+                val newRefreshToken = authResponse.refreshToken ?: refreshToken
+
+                // Save new tokens
+                context.dataStore.edit {
+                    it[SpotifyAccessTokenKey] = newAccessToken
+                    it[SpotifyRefreshTokenKey] = newRefreshToken
+                }
+
+                Timber.tag("SpotifyAuth").d("Access token refreshed successfully")
+
+                // Use the new access token
+                val userProfile = getUserProfileFromSpotify(newAccessToken, context)
+                importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                    accessToken = newAccessToken,
+                    userName = userProfile.displayName,
+                    isObtainingAccessTokenSuccessful = true,
+                    isRequesting = false
+                )
+                fetchInitialPlaylists(newAccessToken)
+
+            } else {
+                Timber.tag("SpotifyAuth").e("Failed to refresh token: ${response.status} - ${response.bodyAsText()}")
+                // Refresh failed, clear tokens and require login
+                clearTokensAndResetState()
+            }
+        } catch (e: Exception) {
+            Timber.tag("SpotifyAuth").e(e, "Exception during token refresh")
+            // Exception during refresh, clear tokens and require login
+            clearTokensAndResetState()
+        }
+    }
+
+    private suspend fun clearTokensAndResetState() {
+        context.dataStore.edit {
+            it.remove(SpotifyAccessTokenKey)
+            it.remove(SpotifyRefreshTokenKey)
+        }
+        importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+            isRequesting = false,
+            accessToken = "",
+            error = false, // Reset error state
+            exception = null,
+            userName = "",
+            isObtainingAccessTokenSuccessful = false,
+            playlists = emptyList(),
+            totalPlaylistsCount = 0,
+            reachedEndForPlaylistPagination = false
+        )
+        // Reset pagination state
+        playListPaginationOffset = -paginatedResultsLimit
+    }
     fun spotifyLoginAndFetchPlaylists(
         clientId: String, clientSecret: String, authorizationCode: String, context: Context
     ) {
@@ -92,32 +227,28 @@ class ImportFromSpotifyViewModel @Inject constructor(
                         if (response.status.isSuccess()) {
                             importFromSpotifyScreenState.value =
                                 importFromSpotifyScreenState.value.copy(
-                                    accessToken = response.body<SpotifyAuthResponse>().accessToken,
+                                    accessToken = response.body<SpotifyAuthResponse>().accessToken, // Keep this for immediate use
                                     isRequesting = false,
                                     isObtainingAccessTokenSuccessful = true
                                 )
 
-                            logTheString(importFromSpotifyScreenState.value.accessToken)
+                           // Save tokens to DataStore
+                           val authResponse = response.body<SpotifyAuthResponse>()
+                           context.dataStore.edit {
+                               it[SpotifyAccessTokenKey] = authResponse.accessToken
+                               authResponse.refreshToken?.let { refreshToken ->
+                                   it[SpotifyRefreshTokenKey] = refreshToken
+                               }
+                           }
 
-                            getUserProfileFromSpotify(
-                                importFromSpotifyScreenState.value.accessToken, context
-                            ).let {
-                                importFromSpotifyScreenState.value =
-                                    importFromSpotifyScreenState.value.copy(
-                                        userName = it.displayName
-                                    )
-                            }
+                            logTheString("Access token obtained and saved.") // Updated log
 
-                            getPlaylists(
-                                importFromSpotifyScreenState.value.accessToken, context
-                            ).let {
-                                importFromSpotifyScreenState.value =
-                                    importFromSpotifyScreenState.value.copy(
-                                        playlists = importFromSpotifyScreenState.value.playlists + it.items,
-                                        totalPlaylistsCount = importFromSpotifyScreenState.value.totalPlaylistsCount,
-                                        reachedEndForPlaylistPagination = it.nextUrl == null
-                                    )
-                            }
+                            // Fetch profile and initial playlists after successful login
+                            val userProfile = getUserProfileFromSpotify(importFromSpotifyScreenState.value.accessToken, context)
+                            importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                                userName = userProfile.displayName
+                            )
+                            fetchInitialPlaylists(importFromSpotifyScreenState.value.accessToken)
 
                         } else {
                             throw Exception("Request failed with status code : ${response.status.value}\n${response.bodyAsText()}")
@@ -136,14 +267,41 @@ class ImportFromSpotifyViewModel @Inject constructor(
         }
     }
 
+    // Extracted playlist fetching logic
+    private fun fetchInitialPlaylists(token: String) {
+        viewModelScope.launch {
+            // Reset pagination before fetching initial playlists
+            playListPaginationOffset = -paginatedResultsLimit
+            importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                playlists = emptyList(), // Clear existing playlists before fetching new ones
+                totalPlaylistsCount = 0,
+                reachedEndForPlaylistPagination = false
+            )
+            getPlaylists(token, context).let {
+                importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
+                    playlists = it.items, // Replace, don't append
+                    totalPlaylistsCount = it.totalResults ?: 0,
+                    reachedEndForPlaylistPagination = it.nextUrl == null
+                )
+            }
+        }
+    }
+
     private var paginatedResultsLimit = 50
     private var playListPaginationOffset = -paginatedResultsLimit
 
     fun retrieveNextPageOfPlaylists(context: Context) {
+        // Ensure we have a valid token before fetching next page
+        val currentToken = importFromSpotifyScreenState.value.accessToken
+        if (currentToken.isBlank()) {
+            logTheString("Cannot retrieve next page, no valid access token.")
+            // Optionally trigger re-login or refresh here if needed
+            return
+        }
         viewModelScope.launch {
             importFromSpotifyScreenState.value =
                 importFromSpotifyScreenState.value.copy(isRequesting = true)
-            getPlaylists(importFromSpotifyScreenState.value.accessToken, context).let {
+            getPlaylists(currentToken, context).let {
                 importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
                     playlists = importFromSpotifyScreenState.value.playlists + it.items,
                     totalPlaylistsCount = it.totalResults ?: 0,
@@ -201,9 +359,11 @@ class ImportFromSpotifyViewModel @Inject constructor(
     private suspend fun getPlaylists(
         authToken: String, context: Context
     ): SpotifyPlaylistPaginatedResponse {
-        playListPaginationOffset += paginatedResultsLimit
+        if (playListPaginationOffset >= -paginatedResultsLimit) {
+             playListPaginationOffset += paginatedResultsLimit
+        }
         return try {
-            httpClient.get("https://api.spotify.com/v1/me/playlists?offset=${playListPaginationOffset}&limit=$paginatedResultsLimit") {
+            httpClient.get("https://api.spotify.com/v1/me/playlists?offset=${playListPaginationOffset.coerceAtLeast(0)}&limit=$paginatedResultsLimit") {
                 bearerAuth(authToken)
             }.body<SpotifyPlaylistPaginatedResponse>()
         } catch (e: Exception) {
@@ -246,13 +406,12 @@ class ImportFromSpotifyViewModel @Inject constructor(
         return try {
             Result.success(httpClient.post(urlString = "https://accounts.spotify.com/api/token") {
                 basicAuth(clientId, clientSecret)
-                setBody(
-                    FormDataContent(Parameters.build {
-                        append("grant_type", "authorization_code")
-                        append("code", authorizationCode)
-                        append("redirect_uri", "http://127.0.0.1:8888")
-                    })
-                )
+                setBody(FormDataContent(Parameters.build {
+                   append("grant_type", "authorization_code")
+                   append("code", authorizationCode)
+                    // Use the correct redirect URI configured in Spotify Developer Dashboard
+                    append("redirect_uri", "http://127.0.0.1:8888")
+               }))
             })
         } catch (e: Exception) {
             Toast.makeText(context, e.message.toString(), Toast.LENGTH_SHORT).show()
