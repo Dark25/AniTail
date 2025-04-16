@@ -483,8 +483,17 @@ interface DatabaseDao {
 
     @Transaction
     @Query("SELECT * FROM Song WHERE id = :songId LIMIT 1")
-    fun getSongById(songId: String): Song?
+    suspend fun getSongById(songId: String): Song?
 
+    @Transaction
+    @Query("SELECT * FROM Song WHERE id = :songId LIMIT 1")
+    fun getSongByIdBlocking(songId: String): Song?
+
+    @Transaction
+    @Query("SELECT * FROM Song WHERE id IN (:songIds)")
+    suspend fun getSongsByIds(songIds: List<String>): List<Song>
+
+    
     @Transaction
     @Query("SELECT * FROM song_artist_map WHERE songId = :songId")
     fun songArtistMap(songId: String): List<SongArtistMap>
@@ -1077,7 +1086,7 @@ interface DatabaseDao {
             .map(SongItem::toMediaMetadata)
             .onEach(::insert)
             .onEach {
-                val existingSong = getSongById(it.id)
+                val existingSong = getSongByIdBlocking(it.id)
                 if (existingSong != null) {
                     update(existingSong, it)
                 }
@@ -1191,7 +1200,7 @@ interface DatabaseDao {
             .map(SongItem::toMediaMetadata)
             .onEach(::insert)
             .onEach {
-                val existingSong = getSongById(it.id)
+                val existingSong = getSongByIdBlocking(it.id)
                 if (existingSong != null) {
                     update(existingSong, it)
                 }
@@ -1247,6 +1256,9 @@ interface DatabaseDao {
 
     @Upsert
     fun upsert(format: FormatEntity)
+
+    @Upsert
+    fun upsert(song: SongEntity)
 
     @Delete
     fun delete(song: SongEntity)

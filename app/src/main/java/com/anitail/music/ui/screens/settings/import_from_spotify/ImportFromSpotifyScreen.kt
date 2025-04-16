@@ -516,8 +516,7 @@ fun ImportFromSpotifyScreen(
             )
             Button(
                 onClick = {
-                    localUriHandler.openUri("https://accounts.spotify.com/authorize?client_id=${spotifyClientId.value}&response_type=code&redirect_uri=http://127.0.0.1:8888&scope=user-library-read playlist-read-private")
-                }, modifier = Modifier
+                    localUriHandler.openUri("https://accounts.spotify.com/authorize?client_id=${spotifyClientId.value}&response_type=code&redirect_uri=http://127.0.0.1:8888&scope=user-library-read%20playlist-read-private%20playlist-read-collaborative")                }, modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 15.dp, end = 15.dp)
             ) {

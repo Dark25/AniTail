@@ -17,12 +17,14 @@ import com.anitail.music.constants.AudioQuality
 import com.anitail.music.constants.AudioQualityKey
 import com.anitail.music.db.MusicDatabase
 import com.anitail.music.db.entities.FormatEntity
+import com.anitail.music.db.entities.SongEntity
 import com.anitail.music.di.DownloadCache
 import com.anitail.music.di.PlayerCache
 import com.anitail.music.utils.YTPlayerUtils
 import com.anitail.music.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import java.time.LocalDateTime
 import java.util.concurrent.Executor
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -47,6 +50,9 @@ constructor(
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val songUrlCache = HashMap<String, Pair<String, Long>>()
+
+    val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
+
     private val dataSourceFactory =
         ResolvingDataSource.Factory(
             CacheDataSource
@@ -54,10 +60,7 @@ constructor(
                 .setCache(playerCache)
                 .setUpstreamDataSourceFactory(
                     OkHttpDataSource.Factory(
-                        OkHttpClient
-                            .Builder()
-                            .proxy(YouTube.proxy)
-                            .build(),
+                        OkHttpClient.Builder().proxy(YouTube.proxy).build(),
                     ),
                 ),
         ) { dataSpec ->
@@ -97,18 +100,36 @@ constructor(
                         playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
                     ),
                 )
+
+                val now = LocalDateTime.now()
+                val existing = getSongByIdBlocking(mediaId)?.song
+
+                val updatedSong = if (existing != null) {
+                    if (existing.dateDownload == null) existing.copy(dateDownload = now) else existing
+                } else {
+                    SongEntity(
+                        id = mediaId,
+                        title = playbackData.videoDetails?.title ?: "Unknown",
+                        duration = playbackData.videoDetails?.lengthSeconds?.toIntOrNull() ?: 0,
+                        thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
+                        dateDownload = now
+                    )
+                }
+
+                upsert(updatedSong)
             }
 
             val streamUrl = playbackData.streamUrl.let {
-                // Specify range to avoid YouTube's throttling
                 "${it}&range=0-${format.contentLength ?: 10000000}"
             }
 
             songUrlCache[mediaId] = streamUrl to System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
             dataSpec.withUri(streamUrl.toUri())
         }
+
     val downloadNotificationHelper =
         DownloadNotificationHelper(context, ExoDownloadService.CHANNEL_ID)
+
     val downloadManager: DownloadManager =
         DownloadManager(
             context,
@@ -119,16 +140,21 @@ constructor(
         ).apply {
             maxParallelDownloads = 3
             addListener(
-                ExoDownloadService.TerminalStateNotificationHelper(
-                    context = context,
-                    notificationHelper = downloadNotificationHelper,
-                    nextNotificationId = ExoDownloadService.NOTIFICATION_ID + 1,
-                ),
+                object : DownloadManager.Listener {
+                    override fun onDownloadChanged(
+                        downloadManager: DownloadManager,
+                        download: Download,
+                        finalException: Exception?,
+                    ) {
+                        downloads.update { map ->
+                            map.toMutableMap().apply {
+                                set(download.request.id, download)
+                            }
+                        }
+                    }
+                }
             )
         }
-    val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
-
-    fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
 
     init {
         val result = mutableMapOf<String, Download>()
@@ -137,20 +163,7 @@ constructor(
             result[cursor.download.request.id] = cursor.download
         }
         downloads.value = result
-        downloadManager.addListener(
-            object : DownloadManager.Listener {
-                override fun onDownloadChanged(
-                    downloadManager: DownloadManager,
-                    download: Download,
-                    finalException: Exception?,
-                ) {
-                    downloads.update { map ->
-                        map.toMutableMap().apply {
-                            set(download.request.id, download)
-                        }
-                    }
-                }
-            },
-        )
     }
+
+    fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
 }

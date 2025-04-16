@@ -61,6 +61,9 @@ import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
 import com.anitail.music.constants.AlbumThumbnailSize
+import com.anitail.music.constants.SongSortDescendingKey
+import com.anitail.music.constants.SongSortType
+import com.anitail.music.constants.SongSortTypeKey
 import com.anitail.music.constants.ThumbnailCornerRadius
 import com.anitail.music.db.entities.Song
 import com.anitail.music.extensions.toMediaItem
@@ -70,18 +73,22 @@ import com.anitail.music.ui.component.EmptyPlaceholder
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.LocalMenuState
 import com.anitail.music.ui.component.SongListItem
+import com.anitail.music.ui.component.SortHeader
 import com.anitail.music.ui.menu.SelectionSongMenu
 import com.anitail.music.ui.menu.SongMenu
 import com.anitail.music.ui.utils.ItemWrapper
 import com.anitail.music.ui.utils.backToMain
-import com.anitail.music.viewmodels.HistoryViewModel
+import com.anitail.music.utils.rememberEnumPreference
+import com.anitail.music.utils.rememberPreference
+import com.anitail.music.viewmodels.CachePlaylistViewModel
+import java.time.LocalDateTime
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CachePlaylistScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
-    viewModel: HistoryViewModel = hiltViewModel(),
+    viewModel: CachePlaylistViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val menuState = LocalMenuState.current
@@ -91,24 +98,26 @@ fun CachePlaylistScreen(
 
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val events by viewModel.events.collectAsState()
+    val cachedSongs by viewModel.cachedSongs.collectAsState()
 
-    val playerCache = LocalPlayerConnection.current?.service?.playerCache
+    val (sortType, onSortTypeChange) = rememberEnumPreference(
+        SongSortTypeKey,
+        SongSortType.CREATE_DATE
+    )
+    val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
 
-    val cachedSongIds = remember(playerCache) {
-        playerCache?.keys?.mapNotNull { it?.toString() }?.toSet() ?: emptySet()
-    }
-
-    val allSongs = remember(events, cachedSongIds) {
-        events.values.flatten()
-            .map { it.song }
-            .distinctBy { it.id }
-            .filter { it.id in cachedSongIds }
-    }
-
-    val wrappedSongs = remember(allSongs) {
+    val wrappedSongs = remember(cachedSongs, sortType, sortDescending) {
         mutableStateListOf<ItemWrapper<Song>>().apply {
-            addAll(allSongs.map { ItemWrapper(it) })
+            val sortedSongs = when (sortType) {
+                SongSortType.CREATE_DATE -> cachedSongs.sortedBy { it.song.dateDownload ?: LocalDateTime.MIN }
+                SongSortType.NAME -> cachedSongs.sortedBy { it.song.title }
+                SongSortType.ARTIST -> cachedSongs.sortedBy { song ->
+                    song.artists.joinToString(separator = "") { it.name }
+                }
+                SongSortType.PLAY_TIME -> cachedSongs.sortedBy { it.song.totalPlayTime }
+            }.let { if (sortDescending) it.reversed() else it }
+
+            addAll(sortedSongs.map { song -> ItemWrapper(song) })
         }
     }
 
@@ -133,13 +142,11 @@ fun CachePlaylistScreen(
         }
     }
 
-    val state = rememberLazyListState()
-
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
         LazyColumn(
-            state = state,
+            state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             if (filteredSongs.isEmpty()) {
@@ -238,6 +245,29 @@ fun CachePlaylistScreen(
                                     Text(stringResource(R.string.shuffle))
                                 }
                             }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 16.dp),
+                        ) {
+                            SortHeader(
+                                sortType = sortType,
+                                sortDescending = sortDescending,
+                                onSortTypeChange = onSortTypeChange,
+                                onSortDescendingChange = onSortDescendingChange,
+                                sortTypeText = { sortType ->
+                                    when (sortType) {
+                                        SongSortType.CREATE_DATE -> R.string.sort_by_create_date
+                                        SongSortType.NAME -> R.string.sort_by_name
+                                        SongSortType.ARTIST -> R.string.sort_by_artist
+                                        SongSortType.PLAY_TIME -> R.string.sort_by_play_time
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }
