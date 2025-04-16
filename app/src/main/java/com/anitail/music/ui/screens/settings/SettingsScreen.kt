@@ -60,6 +60,14 @@ fun SettingsScreen(
             else -> context.getString(R.string.good_evening)
         }
     }
+    val timeBasedImage = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 6..11 -> R.drawable.ic_user_device_day
+            in 12..18 -> R.drawable.ic_user_device_afternoon
+            else -> R.drawable.ic_user_device_night
+        }
+    }
 
     Column(
         Modifier
@@ -88,7 +96,7 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_user_device),
+                    painter = painterResource(id = timeBasedImage),
                     contentDescription = null,
                     modifier = Modifier
                         .size(170.dp)
