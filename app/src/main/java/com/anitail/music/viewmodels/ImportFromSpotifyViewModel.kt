@@ -106,7 +106,6 @@ class ImportFromSpotifyViewModel @Inject constructor(
                         }
                     }
                 } catch (e: Exception) {
-                    Timber.tag("SpotifyAuth").e(e, "Error validating access token")
                     //
                     if (refreshToken != null) {
                         importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
@@ -160,8 +159,6 @@ class ImportFromSpotifyViewModel @Inject constructor(
                     it[SpotifyRefreshTokenKey] = newRefreshToken
                 }
 
-                Timber.tag("SpotifyAuth").d("Access token refreshed successfully")
-
                 // Use the new access token
                 val userProfile = getUserProfileFromSpotify(newAccessToken, context)
                 importFromSpotifyScreenState.value = importFromSpotifyScreenState.value.copy(
@@ -173,13 +170,9 @@ class ImportFromSpotifyViewModel @Inject constructor(
                 fetchInitialPlaylists(newAccessToken)
 
             } else {
-                Timber.tag("SpotifyAuth").e("Failed to refresh token: ${response.status} - ${response.bodyAsText()}")
-                // Refresh failed, clear tokens and require login
                 clearTokensAndResetState()
             }
         } catch (e: Exception) {
-            Timber.tag("SpotifyAuth").e(e, "Exception during token refresh")
-            // Exception during refresh, clear tokens and require login
             clearTokensAndResetState()
         }
     }
@@ -240,8 +233,6 @@ class ImportFromSpotifyViewModel @Inject constructor(
                                    it[SpotifyRefreshTokenKey] = refreshToken
                                }
                            }
-
-                            logTheString("Access token obtained and saved.") // Updated log
 
                             // Fetch profile and initial playlists after successful login
                             val userProfile = getUserProfileFromSpotify(importFromSpotifyScreenState.value.accessToken, context)

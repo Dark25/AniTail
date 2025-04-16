@@ -504,4 +504,8 @@
     <string name="client_id">Client ID</string>
     <string name="client_secret">Client Secret</string>
     <string name="authorization_code">Authorization Code</string>
+    <!-- Welcome -->
+    <string name="good_morning">Good morning</string>
+    <string name="good_afternoon">Good afternoon</string>
+    <string name="good_evening">Good night</string>
 </resources>

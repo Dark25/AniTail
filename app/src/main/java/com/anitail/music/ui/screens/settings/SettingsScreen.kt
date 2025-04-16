@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +38,7 @@ import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.PreferenceEntry
 import com.anitail.music.ui.component.ReleaseNotesCard
 import com.anitail.music.ui.utils.backToMain
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +50,16 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    // Greeting message based on time of day
+    val welcomeMessage = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 6..11 -> context.getString(R.string.good_morning)
+            in 12..18 -> context.getString(R.string.good_afternoon)
+            else -> context.getString(R.string.good_evening)
+        }
+    }
 
     Column(
         Modifier
@@ -62,7 +74,6 @@ fun SettingsScreen(
             )
         )
 
-        // --- User Device Card (adjusted image size and alignment) ---
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -80,26 +91,26 @@ fun SettingsScreen(
                     painter = painterResource(id = R.drawable.ic_user_device),
                     contentDescription = null,
                     modifier = Modifier
-                        .size(170.dp) // Increased size for better visual match
-                        .padding(end = 24.dp) // More space between image and text
+                        .size(170.dp)
+                        .padding(end = 24.dp)
                 )
                 Column(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "User Device",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = welcomeMessage,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${Build.MODEL}\n(${Build.DEVICE})",
+                        text = "${stringResource(R.string.device)} ${Build.MODEL}\n(${Build.DEVICE})",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         }
-        // --- End User Device Card ---
 
         PreferenceEntry(
             title = { Text(stringResource(R.string.appearance)) },
