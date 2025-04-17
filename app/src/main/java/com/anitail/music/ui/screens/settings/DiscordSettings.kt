@@ -2,7 +2,6 @@ package com.anitail.music.ui.screens.settings
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.anitail.music.LocalPlayerAwareWindowInsets
@@ -237,7 +237,7 @@ fun DiscordSettings(
     )
 }
 
-@SuppressLint("AutoboxingStateValueProperty")
+@SuppressLint("AutoboxingStateValueProperty", "UseKtx")
 @Composable
 fun RichPresence(song: Song?) {
     val context = LocalContext.current
@@ -412,7 +412,7 @@ fun RichPresence(song: Song?) {
                 onClick = {
                     val intent = Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse("https://music.youtube.com/watch?v=${song?.id}")
+                        "https://music.youtube.com/watch?v=${song?.id}".toUri()
                     )
                     context.startActivity(intent)
                 },
@@ -425,13 +425,13 @@ fun RichPresence(song: Song?) {
                 onClick = {
                     val intent = Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse("https://github.com/Animetailapp/Anitail")
+                        "https://discord.gg/H8x3yNbc67".toUri()
                     )
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Visit Anitail Music")
+                Text("Vistit our Discord")
             }
         }
     }
