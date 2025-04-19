@@ -1,5 +1,5 @@
 [versions]
-androidGradlePlugin = "8.11.0-alpha06"
+androidGradlePlugin = "8.11.0-alpha07"
 annotation = "1.9.1" 
 json = "20250107"
 jsoup = "1.19.1"
@@ -13,7 +13,6 @@ hilt = "2.56.1"
 ktor = "3.1.2"
 ksp = "2.1.20-2.0.0"
 webkit = "1.12.1"
-newpipe = "dev-SNAPSHOT"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -81,7 +80,7 @@ junit = { group = "junit", name = "junit", version = "4.13.2" }
 
 timber = { group = "com.jakewharton.timber", name = "timber", version = "5.0.1" }
 
-newpipe-extractor = { group = "com.github.libre-tube", name = "NewPipeExtractor", version.ref = "newpipe" }
+newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version = "v0.24.5" }
 
 [plugins]
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
