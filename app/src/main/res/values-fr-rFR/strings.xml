@@ -310,4 +310,8 @@
     <string name="views">Views</string>
     <string name="likes">Likes</string>
     <string name="dislikes">Dislikes</string>
+    <string name="auto_download_on_like">Téléchargement automatique lors du like</string>
+    <string name="auto_download_on_like_desc">Télécharger automatiquement les chansons lorsque vous les aimez</string>
+    <string name="auto_download_lyrics">Téléchargement automatique des paroles</string>
+    <string name="auto_download_lyrics_desc">Télécharger automatiquement les paroles des chansons téléchargées</string>
 </resources>

@@ -393,6 +393,10 @@
     <string name="views">Views</string>
     <string name="likes">Likes</string>
     <string name="dislikes">Dislikes</string>
+    <string name="auto_download_on_like">Baixar automaticamente ao curtir</string>
+    <string name="auto_download_on_like_desc">Baixar automaticamente músicas quando você as curtir</string>
+    <string name="auto_download_lyrics">Baixar letras automaticamente</string>
+    <string name="auto_download_lyrics_desc">Baixar automaticamente as letras das músicas baixadas</string>
     <plurals name="seconds">
         <item quantity="one">1 segundo</item>
         <item quantity="other">%d segundos</item>

@@ -58,6 +58,7 @@ import com.anitail.music.MainActivity
 import com.anitail.music.R
 import com.anitail.music.constants.AudioNormalizationKey
 import com.anitail.music.constants.AudioQualityKey
+import com.anitail.music.constants.AutoDownloadLyricsKey
 import com.anitail.music.constants.AutoDownloadOnLikeKey
 import com.anitail.music.constants.AutoLoadMoreKey
 import com.anitail.music.constants.AutoSkipNextOnErrorKey
@@ -123,6 +124,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -649,6 +651,25 @@ class MusicService :
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == null) {
+            return super.onStartCommand(intent, flags, startId)
+        }
+        
+        when (intent.action) {
+            ACTION_DOWNLOAD_LYRICS -> {
+                val songId = intent.getStringExtra(EXTRA_SONG_ID)
+                if (songId != null) {
+                    scope.launch {
+                        downloadLyricsForSong(songId)
+                    }
+                }
+            }
+        }
+        
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     fun toggleLike() {
          database.query {
              currentSong.value?.let {
@@ -670,7 +691,32 @@ class MusicService :
                          downloadRequest,
                          false
                      )
+                     
+                     // Download lyrics if auto-download lyrics is enabled
+                     if (dataStore.get(AutoDownloadLyricsKey, false)) {
+                         scope.launch {
+                             downloadLyricsForSong(song.id)
+                         }
+                     }
                  }
+             }
+         }
+     }
+     
+     /**
+      * Downloads lyrics for a specific song
+      */
+     suspend fun downloadLyricsForSong(songId: String) {
+         val mediaMetadata = database.song(songId).firstOrNull()?.toMediaMetadata() ?: return
+         if (database.lyrics(songId).firstOrNull() == null) {
+             val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+             database.query {
+                 upsert(
+                     LyricsEntity(
+                         id = songId,
+                         lyrics = lyrics,
+                     ),
+                 )
              }
          }
      }
@@ -1039,5 +1085,9 @@ class MusicService :
         const val CHUNK_LENGTH = 512 * 1024L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
+        
+        // Constants for lyrics download action
+        const val ACTION_DOWNLOAD_LYRICS = "com.anitail.music.action.DOWNLOAD_LYRICS"
+        const val EXTRA_SONG_ID = "com.anitail.music.extra.SONG_ID"
     }
 }

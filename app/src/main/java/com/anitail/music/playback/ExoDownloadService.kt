@@ -5,6 +5,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.media3.common.util.NotificationUtil
 import androidx.media3.common.util.Util
 import androidx.media3.exoplayer.offline.Download
@@ -42,6 +44,7 @@ class ExoDownloadService : DownloadService(
 
     override fun getScheduler(): Scheduler = PlatformScheduler(this, JOB_ID)
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun getForegroundNotification(
         downloads: MutableList<Download>,
         notMetRequirements: Int
@@ -93,6 +96,16 @@ class ExoDownloadService : DownloadService(
                     Util.fromUtf8Bytes(download.request.data)
                 )
                 NotificationUtil.setNotification(context, nextNotificationId++, notification)
+            } else if (download.state == Download.STATE_COMPLETED) {
+                // Check if auto-download lyrics is enabled
+                val songId = download.request.id
+                
+                // Use Intent to communicate with MusicService to download lyrics
+                val intent = Intent(context, MusicService::class.java).apply {
+                    action = MusicService.ACTION_DOWNLOAD_LYRICS
+                    putExtra(MusicService.EXTRA_SONG_ID, songId)
+                }
+                context.startService(intent)
             }
         }
     }

@@ -22,6 +22,7 @@ import com.anitail.music.R
 import com.anitail.music.constants.AudioNormalizationKey
 import com.anitail.music.constants.AudioQuality
 import com.anitail.music.constants.AudioQualityKey
+import com.anitail.music.constants.AutoDownloadLyricsKey
 import com.anitail.music.constants.AutoDownloadOnLikeKey
 import com.anitail.music.constants.AutoLoadMoreKey
 import com.anitail.music.constants.AutoSkipNextOnErrorKey
@@ -80,6 +81,10 @@ fun PlayerSettings(
     )
     val (autoDownloadOnLike, onAutoDownloadOnLikeChange) = rememberPreference(
         AutoDownloadOnLikeKey,
+        defaultValue = false
+    )
+    val (autoDownloadLyrics, onAutoDownloadLyricsChange) = rememberPreference(
+        AutoDownloadLyricsKey,
         defaultValue = false
     )
     val (historyDuration, onHistoryDurationChange) = rememberPreference(
@@ -192,6 +197,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.download), null) },
             checked = autoDownloadOnLike,
             onCheckedChange = onAutoDownloadOnLikeChange
+        )
+        
+        SwitchPreference(
+            title = { Text(stringResource(R.string.auto_download_lyrics)) },
+            description = stringResource(R.string.auto_download_lyrics_desc),
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = autoDownloadLyrics,
+            onCheckedChange = onAutoDownloadLyricsChange
         )
     }
 

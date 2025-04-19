@@ -367,6 +367,8 @@
     <string name="equalizer">Ecualizador</string>
     <string name="auto_download_on_like">Descargar automáticamente al dar me gusta</string>
     <string name="auto_download_on_like_desc">Descargar automáticamente las canciones cuando las marcas como favoritas</string>
+    <string name="auto_download_lyrics">Descargar letras automáticamente</string>
+    <string name="auto_download_lyrics_desc">Descargar automáticamente las letras de las canciones descargadas</string>
     <string name="min_playback_duration_title">Duración mínima de reproducción</string>
     <string name="min_playback_duration_description">La cantidad mínima de una canción que debe reproducirse antes de considerarse \"reproducida\"</string>
     <string name="percentage_format">%d%%</string>
