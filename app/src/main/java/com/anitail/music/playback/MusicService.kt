@@ -58,6 +58,7 @@ import com.anitail.music.MainActivity
 import com.anitail.music.R
 import com.anitail.music.constants.AudioNormalizationKey
 import com.anitail.music.constants.AudioQualityKey
+import com.anitail.music.constants.AutoDownloadOnLikeKey
 import com.anitail.music.constants.AutoLoadMoreKey
 import com.anitail.music.constants.AutoSkipNextOnErrorKey
 import com.anitail.music.constants.DiscordTokenKey
@@ -654,6 +655,22 @@ class MusicService :
                  val song = it.song.toggleLike()
                  update(song)
                  syncUtils.likeSong(song)
+                 
+                 // Check if auto-download on like is enabled and the song is now liked
+                 if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
+                     // Trigger download for the liked song
+                     val downloadRequest = androidx.media3.exoplayer.offline.DownloadRequest
+                         .Builder(song.id, song.id.toUri())
+                         .setCustomCacheKey(song.id)
+                         .setData(song.title.toByteArray())
+                         .build()
+                     androidx.media3.exoplayer.offline.DownloadService.sendAddDownload(
+                         this@MusicService,
+                         ExoDownloadService::class.java,
+                         downloadRequest,
+                         false
+                     )
+                 }
              }
          }
      }
