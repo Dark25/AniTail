@@ -306,6 +306,7 @@ fun AppearanceSettings(
                     DarkMode.ON -> stringResource(R.string.dark_theme_on)
                     DarkMode.OFF -> stringResource(R.string.dark_theme_off)
                     DarkMode.AUTO -> stringResource(R.string.dark_theme_follow_system)
+                    DarkMode.TIME_BASED -> stringResource(R.string.dark_theme_time_based)
                 }
             },
         )
@@ -478,6 +479,7 @@ enum class DarkMode {
     ON,
     OFF,
     AUTO,
+    TIME_BASED
 }
 
 enum class NavigationTab {

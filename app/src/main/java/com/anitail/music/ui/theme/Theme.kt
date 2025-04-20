@@ -16,29 +16,47 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
+import com.anitail.music.ui.screens.settings.DarkMode
 import com.google.material.color.dynamiccolor.DynamicScheme
 import com.google.material.color.hct.Hct
 import com.google.material.color.scheme.SchemeTonalSpot
 import com.google.material.color.score.Score
+import java.util.Calendar
+
+fun isNight(): Boolean {
+    val calendar = Calendar.getInstance()
+    val hour = calendar.get(Calendar.HOUR_OF_DAY)
+    return hour < 6 || hour >= 19
+}
 
 val DefaultThemeColor = Color(0xFFED5564)
 
 @Composable
 fun MetrolistTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkMode: DarkMode = DarkMode.AUTO,
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val colorScheme = remember(darkTheme, pureBlack, themeColor) {
+    val isSystemInDarkTheme = isSystemInDarkTheme()
+    val useDarkTheme = remember(darkMode, isSystemInDarkTheme) {
+        when (darkMode) {
+            DarkMode.ON -> true
+            DarkMode.OFF -> false
+            DarkMode.AUTO -> isSystemInDarkTheme
+            DarkMode.TIME_BASED -> isNight()
+        }
+    }
+
+    val colorScheme = remember(useDarkTheme, pureBlack, themeColor) {
         if (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (darkTheme) dynamicDarkColorScheme(context).pureBlack(pureBlack)
+            if (useDarkTheme) dynamicDarkColorScheme(context).pureBlack(pureBlack)
             else dynamicLightColorScheme(context)
         } else {
-            SchemeTonalSpot(Hct.fromInt(themeColor.toArgb()), darkTheme, 0.0)
+            SchemeTonalSpot(Hct.fromInt(themeColor.toArgb()), useDarkTheme, 0.0)
                 .toColorScheme()
-                .pureBlack(darkTheme && pureBlack)
+                .pureBlack(useDarkTheme && pureBlack)
         }
     }
 

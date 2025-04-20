@@ -235,7 +235,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(LocaleManager.applySavedLocale(newBase))
     }
 
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnusedBoxWithConstraintsScope")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -312,7 +312,7 @@ class MainActivity : ComponentActivity() {
             }
 
             MetrolistTheme(
-                darkTheme = useDarkTheme,
+                darkMode = darkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
             ) {

@@ -284,6 +284,7 @@
     <string name="dark_theme_follow_system">Seguir sistema</string>
     <string name="player_background_style">Estilo de fondo del reproductor</string>
     <string name="follow_theme">Seguir tema</string>
+    <string name="dark_theme_time_based">>Basado en el tiempo</string>
     <string name="gradient">Degradado</string>
     <string name="player_background_blur">Desenfoque</string>
     <string name="player_buttons_style">Colores de botones del reproductor</string>
