@@ -10,19 +10,25 @@ import com.anitail.innertube.models.YTItem
 import com.anitail.innertube.pages.ExplorePage
 import com.anitail.innertube.pages.HomePage
 import com.anitail.innertube.utils.completedLibraryPage
+import com.anitail.music.constants.QuickPicks
+import com.anitail.music.constants.QuickPicksKey
 import com.anitail.music.db.MusicDatabase
 import com.anitail.music.db.entities.Album
 import com.anitail.music.db.entities.LocalItem
 import com.anitail.music.db.entities.Playlist
 import com.anitail.music.db.entities.Song
+import com.anitail.music.extensions.toEnum
 import com.anitail.music.models.SimilarRecommendation
 import com.anitail.music.utils.SyncUtils
+import com.anitail.music.utils.dataStore
 import com.anitail.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,6 +40,10 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     val isRefreshing = MutableStateFlow(false)
     val isLoading = MutableStateFlow(false)
+
+    private val quickPicksEnum = context.dataStore.data.map {
+        it[QuickPicksKey].toEnum(QuickPicks.QUICK_PICKS)
+    }.distinctUntilChanged()
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
@@ -53,11 +63,17 @@ class HomeViewModel @Inject constructor(
         val browseContentAvailable: Map<String, Boolean>
     )
 
+    private suspend fun getQuickPicks(){
+        when (quickPicksEnum.first()) {
+            QuickPicks.QUICK_PICKS -> quickPicks.value = database.quickPicks().first().shuffled().take(20)
+            QuickPicks.LAST_LISTEN -> songLoad()
+        }
+    }
+
     private suspend fun load() {
         isLoading.value = true
 
-        quickPicks.value = database.quickPicks()
-            .first().shuffled().take(20)
+        getQuickPicks()
 
         forgottenFavorites.value = database.forgottenFavorites()
             .first().shuffled().take(20)
@@ -158,6 +174,17 @@ class HomeViewModel @Inject constructor(
                 homePage.value?.originalPage?.sections?.flatMap { it.items }.orEmpty()
 
         isLoading.value = false
+    }
+
+    private suspend fun songLoad(){
+        val song = database.events().first().firstOrNull()?.song
+        if (song != null) {
+            println(song.song.title)
+            if (database.hasRelatedSongs(song.id)){
+                val relatedSongs = database.getRelatedSongs(song.id).first().shuffled().take(20)
+                quickPicks.value = relatedSongs
+            }
+        }
     }
 
     fun refresh() {
