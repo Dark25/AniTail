@@ -1,6 +1,7 @@
 [versions]
 androidGradlePlugin = "8.11.0-alpha07"
 annotation = "1.9.1" 
+error_prone_core = "2.38.0"
 json = "20250107"
 jsoup = "1.19.1"
 kotlin = "2.1.20"
@@ -9,13 +10,14 @@ lifecycle = "2.8.7"
 material3 = "1.4.0-alpha12"
 media3 = "1.6.1"
 room = "2.7.0"
-hilt = "2.56.1"
+hilt = "2.56.2"
 ktor = "3.1.2"
 ksp = "2.1.20-2.0.0"
 webkit = "1.12.1"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+error_prone_core = { module = "com.google.errorprone:error_prone_core", version.ref = "error_prone_core" }
 guava = { group = "com.google.guava", name = "guava", version = "33.4.8-android" }
 coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version = "1.10.2" }
 concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version = "1.2.0" }
