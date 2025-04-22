@@ -168,6 +168,7 @@ class MusicService :
     private val binder = MusicBinder()
 
     private lateinit var connectivityManager: ConnectivityManager
+    private val songUrlCache = HashMap<String, Pair<String, Long>>()
 
     private val audioQuality by enumPreference(
         this,
@@ -852,7 +853,6 @@ class MusicService :
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     private fun createDataSourceFactory(): DataSource.Factory {
-        val songUrlCache = HashMap<String, Pair<String, Long>>()
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
 
@@ -867,13 +867,16 @@ class MusicService :
                 return@Factory dataSpec
             }
 
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                return@Factory dataSpec.withUri(it.first.toUri())
+            // Renovar la URL si está a punto de expirar (menos de 10 segundos)
+            val now = System.currentTimeMillis()
+            songUrlCache[mediaId]?.let { (url, expiry) ->
+                if (expiry > now + 10_000) {
+                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    return@Factory dataSpec.withUri(url.toUri())
+                }
             }
 
-            // Check whether format exists so that users from older version can view format details
-            // There may be inconsistent between the downloaded file and the displayed info if user change audio quality frequently
+            // Obtener nueva URL si no existe o está expirada
             val playedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
             val playbackData = runBlocking(Dispatchers.IO) {
                 YTPlayerUtils.playerResponseForPlayback(
@@ -892,7 +895,6 @@ class MusicService :
                             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
                         )
                     }
-
                     is SocketTimeoutException -> {
                         throw PlaybackException(
                             getString(R.string.error_timeout),
@@ -900,7 +902,6 @@ class MusicService :
                             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
                         )
                     }
-
                     else -> throw PlaybackException(
                         getString(R.string.error_unknown),
                         throwable,
@@ -929,8 +930,8 @@ class MusicService :
             scope.launch(Dispatchers.IO) { recoverSong(mediaId, playbackData) }
 
             val streamUrl = playbackData.streamUrl
-
-            songUrlCache[mediaId] = streamUrl to System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
+            val expiry = now + (playbackData.streamExpiresInSeconds * 1000L)
+            songUrlCache[mediaId] = streamUrl to expiry
             dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
         }
     }
