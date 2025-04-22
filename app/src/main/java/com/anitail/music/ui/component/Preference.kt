@@ -254,6 +254,12 @@ fun SliderPreference(
         mutableFloatStateOf(value)
     }
 
+    // Nuevo: valor especial para ilimitado
+    val unlimitedValue = 0f
+    val minValue = unlimitedValue
+    val maxValue = 60f
+    val defaultValue = 30f
+
     if (showDialog) {
         ActionPromptDialog(
             titleBar = {
@@ -279,25 +285,26 @@ fun SliderPreference(
                 showDialog = false
             },
             onReset = {
-                sliderValue = 30f // Default value or any reset value you prefer
+                sliderValue = defaultValue
             },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = pluralStringResource(
+                        text = if (sliderValue == unlimitedValue) stringResource(R.string.unlimited)
+                        else pluralStringResource(
                             R.plurals.seconds,
                             sliderValue.roundToInt(),
                             sliderValue.roundToInt()
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
+                        )
                     )
 
                     Spacer(Modifier.height(16.dp))
 
                     Slider(
                         value = sliderValue,
-                        onValueChange = { sliderValue = it },
-                        valueRange = 15f..60f,
+                        onValueChange = { newValue -> sliderValue = newValue },
+                        valueRange = minValue..maxValue,
+                        steps = (maxValue - minValue).toInt() - 1,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -308,7 +315,7 @@ fun SliderPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = value.roundToInt().toString(),
+        description = if (value == unlimitedValue) stringResource(R.string.unlimited) else value.roundToInt().toString(),
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled,
