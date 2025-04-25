@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -230,6 +231,25 @@ fun AboutScreen(
         UserCards(uriHandler) // Developer Card Call
         Spacer(Modifier.height(5.dp))
 
+        // Beta Testers Section
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.person),
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.beta_testers),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        BetaTestersSection(uriHandler)
+        Spacer(Modifier.height(5.dp))
+
         // Links and Buttons
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -418,3 +438,77 @@ fun CardItem(
     }
 
 }
+
+// Beta testers section composable
+@Composable
+fun BetaTestersSection(uriHandler: UriHandler) {
+    val testers = listOf(
+        BetaTester(
+            imageUrl = "https://i.ibb.co/pjkzBvGn/image.png",
+            name = "im.shoul",
+            onClick = { uriHandler.openUri("https://discord.com/users/237686500567810058") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/DPjf5V78/61fc6cc5422936a8fd81a913fbdf773b.png",
+            name = "Lucia (Lú)",
+            onClick = { uriHandler.openUri("https://discord.com/users/553307420688908320") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/mrgvc1nb/14f2a18fa8b9e553a048027375db5f81.png",
+            name = "ElDeLasTojas",
+            onClick = { uriHandler.openUri("https://discord.com/users/444680132393697291") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/gnXkhnJ/be81ecb723cfd4186e85bfe81793f594.png",
+            name = "SKHLORDKIRA",
+            onClick = { uriHandler.openUri("https://discord.com/users/445310321717018626") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/TDdPq2jF/0f0f47f2a47eca3eda2a433237b4a05d.png",
+            name = "\uD835\uDC07\uD835\uDC22\uD835\uDC22\uD835\uDC2B\uD835\uDC1B\uD835\uDC1A\uD835\uDC1F ◣‸◢\n",
+            onClick = { uriHandler.openUri("https://discord.com/users/341662495301304323") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/3YPX1wsj/dec881377d42d58473b6d988165406b6.png",
+            name = "Jack",
+            onClick = { uriHandler.openUri("https://discord.com/users/1166985299885309954") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/htmds91/b514910877f4b585309265fbe922f020.png",
+            name = "R4fa3l_2008",
+            onClick = { uriHandler.openUri("https://discord.com/users/1318948121782521890") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/mrwz7J7K/165cbedbd96ae35c2489286c8db9777d.png",
+            name = "Ryak",
+            onClick = { uriHandler.openUri("https://discord.com/users/1075797587770228856") }
+        )
+    )
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        testers.chunked(4).forEach { rowTesters ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                rowTesters.forEach { tester ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        UserCard(
+                            imageUrl = tester.imageUrl,
+                            name = tester.name,
+                            role = "Beta Tester",
+                            onClick = tester.onClick
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class BetaTester(
+    val imageUrl: String,
+    val name: String,
+    val onClick: () -> Unit
+)

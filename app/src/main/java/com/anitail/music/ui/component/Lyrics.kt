@@ -519,7 +519,7 @@ fun Lyrics(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.media3_icon_minus),
+                            painter = painterResource(id = R.drawable.media3_icon_share),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )

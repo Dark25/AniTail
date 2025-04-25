@@ -524,4 +524,5 @@
     <string name="background_color">Color de fondo</string>
     <string name="customize_colors">Personalizar colores</string>
     <string name="secondary_text_color">Color del texto secundario</string>
+    <string name="beta_testers">Colaboradores</string>
 </resources>
