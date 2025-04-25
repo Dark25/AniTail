@@ -57,12 +57,55 @@ object ComposeToImage {
         val canvas = Canvas(bitmap)
         canvas.drawColor(backgroundColor)
 
+        var dynamicBgColor = backgroundColor
+        var dynamicCardColor = cardBackgroundColor
+        var dynamicAccentColor = spotifyGreen
+        var coverArtBitmap: Bitmap? = null
+        if (coverArtUrl != null) {
+            try {
+                val imageLoader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(coverArtUrl)
+                    .size(256)
+                    .allowHardware(false)
+                    .build()
+                val result = imageLoader.execute(request)
+                coverArtBitmap = result.drawable?.toBitmap(256, 256, Bitmap.Config.ARGB_8888)
+                if (coverArtBitmap != null) {
+                    val palette = androidx.palette.graphics.Palette.from(coverArtBitmap!!).generate()
+                    val dominant = palette.getDominantColor(backgroundColor)
+                    val light = palette.getLightVibrantColor(cardBackgroundColor)
+                    val vibrant = palette.getVibrantColor(spotifyGreen)
+                    dynamicBgColor = dominant
+                    dynamicCardColor = light
+                    dynamicAccentColor = vibrant
+                }
+            } catch (_: Exception) {}
+        }
+
         val cardRect = android.graphics.RectF(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat())
-        val cardPaint = android.graphics.Paint().apply {
-            color = cardBackgroundColor
+        val gradientPaint = android.graphics.Paint()
+        val gradient = android.graphics.LinearGradient(
+            0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(),
+            intArrayOf(dynamicBgColor, dynamicCardColor, dynamicBgColor),
+            floatArrayOf(0f, 0.5f, 1f),
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        gradientPaint.shader = gradient
+        canvas.drawRect(0f, 0f, cardWidth.toFloat(), cardHeight.toFloat(), gradientPaint)
+
+        val shadowPaint = android.graphics.Paint().apply {
+            color = 0x33000000
+            setShadowLayer(32f, 0f, 16f, 0x99000000.toInt())
             isAntiAlias = true
         }
-        canvas.drawRoundRect(cardRect, cardWidth * 0.07f, cardWidth * 0.07f, cardPaint)
+        canvas.drawRect(cardRect, shadowPaint)
+
+        val cardPaint = android.graphics.Paint().apply {
+            color = dynamicCardColor
+            isAntiAlias = true
+        }
+        canvas.drawRect(cardRect, cardPaint)
 
         val innerPadding = (cardHeight * 0.08f).toInt()
         val coverArtSize = (cardHeight * 0.22f).toInt()
@@ -114,10 +157,10 @@ object ComposeToImage {
 
         val titlePaint = TextPaint().apply {
             color = textColor
-            textSize = cardHeight * 0.085f
+            textSize = cardHeight * 0.08f // Más pequeño
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
-            letterSpacing = 0.01f
+            letterSpacing = 0.02f
         }
         val maxTitleChars = 38
         val titleText = if (songTitle.length > maxTitleChars) songTitle.take(maxTitleChars - 3) + "..." else songTitle
@@ -130,8 +173,8 @@ object ComposeToImage {
          .build()
         val artistPaint = TextPaint().apply {
             color = secondaryTextColor
-            textSize = cardHeight * 0.058f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            textSize = cardHeight * 0.05f // Más pequeño
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
             isAntiAlias = true
         }
         val artistLayout = StaticLayout.Builder.obtain(
@@ -144,16 +187,24 @@ object ComposeToImage {
         val textBlockTop = coverArtTop + 2f
         canvas.withTranslation(textLeft, textBlockTop) {
             titleLayout.draw(this)
-            this.translate(0f, titleLayout.height + 2f)
+            val underlineY = titleLayout.height + 6f
+            val underlinePaint = android.graphics.Paint().apply {
+                color = dynamicAccentColor
+                strokeWidth = 6f
+                isAntiAlias = true
+            }
+            drawLine(0f, underlineY, titleLayout.width.toFloat() * 0.7f, underlineY, underlinePaint)
+            this.translate(0f, titleLayout.height + 16f)
             artistLayout.draw(this)
         }
 
         val lyricsPaint = TextPaint().apply {
             color = textColor
-            textSize = cardHeight * 0.11f
+            textSize = cardHeight * 0.09f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
-            letterSpacing = 0.01f
+            letterSpacing = 0.02f
+            setShadowLayer(8f, 0f, 4f, 0x88000000.toInt())
         }
         val lyricsMaxWidth = cardWidth - innerPadding * 2 - 24
         val lyricsLayout = StaticLayout.Builder.obtain(
@@ -165,7 +216,7 @@ object ComposeToImage {
          .build()
         val lyricsY = coverArtTop + coverArtSize + innerPadding * 1.2f
         val lyricsHeight = lyricsLayout.height
-        val logoBlockHeight = (cardHeight * 0.10f).toInt()
+        val logoBlockHeight = (cardHeight * 0.08f).toInt()
         val availableSpace = cardHeight - (lyricsY + logoBlockHeight + innerPadding)
         val lyricsYOffset = lyricsY + availableSpace / 2f - lyricsHeight / 2f
         canvas.withTranslation((cardWidth - lyricsMaxWidth) / 2f, lyricsYOffset) {
@@ -177,11 +228,12 @@ object ComposeToImage {
         )?.toBitmap(logoBlockHeight, logoBlockHeight)
         val appName =  context.getString(R.string.app_name)
         val appNamePaint = TextPaint().apply {
-            color = spotifyGreen
-            textSize = cardHeight * 0.085f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            color = textColor
+            textSize = cardHeight * 0.045f // Mucho más pequeño
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAntiAlias = true
             letterSpacing = 0.01f
+            setShadowLayer(6f, 0f, 0f, 0x33FFFFFF)
         }
         val logoY = cardHeight - innerPadding - logoBlockHeight / 2f
         var logoDrawn = false
@@ -189,8 +241,8 @@ object ComposeToImage {
             canvas.drawBitmap(appLogo, innerPadding.toFloat(), logoY, null)
             logoDrawn = true
         }
-        val textX = if (logoDrawn) innerPadding.toFloat() + logoBlockHeight + 10f else innerPadding.toFloat()
-        val textY = cardHeight - innerPadding - logoBlockHeight / 2f + logoBlockHeight * 0.8f
+        val textX = if (logoDrawn) innerPadding.toFloat() + logoBlockHeight + 12f else innerPadding.toFloat()
+        val textY = cardHeight - innerPadding - logoBlockHeight / 2f + logoBlockHeight * 0.7f
         canvas.drawText(appName, textX, textY, appNamePaint)
 
         return@withContext bitmap

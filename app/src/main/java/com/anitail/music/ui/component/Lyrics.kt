@@ -1,29 +1,35 @@
 package com.anitail.music.ui.component
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -82,14 +88,12 @@ import com.anitail.music.ui.utils.fadingEdge
 import com.anitail.music.utils.ComposeToImage
 import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun Lyrics(
@@ -179,6 +183,10 @@ fun Lyrics(
     var isAppMinimized by rememberSaveable {
         mutableStateOf(false)
     }
+
+    var showProgressDialog by remember { mutableStateOf(false) }
+    var showShareDialog by remember { mutableStateOf(false) }
+    var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
 
     val lazyListState = rememberLazyListState()
 
@@ -382,101 +390,12 @@ fun Lyrics(
                                 },
                                 onLongClick = {
                                     mediaMetadata?.let { metadata ->
-                                        // Mostrar opciones para compartir como texto o como imagen
-                                        val options = arrayOf(
-                                            context.getString(R.string.share_as_text),
-                                            context.getString(R.string.share_as_image),
-                                            context.getString(R.string.cancel)
+                                        shareDialogData = Triple(
+                                            item.text,
+                                            metadata.title,
+                                            metadata.artists.joinToString { it.name }
                                         )
-                                        AlertDialog.Builder(context)
-                                            .setTitle(context.getString(R.string.share_lyrics))
-                                            .setItems(options) { _, which ->
-                                                when (which) {
-                                                    0 -> {
-                                                        val shareIntent = Intent().apply {
-                                                            action = Intent.ACTION_SEND
-                                                            type = "text/plain"
-                                                            val songTitle = metadata.title
-                                                            val artists = metadata.artists.joinToString { it.name }
-                                                            val songLink = "https://music.youtube.com/watch?v=${metadata.id}"
-                                                            putExtra(Intent.EXTRA_TEXT, "\"${item.text}\"\n\n${songTitle} - ${artists}\n${songLink}")
-                                                        }
-                                                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
-                                                    }
-                                                    1 -> {
-
-                                                        // Compartir como imagen
-                                                        scope.launch {
-                                                            try {
-                                                                // Obtener la actividad
-                                                                val activity = context.findActivity() as? android.app.Activity
-                                                                if (activity == null) {
-                                                                    Toast.makeText(context, "error: activity is null", Toast.LENGTH_SHORT).show()
-                                                                    return@launch
-                                                                }
-
-                                                                val progressDialog = AlertDialog.Builder(activity)
-                                                                    .setTitle(context.getString(R.string.generating_image))
-                                                                    .setMessage(context.getString(R.string.please_wait))
-                                                                    .setCancelable(false)
-                                                                    .create()
-
-                                                                activity.runOnUiThread {
-                                                                    progressDialog.show()
-                                                                }
-                                                                try {
-                                                                    val width = 1080
-                                                                    val height = 1920
-
-                                                                    val bitmap = ComposeToImage.createLyricsImage(
-                                                                        context = activity,
-                                                                        coverArtUrl = metadata.thumbnailUrl,
-                                                                        songTitle = metadata.title,
-                                                                        artistName = metadata.artists.joinToString { it.name },
-                                                                        lyrics = item.text,
-                                                                        width = width,
-                                                                        height = height,
-                                                                        isDarkTheme = useDarkTheme
-                                                                    )
-
-                                                                    // Ocultar el diálogo de progreso
-                                                                    activity.runOnUiThread {
-                                                                        progressDialog.dismiss()
-                                                                    }
-
-                                                                    // Guardar y compartir la imagen
-                                                                    val fileName = "lyrics_${metadata.id}_${System.currentTimeMillis()}"
-                                                                    val imageUri = ComposeToImage.saveBitmapAsFile(activity, bitmap, fileName)
-
-                                                                    // Compartir la imagen
-                                                                    val shareIntent = Intent().apply {
-                                                                        action = Intent.ACTION_SEND
-                                                                        type = "image/png"
-                                                                        putExtra(Intent.EXTRA_STREAM, imageUri)
-                                                                        putExtra(Intent.EXTRA_SUBJECT, "${metadata.title} - ${metadata.artists.joinToString { it.name }}")
-                                                                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                                                    }
-
-                                                                    withContext(Dispatchers.Main) {
-                                                                        activity.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
-                                                                    }
-                                                                } catch (e: Exception) {
-                                                                    // Ocultar el diálogo en caso de error
-                                                                    withContext(Dispatchers.Main) {
-                                                                        progressDialog.dismiss()
-                                                                        Toast.makeText(activity, "Error al generar la imagen: ${e.message}", Toast.LENGTH_SHORT).show()
-                                                                    }
-                                                                    e.printStackTrace()
-                                                                }
-                                                            } catch (e: Exception) {
-                                                                Toast.makeText(context, "Error inesperado: ${e.message}", Toast.LENGTH_SHORT).show()
-                                                                e.printStackTrace()
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            .show()
+                                        showShareDialog = true
                                     }
                                 }
                             )
@@ -527,6 +446,140 @@ fun Lyrics(
                         contentDescription = null,
                         tint = textColor
                     )
+                }
+            }
+        }
+    }
+
+    if (showProgressDialog) {
+        BasicAlertDialog(onDismissRequest = { }) {
+            Box(modifier = Modifier.padding(32.dp)) {
+                Text(text = stringResource(R.string.generating_image) + "\n" + stringResource(R.string.please_wait))
+            }
+        }
+    }
+
+    if (showShareDialog && shareDialogData != null) {
+        val (lyrics, songTitle, artists) = shareDialogData!!
+        BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
+            androidx.compose.material3.Card(
+                shape = MaterialTheme.shapes.medium,
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = stringResource(R.string.share_lyrics),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.material3.Divider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val shareIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
+                                    putExtra(Intent.EXTRA_TEXT, "\"$lyrics\"\n\n$songTitle - $artists\n$songLink")
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                                showShareDialog = false
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.media3_icon_minus),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.share_as_text),
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    androidx.compose.material3.Divider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showShareDialog = false
+                                scope.launch {
+                                    try {
+                                        showProgressDialog = true
+                                        val width = 1080
+                                        val height = 1920
+                                        val bitmap = ComposeToImage.createLyricsImage(
+                                            context = context,
+                                            coverArtUrl = mediaMetadata?.thumbnailUrl,
+                                            songTitle = songTitle,
+                                            artistName = artists,
+                                            lyrics = lyrics,
+                                            width = width,
+                                            height = height,
+                                            isDarkTheme = useDarkTheme
+                                        )
+                                        showProgressDialog = false
+                                        val fileName = "lyrics_${mediaMetadata?.id}_${System.currentTimeMillis()}"
+                                        val imageUri = ComposeToImage.saveBitmapAsFile(context, bitmap, fileName)
+                                        val shareIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            type = "image/png"
+                                            putExtra(Intent.EXTRA_STREAM, imageUri)
+                                            putExtra(Intent.EXTRA_SUBJECT, "$songTitle - $artists")
+                                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                                    } catch (e: Exception) {
+                                        showProgressDialog = false
+                                        Toast.makeText(context, "Error generating image: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.media3_icon_minus),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.share_as_image),
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    androidx.compose.material3.Divider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showShareDialog = false }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.close),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.cancel),
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
