@@ -232,7 +232,7 @@ object ComposeToImage {
         }?.toBitmap(logoBlockHeight, logoBlockHeight, Bitmap.Config.ARGB_8888)
         val appName =  context.getString(R.string.app_name)
         val appNamePaint = TextPaint().apply {
-            color = mainTextColor
+            color = secondaryTxtColor
             textSize = cardHeight * 0.045f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAntiAlias = true
