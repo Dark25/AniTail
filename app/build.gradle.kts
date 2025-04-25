@@ -18,9 +18,10 @@ android {
     defaultConfig {
         applicationId = "com.anitail.music"
         minSdk = 21
+        //noinspection OldTargetApi
         targetSdk = 35
         versionCode = 3
-        versionName = "1.3.3"
+        versionName = "1.3.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -36,16 +37,19 @@ android {
         }
         create("arm64") {
             dimension = "abi"
+            //noinspection ChromeOsAbiSupport
             ndk { abiFilters += "arm64-v8a" }
             buildConfigField("String", "ARCHITECTURE", "\"arm64\"")
         }
         create("armeabi") {
             dimension = "abi"
+            //noinspection ChromeOsAbiSupport
             ndk { abiFilters += "armeabi-v7a" }
             buildConfigField("String", "ARCHITECTURE", "\"armeabi\"")
         }
         create("x86") {
             dimension = "abi"
+            //noinspection ChromeOsAbiSupport
             ndk { abiFilters += "x86" }
             buildConfigField("String", "ARCHITECTURE", "\"x86\"")
         }
