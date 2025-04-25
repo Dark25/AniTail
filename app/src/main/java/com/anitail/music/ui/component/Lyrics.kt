@@ -1,14 +1,16 @@
 package com.anitail.music.ui.component
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -29,7 +31,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +77,6 @@ import com.anitail.music.constants.LyricsClickKey
 import com.anitail.music.constants.LyricsTextPositionKey
 import com.anitail.music.constants.PlayerBackgroundStyle
 import com.anitail.music.constants.PlayerBackgroundStyleKey
-import com.anitail.music.constants.ShowLyricsKey
 import com.anitail.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.anitail.music.lyrics.LyricsEntry
 import com.anitail.music.lyrics.LyricsEntry.Companion.HEAD_LYRICS_ENTRY
@@ -93,6 +96,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
+@RequiresApi(Build.VERSION_CODES.M)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -103,8 +107,7 @@ fun Lyrics(
     val playerConnection = LocalPlayerConnection.current ?: return
     val menuState = LocalMenuState.current
     val density = LocalDensity.current
-    var showLyrics by rememberPreference(ShowLyricsKey, false)
-    val context = LocalContext.current  // Añade esta línea
+    val context = LocalContext.current
 
     val landscapeOffset =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -468,9 +471,11 @@ fun Lyrics(
                 colors = androidx.compose.material3.CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(0.85f) // Hace que el diálogo sea menos ancho
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = stringResource(R.string.share_lyrics),
                         fontWeight = FontWeight.Bold,
@@ -478,7 +483,7 @@ fun Lyrics(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    androidx.compose.material3.Divider()
+                    HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -507,7 +512,7 @@ fun Lyrics(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    androidx.compose.material3.Divider()
+                    HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -560,41 +565,38 @@ fun Lyrics(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    androidx.compose.material3.Divider()
+                    HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
+
+                    // Botón de cancelar alineado a la derecha
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showShareDialog = false }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(top = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.End,
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.close),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.cancel),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        Row(
+                            modifier = Modifier
+                                .clickable { showShareDialog = false }
+                                .padding(vertical = 8.dp, horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.cancel),
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                painter = painterResource(id = R.drawable.close),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }
         }
     }
-}
-
-private fun Context.findActivity(): Context? {
-    var currentContext = this
-    while (currentContext is android.content.ContextWrapper) {
-        if (currentContext is android.app.Activity) {
-            return currentContext
-        }
-        currentContext = currentContext.baseContext
-    }
-    return null
 }
 
 const val ANIMATE_SCROLL_DURATION = 300L
