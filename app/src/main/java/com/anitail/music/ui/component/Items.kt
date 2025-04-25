@@ -167,22 +167,38 @@ fun GridItem(
     badges: @Composable RowScope.() -> Unit = {},
     thumbnailContent: @Composable BoxWithConstraintsScope.() -> Unit,
     thumbnailRatio: Float = 1f,
-    fillMaxWidth: Boolean = false
+    fillMaxWidth: Boolean = false,
 ) {
     Column(
-        modifier = modifier
-            .padding(12.dp)
-            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier.width(GridThumbnailHeight * thumbnailRatio))
+        modifier = if (fillMaxWidth) {
+            modifier
+                .padding(12.dp)
+                .fillMaxWidth()
+        } else {
+            modifier
+                .padding(12.dp)
+                .width(GridThumbnailHeight * thumbnailRatio)
+        }
     ) {
         BoxWithConstraints(
             contentAlignment = Alignment.Center,
-            modifier = if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier.height(GridThumbnailHeight)
+            modifier = if (fillMaxWidth) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier.height(GridThumbnailHeight)
+            }
                 .aspectRatio(thumbnailRatio)
-        ) { thumbnailContent() }
-        Spacer(Modifier.height(6.dp))
+        ) {
+            thumbnailContent()
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
         title()
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             badges()
+
             subtitle()
         }
     }
@@ -195,19 +211,31 @@ fun GridItem(
     subtitle: String,
     badges: @Composable RowScope.() -> Unit = {},
     thumbnailContent: @Composable BoxWithConstraintsScope.() -> Unit,
-    thumbnailShape: Shape = RoundedCornerShape(ThumbnailCornerRadius),
     thumbnailRatio: Float = 1f,
-    fillMaxWidth: Boolean = false
+    fillMaxWidth: Boolean = false,
 ) = GridItem(
     modifier = modifier,
     title = {
-        Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Start,
+            modifier = Modifier.fillMaxWidth()
+        )
     },
-    subtitle = { Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-    badges = badges,
-    thumbnailContent = {
-        BoxWithConstraints(contentAlignment = Alignment.Center, modifier = Modifier.clip(thumbnailShape)) { thumbnailContent() }
+    subtitle = {
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     },
+    thumbnailContent = thumbnailContent,
     thumbnailRatio = thumbnailRatio,
     fillMaxWidth = fillMaxWidth
 )
@@ -416,14 +444,7 @@ fun ArtistGridItem(
     modifier: Modifier = Modifier,
     badges: @Composable RowScope.() -> Unit = {
         if (artist.artist.bookmarkedAt != null) {
-            Icon(
-                painter = painterResource(R.drawable.favorite),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier
-                    .size(18.dp)
-                    .padding(end = 2.dp),
-            )
+            Icon.Favorite()
         }
     },
     fillMaxWidth: Boolean = false,
@@ -682,7 +703,6 @@ fun PlaylistGridItem(
             pluralStringResource(R.plurals.n_song, playlist.songCount, playlist.songCount)
         }
     },
-    badges = badges,
     thumbnailContent = {
         val painter = when (playlist.playlist.name) {
             stringResource(R.string.liked) -> R.drawable.favorite_border
@@ -754,7 +774,6 @@ fun PlaylistGridItem(
             }
         }
     },
-    thumbnailShape = RoundedCornerShape(ThumbnailCornerRadius),
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
 )
@@ -995,7 +1014,6 @@ fun YouTubeGridItem(
             )
         }
     },
-    badges = badges,
     thumbnailContent = {
         val database = LocalDatabase.current
         val playerConnection = LocalPlayerConnection.current ?: return@GridItem
@@ -1052,7 +1070,6 @@ fun LocalSongsGrid(
 ) = GridItem(
     title = title,
     subtitle = subtitle,
-    badges = badges,
     thumbnailContent = {
         Box(
             contentAlignment = Alignment.Center,
@@ -1119,7 +1136,6 @@ fun LocalSongsGrid(
             }
         }
     },
-    thumbnailShape = RoundedCornerShape(ThumbnailCornerRadius),
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
 )
@@ -1137,7 +1153,6 @@ fun LocalArtistsGrid(
 ) = GridItem(
     title = title,
     subtitle = subtitle,
-    badges = badges,
     thumbnailContent = {
         Box(
             contentAlignment = Alignment.Center,
@@ -1181,7 +1196,6 @@ fun LocalArtistsGrid(
             }
         }
     },
-    thumbnailShape = CircleShape,
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
 )
@@ -1199,7 +1213,6 @@ fun LocalAlbumsGrid(
 ) = GridItem(
     title = title,
     subtitle = subtitle,
-    badges = badges,
     thumbnailContent = {
         AsyncImage(
             model = thumbnailUrl,
@@ -1236,7 +1249,6 @@ fun LocalAlbumsGrid(
             }
         }
     },
-    thumbnailShape = RoundedCornerShape(ThumbnailCornerRadius),
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
 )
