@@ -31,7 +31,8 @@ object ComposeToImage {
     /**
      * Crea una imagen de letra de canción usando Canvas directamente (sin Compose)
      * Este método es más confiable que intentar renderizar un composable
-     */    @RequiresApi(Build.VERSION_CODES.M)
+     */
+    @RequiresApi(Build.VERSION_CODES.M)
     suspend fun createLyricsImage(
         context: Context,
         coverArtUrl: String?,
@@ -40,14 +41,15 @@ object ComposeToImage {
         lyrics: String,
         width: Int,
         height: Int,
-        isDarkTheme: Boolean = true
+        backgroundColor: Int? = null,
+        textColor: Int? = null,
+        secondaryTextColor: Int? = null
     ): Bitmap = withContext(Dispatchers.Default) {
-        val backgroundColor = 0xFF121212.toInt()
-        val cardBackgroundColor = 0xFF242424.toInt()
-        val textColor = 0xFFFFFFFF.toInt()
-        val secondaryTextColor = 0xB3FFFFFF.toInt()
+        val defaultBackgroundColor = 0xFF121212.toInt()
+        val defaultCardBackgroundColor = 0xFF242424.toInt()
+        val defaultTextColor = 0xFFFFFFFF.toInt()
+        val defaultSecondaryTextColor = 0xB3FFFFFF.toInt()
         val spotifyGreen = 0xFF1DB954.toInt()
-        val cornerRadius = 64f
 
         val maxCardWidth = width - 32
         val maxCardHeight = height - 32
@@ -55,12 +57,16 @@ object ComposeToImage {
         val cardHeight = (cardWidth * 0.56f).toInt()
         val bitmap = createBitmap(cardWidth, cardHeight)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(backgroundColor)
+        val bgColor = backgroundColor ?: defaultBackgroundColor
+        val cardBgColor = backgroundColor ?: defaultCardBackgroundColor
+        val mainTextColor = textColor ?: defaultTextColor
+        val secondaryTxtColor = secondaryTextColor ?: defaultSecondaryTextColor
+        canvas.drawColor(bgColor)
 
-        var dynamicBgColor = backgroundColor
-        var dynamicCardColor = cardBackgroundColor
+        var dynamicBgColor = bgColor
+        var dynamicCardColor = cardBgColor
         var dynamicAccentColor = spotifyGreen
-        var coverArtBitmap: Bitmap? = null
+        var coverArtBitmap: Bitmap?
         if (coverArtUrl != null) {
             try {
                 val imageLoader = ImageLoader(context)
@@ -72,12 +78,10 @@ object ComposeToImage {
                 val result = imageLoader.execute(request)
                 coverArtBitmap = result.drawable?.toBitmap(256, 256, Bitmap.Config.ARGB_8888)
                 if (coverArtBitmap != null) {
-                    val palette = androidx.palette.graphics.Palette.from(coverArtBitmap!!).generate()
-                    val dominant = palette.getDominantColor(backgroundColor)
-                    val light = palette.getLightVibrantColor(cardBackgroundColor)
+                    val palette = androidx.palette.graphics.Palette.from(coverArtBitmap).generate()
                     val vibrant = palette.getVibrantColor(spotifyGreen)
-                    dynamicBgColor = dominant
-                    dynamicCardColor = light
+                    dynamicBgColor = bgColor // override palette with user color if provided
+                    dynamicCardColor = cardBgColor
                     dynamicAccentColor = vibrant
                 }
             } catch (_: Exception) {}
@@ -156,7 +160,7 @@ object ComposeToImage {
         }
 
         val titlePaint = TextPaint().apply {
-            color = textColor
+            color = mainTextColor
             textSize = cardHeight * 0.08f // Más pequeño
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
@@ -172,8 +176,8 @@ object ComposeToImage {
          .setEllipsize(android.text.TextUtils.TruncateAt.END)
          .build()
         val artistPaint = TextPaint().apply {
-            color = secondaryTextColor
-            textSize = cardHeight * 0.05f // Más pequeño
+            color = secondaryTxtColor
+            textSize = cardHeight * 0.05f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
             isAntiAlias = true
         }
@@ -199,7 +203,7 @@ object ComposeToImage {
         }
 
         val lyricsPaint = TextPaint().apply {
-            color = textColor
+            color = mainTextColor
             textSize = cardHeight * 0.09f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
@@ -223,13 +227,13 @@ object ComposeToImage {
             lyricsLayout.draw(this)
         }
 
-        val appLogo = androidx.core.content.res.ResourcesCompat.getDrawable(
-            context.resources, context.resources.getIdentifier("lyrics", "drawable", context.packageName), null
-        )?.toBitmap(logoBlockHeight, logoBlockHeight)
+        val appLogo = context.getDrawable(R.drawable.lyrics)?.apply {
+            setBounds(0, 0, logoBlockHeight, logoBlockHeight)
+        }?.toBitmap(logoBlockHeight, logoBlockHeight, Bitmap.Config.ARGB_8888)
         val appName =  context.getString(R.string.app_name)
         val appNamePaint = TextPaint().apply {
-            color = textColor
-            textSize = cardHeight * 0.045f // Mucho más pequeño
+            color = mainTextColor
+            textSize = cardHeight * 0.045f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isAntiAlias = true
             letterSpacing = 0.01f

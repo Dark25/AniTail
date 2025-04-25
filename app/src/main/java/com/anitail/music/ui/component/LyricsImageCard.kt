@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -41,23 +40,24 @@ import com.anitail.music.models.MediaMetadata
 fun LyricsImageCard(
     lyricText: String,
     mediaMetadata: MediaMetadata,
-    darkBackground: Boolean = true
+    darkBackground: Boolean = true,
+    backgroundColor: Color? = null,
+    textColor: Color? = null,
+    secondaryTextColor: Color? = null
 ) {
     val context = LocalContext.current
-    val backgroundGradient = if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
-    val textColor = if (darkBackground) Color.White else Color.Black
-    val secondaryTextColor = if (darkBackground) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
-    
+    val backgroundGradient = backgroundColor ?: if (darkBackground) Color(0xFF121212) else Color(0xFFF5F5F5)
+    val mainTextColor = textColor ?: if (darkBackground) Color.White else Color.Black
+    val secondaryColor = secondaryTextColor ?: if (darkBackground) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
     val painter = rememberAsyncImagePainter(
         ImageRequest.Builder(context)
             .data(mediaMetadata.thumbnailUrl)
             .crossfade(true)
             .build()
     )
-    
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .size( width = 1080.dp, height = 1080.dp)
             .background(backgroundGradient),
         contentAlignment = Alignment.Center
     ) {
@@ -65,7 +65,7 @@ fun LyricsImageCard(
             modifier = Modifier
                 .widthIn(max = 400.dp)
                 .background(
-                    color = if (darkBackground) Color(0xFF242424) else Color.White,
+                    color = backgroundGradient,
                     shape = RoundedCornerShape(20.dp)
                 )
                 .padding(horizontal = 28.dp, vertical = 28.dp)
@@ -74,7 +74,6 @@ fun LyricsImageCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Header arriba
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -94,7 +93,7 @@ fun LyricsImageCard(
                     ) {
                         Text(
                             text = mediaMetadata.title,
-                            color = textColor,
+                            color = mainTextColor,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -102,7 +101,7 @@ fun LyricsImageCard(
                         )
                         Text(
                             text = mediaMetadata.artists.joinToString { it.name },
-                            color = secondaryTextColor,
+                            color = secondaryColor,
                             fontSize = 14.sp,
                             maxLines = 1,
                             modifier = Modifier.fillMaxWidth()
@@ -110,10 +109,9 @@ fun LyricsImageCard(
                     }
                 }
                 Spacer(modifier = Modifier.height(18.dp))
-                // Letra centrada y grande
                 Text(
                     text = lyricText,
-                    color = textColor,
+                    color = mainTextColor,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 3,
@@ -124,7 +122,6 @@ fun LyricsImageCard(
                         .padding(horizontal = 8.dp)
                 )
                 Spacer(modifier = Modifier.height(18.dp))
-                // Logo y nombre de la app alineados abajo a la izquierda
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -136,8 +133,8 @@ fun LyricsImageCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Anitail Music",
-                        color = Color(0xFF1DB954),
+                        text = context.getString(R.string.app_name),
+                        color = secondaryColor,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
