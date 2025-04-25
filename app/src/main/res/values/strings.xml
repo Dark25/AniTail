@@ -129,6 +129,9 @@
     <string name="view_album">View album</string>
     <string name="refetch">Refetch</string>
     <string name="share">Share</string>
+    <string name="share_lyrics">Share lyrics</string>
+    <string name="share_as_text">Share as text</string>
+    <string name="share_as_image">Share as image</string>
     <string name="copy_link">Copy link</string>
     <string name="delete">Delete</string>
     <string name="remove_from_history">Remove from history</string>
@@ -514,4 +517,7 @@
     <string name="good_morning">Good morning</string>
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good night</string>
+    <string name="cancel">Cancel</string>
+    <string name="generating_image">Generating image…</string>
+    <string name="please_wait">Please wait…</string>
 </resources>

@@ -1,7 +1,13 @@
 package com.anitail.music.ui.component
 
+import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
-import androidx.compose.foundation.clickable
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -42,6 +48,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -72,13 +79,18 @@ import com.anitail.music.ui.menu.LyricsMenu
 import com.anitail.music.ui.screens.settings.DarkMode
 import com.anitail.music.ui.screens.settings.LyricsPosition
 import com.anitail.music.ui.utils.fadingEdge
+import com.anitail.music.utils.ComposeToImage
 import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.seconds
 
+@OptIn(ExperimentalFoundationApi::class)
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun Lyrics(
     sliderPositionProvider: () -> Long?,
@@ -88,6 +100,8 @@ fun Lyrics(
     val menuState = LocalMenuState.current
     val density = LocalDensity.current
     var showLyrics by rememberPreference(ShowLyricsKey, false)
+    val context = LocalContext.current  // Añade esta línea
+
     val landscapeOffset =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -348,20 +362,124 @@ fun Lyrics(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = isSynced && changeLyrics) {
-                                playerConnection.player.seekTo(item.time)
-                                scope.launch {
-                                    lazyListState.animateScrollToItem(
-                                        index,
-                                        with(density) { 36.dp.toPx().toInt() } +
-                                                with(density) {
-                                                    val count = item.text.count { it == '\n' }
-                                                    (if (landscapeOffset) 16.dp.toPx() else 20.dp.toPx()).toInt() * count
+                            .combinedClickable(
+                                enabled = true,
+                                onClick = {
+                                    if (isSynced && changeLyrics) {
+                                        playerConnection.player.seekTo(item.time)
+                                        scope.launch {
+                                            lazyListState.animateScrollToItem(
+                                                index,
+                                                with(density) { 36.dp.toPx().toInt() } +
+                                                        with(density) {
+                                                            val count = item.text.count { it == '\n' }
+                                                            (if (landscapeOffset) 16.dp.toPx() else 20.dp.toPx()).toInt() * count
+                                                        }
+                                            )
+                                        }
+                                        lastPreviewTime = 0L
+                                    }
+                                },
+                                onLongClick = {
+                                    mediaMetadata?.let { metadata ->
+                                        // Mostrar opciones para compartir como texto o como imagen
+                                        val options = arrayOf(
+                                            context.getString(R.string.share_as_text),
+                                            context.getString(R.string.share_as_image),
+                                            context.getString(R.string.cancel)
+                                        )
+                                        AlertDialog.Builder(context)
+                                            .setTitle(context.getString(R.string.share_lyrics))
+                                            .setItems(options) { _, which ->
+                                                when (which) {
+                                                    0 -> {
+                                                        val shareIntent = Intent().apply {
+                                                            action = Intent.ACTION_SEND
+                                                            type = "text/plain"
+                                                            val songTitle = metadata.title
+                                                            val artists = metadata.artists.joinToString { it.name }
+                                                            val songLink = "https://music.youtube.com/watch?v=${metadata.id}"
+                                                            putExtra(Intent.EXTRA_TEXT, "\"${item.text}\"\n\n${songTitle} - ${artists}\n${songLink}")
+                                                        }
+                                                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                                                    }
+                                                    1 -> {
+
+                                                        // Compartir como imagen
+                                                        scope.launch {
+                                                            try {
+                                                                // Obtener la actividad
+                                                                val activity = context.findActivity() as? android.app.Activity
+                                                                if (activity == null) {
+                                                                    Toast.makeText(context, "error: activity is null", Toast.LENGTH_SHORT).show()
+                                                                    return@launch
+                                                                }
+
+                                                                val progressDialog = AlertDialog.Builder(activity)
+                                                                    .setTitle(context.getString(R.string.generating_image))
+                                                                    .setMessage(context.getString(R.string.please_wait))
+                                                                    .setCancelable(false)
+                                                                    .create()
+
+                                                                activity.runOnUiThread {
+                                                                    progressDialog.show()
+                                                                }
+                                                                try {
+                                                                    val width = 1080
+                                                                    val height = 1920
+
+                                                                    val bitmap = ComposeToImage.createLyricsImage(
+                                                                        context = activity,
+                                                                        coverArtUrl = metadata.thumbnailUrl,
+                                                                        songTitle = metadata.title,
+                                                                        artistName = metadata.artists.joinToString { it.name },
+                                                                        lyrics = item.text,
+                                                                        width = width,
+                                                                        height = height,
+                                                                        isDarkTheme = useDarkTheme
+                                                                    )
+
+                                                                    // Ocultar el diálogo de progreso
+                                                                    activity.runOnUiThread {
+                                                                        progressDialog.dismiss()
+                                                                    }
+
+                                                                    // Guardar y compartir la imagen
+                                                                    val fileName = "lyrics_${metadata.id}_${System.currentTimeMillis()}"
+                                                                    val imageUri = ComposeToImage.saveBitmapAsFile(activity, bitmap, fileName)
+
+                                                                    // Compartir la imagen
+                                                                    val shareIntent = Intent().apply {
+                                                                        action = Intent.ACTION_SEND
+                                                                        type = "image/png"
+                                                                        putExtra(Intent.EXTRA_STREAM, imageUri)
+                                                                        putExtra(Intent.EXTRA_SUBJECT, "${metadata.title} - ${metadata.artists.joinToString { it.name }}")
+                                                                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                                                    }
+
+                                                                    withContext(Dispatchers.Main) {
+                                                                        activity.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                                                                    }
+                                                                } catch (e: Exception) {
+                                                                    // Ocultar el diálogo en caso de error
+                                                                    withContext(Dispatchers.Main) {
+                                                                        progressDialog.dismiss()
+                                                                        Toast.makeText(activity, "Error al generar la imagen: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                                    }
+                                                                    e.printStackTrace()
+                                                                }
+                                                            } catch (e: Exception) {
+                                                                Toast.makeText(context, "Error inesperado: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                                e.printStackTrace()
+                                                            }
+                                                        }
+                                                    }
                                                 }
-                                    )
+                                            }
+                                            .show()
+                                    }
                                 }
-                                lastPreviewTime = 0L
-                            }
+                            )
                             .padding(horizontal = 24.dp, vertical = 8.dp)
                             .alpha(if (!isSynced || index == displayedCurrentLineIndex) 1f else 0.5f)
                     )
@@ -413,6 +531,17 @@ fun Lyrics(
             }
         }
     }
+}
+
+private fun Context.findActivity(): Context? {
+    var currentContext = this
+    while (currentContext is android.content.ContextWrapper) {
+        if (currentContext is android.app.Activity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    return null
 }
 
 const val ANIMATE_SCROLL_DURATION = 300L
