@@ -293,7 +293,7 @@ fun SongListItem(
                             model = song.song.thumbnailUrl,
                             contentDescription = null,
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
                                 .clip(shape)
                         )
                     }
@@ -628,6 +628,7 @@ fun PlaylistListItem(
             1 -> AsyncImage(
                 model = playlist.thumbnails[0],
                 contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(ListThumbnailSize)
                     .clip(RoundedCornerShape(ThumbnailCornerRadius))
@@ -646,6 +647,7 @@ fun PlaylistListItem(
                     AsyncImage(
                         model = playlist.thumbnails.getOrNull(index),
                         contentDescription = null,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .align(alignment)
                             .size(ListThumbnailSize / 2)
@@ -663,7 +665,7 @@ fun PlaylistGridItem(
     playlist: Playlist,
     modifier: Modifier = Modifier,
     autoPlaylist: Boolean = false,
-    badges: @Composable RowScope.() -> Unit = { },
+    badges: @Composable RowScope.() -> Unit = {},
     fillMaxWidth: Boolean = false,
 ) = GridItem(
     title = playlist.playlist.name,
@@ -691,46 +693,63 @@ fun PlaylistGridItem(
         val width = maxWidth
 
         when (playlist.thumbnails.size) {
-            0 -> Box(
-                modifier = Modifier
-                    .size(width)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(painter),
-                    contentDescription = null,
-                    tint = LocalContentColor.current.copy(alpha = 0.8f),
-                    modifier = Modifier.size(width / 2)
-                )
+            0 -> {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                ) {
+                    Icon(
+                        painter = painterResource(painter),
+                        contentDescription = null,
+                        tint = LocalContentColor.current.copy(alpha = 0.8f),
+                        modifier = Modifier.size(width / 2)
+                    )
+                }
             }
-            1 -> AsyncImage(
-                model = playlist.thumbnails[0],
-                contentDescription = null,
-                modifier = Modifier
-                    .size(width)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-            )
-            else -> Box(
-                modifier = Modifier
-                    .size(width)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-            ) {
-                listOf(
-                    Alignment.TopStart,
-                    Alignment.TopEnd,
-                    Alignment.BottomStart,
-                    Alignment.BottomEnd,
-                ).fastForEachIndexed { index, alignment ->
+
+            1 -> {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                ) {
                     AsyncImage(
-                        model = playlist.thumbnails.getOrNull(index),
+                        model = playlist.thumbnails[0],
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .align(alignment)
-                            .size(width / 2)
+                        modifier = Modifier.fillMaxWidth()
                     )
+                }
+            }
+
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .size(width)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                ) {
+                    listOf(
+                        Alignment.TopStart,
+                        Alignment.TopEnd,
+                        Alignment.BottomStart,
+                        Alignment.BottomEnd,
+                    ).fastForEachIndexed { index, alignment ->
+                        AsyncImage(
+                            model = playlist.thumbnails.getOrNull(index),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .align(alignment)
+                                .size(width / 2)
+                        )
+                    }
                 }
             }
         }
@@ -888,7 +907,7 @@ fun YouTubeListItem(
                             model = item.thumbnail,
                             contentDescription = null,
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
                                 .clip(shape)
                         )
                     }
@@ -987,7 +1006,6 @@ fun YouTubeGridItem(
             isActive = isActive,
             isPlaying = isPlaying,
             shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(ThumbnailCornerRadius),
-            showPlayOverlay = item is SongItem
         )
 
         if (item is SongItem && !isActive) {
@@ -1231,11 +1249,14 @@ fun ItemThumbnail(
     shape: Shape,
     modifier: Modifier = Modifier,
     albumIndex: Int? = null,
-    showPlayOverlay: Boolean = false
+    thumbnailRatio: Float = 1f
 ) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
+            .fillMaxSize()
+            .aspectRatio(thumbnailRatio)
+            .clip(shape)
     ) {
         if (albumIndex != null) {
             AnimatedVisibility(
@@ -1257,8 +1278,6 @@ fun ItemThumbnail(
                     .clip(shape)
             )
         }
-
-        OverlayPlayButton(visible = showPlayOverlay && !isActive)
 
         PlayingIndicatorBox(
             isActive = isActive,
@@ -1317,8 +1336,7 @@ fun PlaylistThumbnail(
 
 @Composable
 fun BoxScope.OverlayPlayButton(
-    visible: Boolean,
-    modifier: Modifier = Modifier
+    visible: Boolean
 ) {
     AnimatedVisibility(
         visible = visible,

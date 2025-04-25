@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -183,14 +184,20 @@ fun YouTubeSongMenu(
             )
         },
         leadingContent = {
-            AsyncImage(
-                model = song.thumbnail,
-                contentDescription = null,
-                modifier =
-                Modifier
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
                     .size(ListThumbnailSize)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius)),
-            )
+                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
+            ) {
+                AsyncImage(
+                    model = song.thumbnail,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                )
+            }
         },
         trailingContent = {
             IconButton(
@@ -221,13 +228,15 @@ fun YouTubeSongMenu(
 
     HorizontalDivider()
 
+    Spacer(modifier = Modifier.height(12.dp))
+
     val bottomSheetPageState = LocalBottomSheetPageState.current
 
     // Row for "Play next", "Add to playlist", and "Share" buttons with grid-like background
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
     ) {
         // Play next button
