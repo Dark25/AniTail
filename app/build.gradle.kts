@@ -89,7 +89,11 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("persistentDebug")
+            signingConfig = if (System.getenv("GITHUB_EVENT_NAME") == "pull_request") {
+                signingConfigs.getByName("debug")
+            } else {
+                signingConfigs.getByName("persistentDebug")
+            }
         }
     }
 

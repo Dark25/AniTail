@@ -60,8 +60,8 @@ import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.SliderStyle
 import com.anitail.music.constants.SliderStyleKey
 import com.anitail.music.constants.SlimNavBarKey
-import com.anitail.music.constants.SwipeSongToAddKey
 import com.anitail.music.constants.SwipeThumbnailKey
+import com.anitail.music.constants.SwipeToSongKey
 import com.anitail.music.ui.component.DefaultDialog
 import com.anitail.music.ui.component.EnumListPreference
 import com.anitail.music.ui.component.IconButton
@@ -123,7 +123,7 @@ fun AppearanceSettings(
 
     val (slimNav, onSlimNavChange) = rememberPreference(SlimNavBarKey, defaultValue = false)
 
-    val (swipeSongToAdd, onSwipeSongToAddChange) = rememberPreference(SwipeSongToAddKey, defaultValue = false)
+    val (swipeToSong, onSwipeToSongChange) = rememberPreference(SwipeToSongKey, defaultValue = false)
 
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -434,8 +434,8 @@ fun AppearanceSettings(
         SwitchPreference(
              title = { Text(stringResource(R.string.swipe_song_to_add)) },
              icon = { Icon(painterResource(R.drawable.swipe), null) },
-             checked = swipeSongToAdd,
-             onCheckedChange = onSwipeSongToAddChange
+             checked = swipeToSong,
+             onCheckedChange = onSwipeToSongChange
          )
 
         SwitchPreference(
