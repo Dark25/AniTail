@@ -314,6 +314,11 @@
     <string name="misc">Misceláneos</string>
     <string name="default_open_tab">Pestaña predeterminada</string>
     <string name="slim_navbar">Ocultar etiquetas de la barra de navegación inferior</string>
+    <string name="auto_playlists">Listas de reproducción automáticas</string>
+    <string name="show_liked_playlist">Mostrar lista de reproducción que me gusta</string>
+    <string name="show_downloaded_playlist">Mostrar lista de reproducción descargada</string>
+    <string name="show_top_playlist">Mostrar lista de reproducción más popular</string>
+    <string name="show_cached_playlist">Mostrar lista de reproducción en caché</string>
 
     <string name="content">Contenido</string>
     <string name="google">Google</string>
