@@ -484,26 +484,66 @@ fun BetaTestersSection(uriHandler: UriHandler) {
             onClick = { uriHandler.openUri("https://discord.com/users/1075797587770228856") }
         )
     )
+    // Responsive: 4 columns on large, 2 on small
+    val columns = if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 500) 2 else 4
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        testers.chunked(4).forEach { rowTesters ->
+        testers.chunked(columns).forEach { rowTesters ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 rowTesters.forEach { tester ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        UserCard(
-                            imageUrl = tester.imageUrl,
-                            name = tester.name,
-                            role = "Beta Tester",
-                            onClick = tester.onClick
-                        )
-                    }
+                    UserCardCompact(
+                        imageUrl = tester.imageUrl,
+                        name = tester.name,
+                        role = "Beta Tester",
+                        onClick = tester.onClick
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun UserCardCompact(
+    imageUrl: String,
+    name: String,
+    role: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .padding(7.dp)
+            .width(86.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(model = imageUrl),
+            contentDescription = null,
+            modifier = Modifier
+                .size(58.dp)
+                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(modifier = Modifier.height(7.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+            maxLines = 1,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = role,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            maxLines = 1
+        )
     }
 }
 
