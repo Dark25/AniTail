@@ -286,6 +286,17 @@ fun AboutScreen(
             onClick = { uriHandler.openUri("https://github.com/Animetailapp") }
         )
 
+        Spacer(Modifier.height(20.dp))
+
+        CardItem(
+            icon = R.drawable.patreon,
+            title = stringResource(R.string.patreon),
+            subtitle = stringResource(R.string.patreon_info),
+            onClick = { uriHandler.openUri("https://www.patreon.com/abydev") }
+        )
+
+        Spacer(Modifier.height(20.dp))
+
     }
 
     TopAppBar(

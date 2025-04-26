@@ -40,7 +40,7 @@
     <string name="no_title">No title</string>
     <string name="unknown_artist">Unknown artist</string>
     <string name="unknown_item_type">Unknown item type</string>
-    <string name="loading_charts">Loading charts...</string>
+    <string name="loading_charts">Loading charts…</string>
     <string name="retry_button">Retry</string>
     <string name="album_cover_desc">Album cover</string>
     <string name="top_music_videos">Top Music Videos</string>
@@ -486,7 +486,7 @@
     <string name="playlist_add_local_to_synced_note">Note: Adding local songs to synced/remote playlists is unsupported. Any other combination is valid</string>
     <string name="logged_in_as">Logged in as %1$s. Found %2$d playlists.\n\nNow, select the items you want to import:</string>
     <string name="select_all">Select All</string>
-    <string name="fetching_all_playlists">Fetching all playlists...</string>
+    <string name="fetching_all_playlists">Fetching all playlists…</string>
     <string name="import_selected_items">Import Selected Items</string>
     <string name="instruction_1">1. Visit <a href="https://developer.spotify.com/dashboard/">Spotify for developers dashboard</a> and click on "Create app".</string>
     <string name="instruction_2">2. Enter the necessary details and use <b>http://127.0.0.1:8888</b> as the <b>Redirect URIs</b>.</string>
@@ -530,4 +530,6 @@
     <string name="customize_colors">Customize colors</string>
     <string name="secondary_text_color">Secondary text color</string>
     <string name="beta_testers">Contributors</string>
+    <string name="patreon">Patreon</string>
+    <string name="patreon_info">If you\'d like to support the project financially, you can do so via Patreon. Your contribution helps us grow and improve!</string>
 </resources>
