@@ -127,6 +127,7 @@
     <string name="view_album">Ver álbum</string>
     <string name="refetch">Actualizar</string>
     <string name="share">Compartir</string>
+    <string name="max_selection_limit">Máximo %d líneas pueden ser seleccionadas</string>
     <string name="copy_link">Copiar enlace</string>
     <string name="delete">Eliminar</string>
     <string name="remove_from_history">Eliminar del historial</string>
