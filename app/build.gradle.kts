@@ -18,7 +18,6 @@ android {
     defaultConfig {
         applicationId = "com.anitail.music"
         minSdk = 21
-        //noinspection OldTargetApi
         targetSdk = 35
         versionCode = 3
         versionName = "1.3.6"

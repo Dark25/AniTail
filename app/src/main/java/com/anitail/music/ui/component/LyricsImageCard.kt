@@ -57,7 +57,7 @@ fun rememberAdjustedFontSize(
     maxWidth: Dp,
     maxHeight: Dp,
     density: Density,
-    initialFontSize: TextUnit = 20.sp,
+    initialFontSize: TextUnit = 26.sp,
     minFontSize: TextUnit = 14.sp,
     style: TextStyle = TextStyle.Default,
     textMeasurer: androidx.compose.ui.text.TextMeasurer? = null
@@ -244,11 +244,11 @@ fun LyricsImageCard(
 
                     val textMeasurer = rememberTextMeasurer()
                     val initialSize = when {
-                        lyricText.length < 50 -> 52.sp
-                        lyricText.length < 100 -> 42.sp
-                        lyricText.length < 200 -> 34.sp
-                        lyricText.length < 300 -> 28.sp
-                        else -> 26.sp
+                        lyricText.length < 50 -> 28.sp
+                        lyricText.length < 100 -> 26.sp
+                        lyricText.length < 200 -> 16.sp
+                        lyricText.length < 300 -> 14.sp
+                        else -> 29.sp
                     }
 
                     val dynamicFontSize = rememberAdjustedFontSize(

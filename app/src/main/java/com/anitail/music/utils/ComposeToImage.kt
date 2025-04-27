@@ -274,7 +274,7 @@ object ComposeToImage {
             artistLayout.draw(this)
         }
         
-        val lyricsMaxWidth = cardWidth - innerPadding * 2 - 24
+        val lyricsMaxWidth = cardWidth - innerPadding * 2 - 28
         val lyricsTop = coverArtTop + coverArtSize + innerPadding * 1.2f
         val logoBlockHeight = (cardHeight * 0.08f).toInt()
         val lyricsBottom = cardHeight - (logoBlockHeight + innerPadding) - 16
@@ -307,7 +307,7 @@ object ComposeToImage {
         }
 
         // --- Ajuste automático del tamaño de letra ---
-        var lyricsTextSize = cardHeight * 0.07f
+        var lyricsTextSize = cardHeight * 0.09f
         lyricsPaint.textSize = lyricsTextSize
 
         var lyricsLayout: StaticLayout
@@ -317,7 +317,7 @@ object ComposeToImage {
             ).setAlignment(Layout.Alignment.ALIGN_CENTER)
                 .setIncludePad(false)
                 .setEllipsize(TextUtils.TruncateAt.END)
-                .setMaxLines(30) // Increase max lines to show more lyrics content
+                .setMaxLines(10) // Increase max lines to show more lyrics content
                 .build()
 
             if (lyricsLayout.height > availableLyricsHeight) {
@@ -325,7 +325,7 @@ object ComposeToImage {
             } else {
                 break
             }
-        } while (lyricsTextSize > 20f)
+        } while (lyricsTextSize > 26f)
         
         val lyricsYOffset = lyricsTop + (availableLyricsHeight - lyricsLayout.height) / 2f
 

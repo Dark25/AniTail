@@ -141,9 +141,9 @@ import com.anitail.music.ui.screens.search.LocalSearchScreen
 import com.anitail.music.ui.screens.search.OnlineSearchScreen
 import com.anitail.music.ui.screens.settings.DarkMode
 import com.anitail.music.ui.screens.settings.NavigationTab
+import com.anitail.music.ui.theme.AnitailTheme
 import com.anitail.music.ui.theme.ColorSaver
 import com.anitail.music.ui.theme.DefaultThemeColor
-import com.anitail.music.ui.theme.MetrolistTheme
 import com.anitail.music.ui.theme.extractThemeColor
 import com.anitail.music.ui.utils.appBarScrollBehavior
 import com.anitail.music.ui.utils.backToMain
@@ -311,7 +311,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            MetrolistTheme(
+            AnitailTheme(
                 darkMode = darkTheme,
                 pureBlack = pureBlack,
                 themeColor = themeColor,
