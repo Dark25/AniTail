@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,7 +96,6 @@ fun PlayerMenu(
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
     val activityResultLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
-    val librarySong by database.song(mediaMetadata.id).collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
 
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata.id)
@@ -238,7 +238,9 @@ fun PlayerMenu(
                 text = stringResource(R.string.start_radio),
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier
+                    .basicMarquee()
+                    .padding(top = 4.dp),
             )
         }
 
@@ -265,7 +267,9 @@ fun PlayerMenu(
                 text = stringResource(R.string.add_to_playlist),
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier
+                    .basicMarquee()
+                    .padding(top = 4.dp),
             )
         }
         // Copy link
@@ -295,7 +299,9 @@ fun PlayerMenu(
                 text = stringResource(R.string.copy_link),
                 style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier
+                    .basicMarquee()
+                    .padding(top = 4.dp),
             )
         }
     }

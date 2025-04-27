@@ -12,15 +12,15 @@ plugins {
 
 android {
     namespace = "com.anitail.music"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "25.1.8937393"
 
     defaultConfig {
         applicationId = "com.anitail.music"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 3
-        versionName = "1.3.6"
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
