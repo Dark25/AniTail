@@ -9,7 +9,7 @@ import com.anitail.innertube.models.WatchEndpoint
 import com.anitail.innertube.models.YTItem
 import com.anitail.innertube.pages.ExplorePage
 import com.anitail.innertube.pages.HomePage
-import com.anitail.innertube.utils.completedLibraryPage
+import com.anitail.innertube.utils.completed
 import com.anitail.music.constants.QuickPicks
 import com.anitail.music.constants.QuickPicksKey
 import com.anitail.music.constants.YtmSyncKey
@@ -100,7 +100,7 @@ class HomeViewModel @Inject constructor(
                 .filter { it is Song || it is Album }
 
         if (YouTube.cookie != null) {
-            YouTube.library("FEmusic_liked_playlists").completedLibraryPage().onSuccess {
+            YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
                 accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>()
                     .filterNot { it.id == "SE" }
             }.onFailure {

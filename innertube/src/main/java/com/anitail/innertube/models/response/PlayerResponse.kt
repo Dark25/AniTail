@@ -2,7 +2,6 @@ package com.anitail.innertube.models.response
 
 import com.anitail.innertube.models.ResponseContext
 import com.anitail.innertube.models.Thumbnails
-import com.anitail.innertube.utils.createUrl
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -65,8 +64,6 @@ data class PlayerResponse(
         ) {
             val isAudio: Boolean
                 get() = width == null
-
-            fun findUrl() = url?.let { createUrl(url = it) } ?: signatureCipher?.let { createUrl(cipher = it) }!!
         }
     }
 
