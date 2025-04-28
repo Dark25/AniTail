@@ -268,6 +268,10 @@
 
     <!-- Nombre de notificación -->
     <string name="music_player">Reproductor de música</string>
+    <string name="notification">Notificación</string>
+    <string name="notification_button_type">Tipo de botón de notificación</string>
+    <string name="notification_button_close">>Botón de cierre</string>
+    <string name="notification_button_like">>Botón de me gusta</string>
 
     <!-- Configuración -->
     <string name="settings">Configuración</string>
@@ -519,6 +523,7 @@
     <string name="good_afternoon">Buenas tardes</string>
     <string name="good_evening">Buenas noches</string>
     <string name="cancel">Cancelar</string>
+    <string name="close">Cerrar</string>
     <string name="generating_image">Generando imagen…</string>
     <string name="please_wait">Por favor, espere…</string>
     <string name="text_color">Color del texto</string>
