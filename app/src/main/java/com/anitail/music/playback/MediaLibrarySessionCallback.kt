@@ -65,7 +65,8 @@ constructor(
                 .build(),
             connectionResult.availablePlayerCommands,
         )
-    }    override fun onCustomCommand(
+    }
+    override fun onCustomCommand(
         session: MediaSession,
         controller: MediaSession.ControllerInfo,
         customCommand: SessionCommand,
