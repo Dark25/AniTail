@@ -61,11 +61,11 @@ constructor(
                 .add(MediaSessionConstants.CommandToggleLibrary)
                 .add(MediaSessionConstants.CommandToggleShuffle)
                 .add(MediaSessionConstants.CommandToggleRepeatMode)
+                .add(MediaSessionConstants.CommandClosePlayer)
                 .build(),
             connectionResult.availablePlayerCommands,
         )
     }
-
     override fun onCustomCommand(
         session: MediaSession,
         controller: MediaSession.ControllerInfo,
@@ -77,8 +77,10 @@ constructor(
             MediaSessionConstants.ACTION_TOGGLE_LIBRARY -> toggleLibrary()
             MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.shuffleModeEnabled =
                 !session.player.shuffleModeEnabled
-
             MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
+            MediaSessionConstants.ACTION_CLOSE_PLAYER -> {
+                MusicService.instance?.closePlayer()
+            }
         }
         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
     }

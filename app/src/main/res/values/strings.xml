@@ -271,6 +271,10 @@
 
     <!-- Notification name -->
     <string name="music_player">Music Player</string>
+    <string name="notification">Notification</string>
+    <string name="notification_button_type">Notification button type</string>
+    <string name="notification_button_close">Close button</string>
+    <string name="notification_button_like">Like button</string>
 
     <!-- Settings -->
     <string name="settings">Settings</string>
@@ -523,6 +527,7 @@
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good night</string>
     <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
     <string name="generating_image">Generating image…</string>
     <string name="please_wait">Please wait…</string>
     <string name="text_color">Text color</string>

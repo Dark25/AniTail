@@ -511,21 +511,24 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-
                     DisposableEffect(playerConnection, playerBottomSheetState) {
                         val player =
                             playerConnection?.player ?: return@DisposableEffect onDispose { }
                         val listener =
                             object : Player.Listener {
-                                override fun onMediaItemTransition(
-                                    mediaItem: MediaItem?,
-                                    reason: Int,
-                                ) {
-                                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED &&
-                                        mediaItem != null &&
-                                        playerBottomSheetState.isDismissed
-                                    ) {
-                                        playerBottomSheetState.collapseSoft()
+                                override fun onPlaybackStateChanged(state: Int) {
+                                    if (state == Player.STATE_IDLE && player.mediaItemCount == 0) {
+                                        playerBottomSheetState.dismiss()
+                                    }
+                                }
+                                // Detectar cuando los elementos multimedia son eliminados (parte del proceso de cierre)
+                                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                                    if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
+                                        if (mediaItem != null && playerBottomSheetState.isDismissed) {
+                                            playerBottomSheetState.collapseSoft()
+                                        } else if (mediaItem == null && player.mediaItemCount == 0) {
+                                            playerBottomSheetState.dismiss()
+                                        }
                                     }
                                 }
                             }

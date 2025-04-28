@@ -55,6 +55,7 @@ fun MiniPlayer(
     position: Long,
     duration: Long,
     modifier: Modifier = Modifier,
+    playerBottomSheetState: com.anitail.music.ui.component.BottomSheetState? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
@@ -93,6 +94,24 @@ fun MiniPlayer(
                         modifier = Modifier.padding(horizontal = 6.dp),
                     )
                 }
+            }
+
+            IconButton(
+                onClick = {
+                    if (playerBottomSheetState != null) {
+                        playerBottomSheetState.dismiss()
+                        playerConnection.closePlayer()
+                    } else {
+                        playerConnection.closePlayer()
+                    }
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.close),
+                    contentDescription = "Close",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
 
             IconButton(

@@ -20,18 +20,20 @@ import com.anitail.music.playback.queues.Queue
 import com.anitail.music.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerConnection(
     context: Context,
     binder: MusicBinder,
     val database: MusicDatabase,
-    scope: CoroutineScope,
+    private val coroutineScope: CoroutineScope,
 ) : Player.Listener {
     val service = binder.service
     val player = service.player
@@ -42,7 +44,7 @@ class PlayerConnection(
         combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
             playWhenReady && playbackState != STATE_ENDED
         }.stateIn(
-            scope,
+            coroutineScope,
             SharingStarted.Lazily,
             player.playWhenReady && player.playbackState != STATE_ENDED
         )
@@ -84,6 +86,18 @@ class PlayerConnection(
         currentMediaItemIndex.value = player.currentMediaItemIndex
         shuffleModeEnabled.value = player.shuffleModeEnabled
         repeatMode.value = player.repeatMode
+    }
+
+    /**
+     * Closes the player completely, stopping the service
+     * This function is called from the miniplayer's X button and from the notification X button
+     * through the MediaSessionConstants.ACTION_CLOSE_PLAYER command
+     */
+    fun closePlayer() {
+        coroutineScope.launch {
+            delay(300)
+            MusicService.instance?.closePlayer() ?: service.closePlayer()
+        }
     }
 
     fun playQueue(queue: Queue) {

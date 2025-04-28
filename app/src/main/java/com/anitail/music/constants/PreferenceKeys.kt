@@ -51,6 +51,12 @@ val AutoSkipNextOnErrorKey = booleanPreferencesKey("autoSkipNextOnError")
 val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val AutoDownloadLyricsKey = booleanPreferencesKey("autoDownloadLyrics")
+val NotificationButtonTypeKey = stringPreferencesKey("notificationButtonType")
+
+enum class NotificationButtonType {
+    CLOSE,
+    LIKE,
+}
 
 val MaxImageCacheSizeKey = intPreferencesKey("maxImageCacheSize")
 val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
