@@ -523,6 +523,7 @@
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good night</string>
     <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
     <string name="generating_image">Generating image…</string>
     <string name="please_wait">Please wait…</string>
     <string name="text_color">Text color</string>

@@ -66,6 +66,7 @@ import com.anitail.music.constants.DiscordTokenKey
 import com.anitail.music.constants.EnableDiscordRPCKey
 import com.anitail.music.constants.HideExplicitKey
 import com.anitail.music.constants.HistoryDuration
+import com.anitail.music.constants.MediaSessionConstants.CommandClosePlayer
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleLike
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleRepeatMode
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleShuffle
@@ -211,9 +212,9 @@ class MusicService :
     private var discordRpc: DiscordRPC? = null
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
-
     override fun onCreate() {
         super.onCreate()
+        instance = this
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
                 this,
@@ -459,6 +460,13 @@ class MusicService :
                     .setIconResId(if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
                     .setSessionCommand(CommandToggleShuffle)
                     .build(),
+                // Add Close Button to notification
+                CommandButton
+                    .Builder()
+                    .setDisplayName(getString(R.string.close))
+                    .setIconResId(R.drawable.close)
+                    .setSessionCommand(CommandClosePlayer)
+                    .build()
             ),
         )
     }
@@ -656,7 +664,7 @@ class MusicService :
         if (intent?.action == null) {
             return super.onStartCommand(intent, flags, startId)
         }
-        
+
         when (intent.action) {
             ACTION_DOWNLOAD_LYRICS -> {
                 val songId = intent.getStringExtra(EXTRA_SONG_ID)
@@ -667,7 +675,7 @@ class MusicService :
                 }
             }
         }
-        
+
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -677,7 +685,7 @@ class MusicService :
                  val song = it.song.toggleLike()
                  update(song)
                  syncUtils.likeSong(song)
-                 
+
                  // Check if auto-download on like is enabled and the song is now liked
                  if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
                      // Trigger download for the liked song
@@ -692,7 +700,7 @@ class MusicService :
                          downloadRequest,
                          false
                      )
-                     
+
                      // Download lyrics if auto-download lyrics is enabled
                      if (dataStore.get(AutoDownloadLyricsKey, false)) {
                          scope.launch {
@@ -703,7 +711,7 @@ class MusicService :
              }
          }
      }
-     
+
      /**
       * Downloads lyrics for a specific song
       */
@@ -1041,9 +1049,7 @@ class MusicService :
         }.onFailure {
             reportException(it)
         }
-    }
-
-    override fun onDestroy() {
+    }    override fun onDestroy() {
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
@@ -1055,6 +1061,8 @@ class MusicService :
         player.removeListener(this)
         player.removeListener(sleepTimer)
         player.release()
+        instance = null
+        
         super.onDestroy()
     }
 
@@ -1085,9 +1093,38 @@ class MusicService :
         const val CHUNK_LENGTH = 512 * 1024L
         const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
         const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
-        
+
         // Constants for lyrics download action
         const val ACTION_DOWNLOAD_LYRICS = "com.anitail.music.action.DOWNLOAD_LYRICS"
         const val EXTRA_SONG_ID = "com.anitail.music.extra.SONG_ID"
+        // Static instance to access the service from callbacks
+        var instance: MusicService? = null
+            private set
+
+    }    /**
+     * Closes the player when the X button is clicked
+     * Stops playback, saves state, and cleans up resources
+     */
+    fun closePlayer() {
+        player.pause()
+
+        if (dataStore.get(PersistentQueueKey, true)) {
+            saveQueueToDisk()
+        }
+
+        player.stop()
+        player.clearMediaItems()
+        currentQueue = EmptyQueue
+        queueTitle = null
+        currentMediaMetadata.value = null
+        discordRpc?.closeRPC()
+
+        if (isAudioEffectSessionOpened) {
+            closeAudioEffectSession()
+        }
+
+        mediaSession.setCustomLayout(emptyList())
+        updateNotification()
+        stopSelf()
     }
 }

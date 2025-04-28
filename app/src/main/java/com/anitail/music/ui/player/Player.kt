@@ -478,11 +478,11 @@ fun BottomSheetPlayer(
             playerConnection.service.clearAutomix()
             playerConnection.player.stop()
             playerConnection.player.clearMediaItems()
-        },
-        collapsedContent = {
+        },        collapsedContent = {
             MiniPlayer(
                 position = position,
                 duration = duration,
+                playerBottomSheetState = state
             )
         },
     ) {
@@ -939,6 +939,33 @@ fun BottomSheetPlayer(
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                         .padding(bottom = queueSheetState.collapsedBound),
                 ) {
+                    // Add Close Button at the top-right
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, end = 16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                                .clickable {
+                                    playerConnection.service.closePlayer()
+                                    state.collapseSoft()
+                                }
+                                .align(Alignment.TopEnd),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.close),
+                                contentDescription = stringResource(R.string.close),
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.weight(1f),
