@@ -70,6 +70,8 @@ import com.anitail.music.constants.MediaSessionConstants.CommandClosePlayer
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleLike
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleRepeatMode
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleShuffle
+import com.anitail.music.constants.NotificationButtonType
+import com.anitail.music.constants.NotificationButtonTypeKey
 import com.anitail.music.constants.PauseListenHistoryKey
 import com.anitail.music.constants.PauseRemoteListenHistoryKey
 import com.anitail.music.constants.PersistentQueueKey
@@ -175,6 +177,11 @@ class MusicService :
         this,
         AudioQualityKey,
         com.anitail.music.constants.AudioQuality.AUTO
+    )
+    private val buttonType by enumPreference(
+        this,
+        NotificationButtonTypeKey,
+        NotificationButtonType.CLOSE
     )
 
     private var currentQueue: Queue = EmptyQueue
@@ -413,62 +420,73 @@ class MusicService :
             }
         }
     }
-
     private fun updateNotification() {
-        mediaSession.setCustomLayout(
-            listOf(
-                CommandButton
-                    .Builder()
-                    .setDisplayName(
-                        getString(
-                            if (currentSong.value?.song?.liked ==
-                                true
-                            ) {
-                                R.string.action_remove_like
-                            } else {
-                                R.string.action_like
-                            },
-                        ),
-                    )
-                    .setIconResId(if (currentSong.value?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border)
-                    .setSessionCommand(CommandToggleLike)
-                    .setEnabled(currentSong.value != null)
-                    .build(),
-                CommandButton
-                    .Builder()
-                    .setDisplayName(
-                        getString(
-                            when (player.repeatMode) {
-                                REPEAT_MODE_OFF -> R.string.repeat_mode_off
-                                REPEAT_MODE_ONE -> R.string.repeat_mode_one
-                                REPEAT_MODE_ALL -> R.string.repeat_mode_all
-                                else -> throw IllegalStateException()
-                            },
-                        ),
-                    ).setIconResId(
+        val buttons = mutableListOf<CommandButton>()
+        when (buttonType) {
+            NotificationButtonType.LIKE -> {
+                buttons.add(
+                    CommandButton
+                        .Builder()
+                        .setDisplayName(
+                            getString(
+                                if (currentSong.value?.song?.liked == true) {
+                                    R.string.action_remove_like
+                                } else {
+                                    R.string.action_like
+                                },
+                            ),
+                        )
+                        .setIconResId(if (currentSong.value?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border)
+                        .setSessionCommand(CommandToggleLike)
+                        .setEnabled(currentSong.value != null)
+                        .build()
+                )
+            }
+            NotificationButtonType.CLOSE -> {
+                buttons.add(
+                    CommandButton
+                        .Builder()
+                        .setDisplayName(getString(R.string.close))
+                        .setIconResId(R.drawable.close)
+                        .setSessionCommand(CommandClosePlayer)
+                        .setEnabled(currentSong.value != null)
+                        .build()
+                )
+            }
+        }
+        buttons.add(
+            CommandButton
+                .Builder()
+                .setDisplayName(
+                    getString(
                         when (player.repeatMode) {
-                            REPEAT_MODE_OFF -> R.drawable.repeat
-                            REPEAT_MODE_ONE -> R.drawable.repeat_one_on
-                            REPEAT_MODE_ALL -> R.drawable.repeat_on
+                            REPEAT_MODE_OFF -> R.string.repeat_mode_off
+                            REPEAT_MODE_ONE -> R.string.repeat_mode_one
+                            REPEAT_MODE_ALL -> R.string.repeat_mode_all
                             else -> throw IllegalStateException()
                         },
-                    ).setSessionCommand(CommandToggleRepeatMode)
-                    .build(),
-                CommandButton
-                    .Builder()
-                    .setDisplayName(getString(if (player.shuffleModeEnabled) R.string.action_shuffle_off else R.string.action_shuffle_on))
-                    .setIconResId(if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
-                    .setSessionCommand(CommandToggleShuffle)
-                    .build(),
-                // Add Close Button to notification
-                CommandButton
-                    .Builder()
-                    .setDisplayName(getString(R.string.close))
-                    .setIconResId(R.drawable.close)
-                    .setSessionCommand(CommandClosePlayer)
-                    .build()
-            ),
+                    ),
+                ).setIconResId(
+                    when (player.repeatMode) {
+                        REPEAT_MODE_OFF -> R.drawable.repeat
+                        REPEAT_MODE_ONE -> R.drawable.repeat_one_on
+                        REPEAT_MODE_ALL -> R.drawable.repeat_on
+                        else -> throw IllegalStateException()
+                    },
+                ).setSessionCommand(CommandToggleRepeatMode)
+                .build()
         )
+
+        buttons.add(
+            CommandButton
+                .Builder()
+                .setDisplayName(getString(if (player.shuffleModeEnabled) R.string.action_shuffle_off else R.string.action_shuffle_on))
+                .setIconResId(if (player.shuffleModeEnabled) R.drawable.shuffle_on else R.drawable.shuffle)
+                .setSessionCommand(CommandToggleShuffle)
+                .build()
+        )
+
+        mediaSession.setCustomLayout(buttons)
     }
 
     private suspend fun recoverSong(
@@ -1102,7 +1120,7 @@ class MusicService :
             private set
 
     }    /**
-     * Closes the player when the X button is clicked
+     * Closes the player when the X button is clicked either from the miniplayer or notification
      * Stops playback, saves state, and cleans up resources
      */
     fun closePlayer() {

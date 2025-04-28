@@ -271,6 +271,10 @@
 
     <!-- Notification name -->
     <string name="music_player">Music Player</string>
+    <string name="notification">Notification</string>
+    <string name="notification_button_type">Notification button type</string>
+    <string name="notification_button_close">Close button</string>
+    <string name="notification_button_like">Like button</string>
 
     <!-- Settings -->
     <string name="settings">Settings</string>

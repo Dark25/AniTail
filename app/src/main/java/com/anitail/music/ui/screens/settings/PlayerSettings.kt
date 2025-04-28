@@ -27,6 +27,8 @@ import com.anitail.music.constants.AutoDownloadOnLikeKey
 import com.anitail.music.constants.AutoLoadMoreKey
 import com.anitail.music.constants.AutoSkipNextOnErrorKey
 import com.anitail.music.constants.HistoryDuration
+import com.anitail.music.constants.NotificationButtonType
+import com.anitail.music.constants.NotificationButtonTypeKey
 import com.anitail.music.constants.PersistentQueueKey
 import com.anitail.music.constants.SimilarContent
 import com.anitail.music.constants.SkipSilenceKey
@@ -86,6 +88,10 @@ fun PlayerSettings(
     val (autoDownloadLyrics, onAutoDownloadLyricsChange) = rememberPreference(
         AutoDownloadLyricsKey,
         defaultValue = false
+    )
+    val (notificationButtonType, onNotificationButtonTypeChange) = rememberEnumPreference(
+        NotificationButtonTypeKey,
+        defaultValue = NotificationButtonType.CLOSE
     )
     val (historyDuration, onHistoryDurationChange) = rememberPreference(
         HistoryDuration,
@@ -205,6 +211,22 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = autoDownloadLyrics,
             onCheckedChange = onAutoDownloadLyricsChange
+        )
+          PreferenceGroupTitle(
+            title = stringResource(R.string.notification)
+        )
+        
+        EnumListPreference(
+            title = { Text(stringResource(R.string.notification_button_type)) },
+            icon = { Icon(painterResource(R.drawable.more_horiz), null) },
+            selectedValue = notificationButtonType,
+            onValueSelected = onNotificationButtonTypeChange,
+            valueText = {
+                when (it) {
+                    NotificationButtonType.CLOSE -> stringResource(R.string.notification_button_close)
+                    NotificationButtonType.LIKE -> stringResource(R.string.notification_button_like)
+                }
+            }
         )
     }
 

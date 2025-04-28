@@ -77,7 +77,6 @@ constructor(
             MediaSessionConstants.ACTION_TOGGLE_SHUFFLE -> session.player.shuffleModeEnabled =
                 !session.player.shuffleModeEnabled
             MediaSessionConstants.ACTION_TOGGLE_REPEAT_MODE -> session.player.toggleRepeatMode()
-            
             MediaSessionConstants.ACTION_CLOSE_PLAYER -> {
                 MusicService.instance?.closePlayer()
             }

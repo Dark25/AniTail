@@ -90,6 +90,8 @@ class PlayerConnection(
 
     /**
      * Closes the player completely, stopping the service
+     * This function is called from the miniplayer's X button and from the notification X button
+     * through the MediaSessionConstants.ACTION_CLOSE_PLAYER command
      */
     fun closePlayer() {
         coroutineScope.launch {

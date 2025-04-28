@@ -96,7 +96,6 @@ fun MiniPlayer(
                 }
             }
 
-            // Add Close Button to MiniPlayer
             IconButton(
                 onClick = {
                     if (playerBottomSheetState != null) {
