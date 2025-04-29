@@ -116,16 +116,22 @@ fun AboutScreen(
         Box(
             modifier = Modifier
                 .size(90.dp)
-                .clip(CircleShape)
+                .border(
+                    width = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceColorAtElevation(NavigationBarDefaults.Elevation))
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_ani),
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground, BlendMode.SrcIn),
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .matchParentSize()
-                    .clickable { }
+                    .size(90.dp)
+                    .align(Alignment.Center)
             )
 
             Box(
@@ -133,7 +139,7 @@ fun AboutScreen(
                     .matchParentSize()
                     .background(
                         brush = shimmerEffect(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
             )
         }
@@ -493,10 +499,20 @@ fun BetaTestersSection(uriHandler: UriHandler) {
             imageUrl = "https://i.ibb.co/mrwz7J7K/165cbedbd96ae35c2489286c8db9777d.png",
             name = "Ryak",
             onClick = { uriHandler.openUri("https://discord.com/users/1075797587770228856") }
-        )
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/LXXWGJCt/e8cdcf2c32ee7056806c5a8bfa607830.png",
+            name = "LucianRC",
+            onClick = { uriHandler.openUri("https://discord.com/users/420641532446769157") }
+        ),
+        BetaTester(
+            imageUrl = "https://i.ibb.co/8Dc1f67r/image.png",
+            name = "Alexx",
+            onClick = { uriHandler.openUri("https://discord.com/users/743896907184734268") }
+        ),
     )
     // Responsive: 4 columns on large, 2 on small
-    val columns = if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 500) 2 else 4
+    val columns = if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 500) 2 else 5
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {

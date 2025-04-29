@@ -270,8 +270,8 @@
     <string name="music_player">Reproductor de música</string>
     <string name="notification">Notificación</string>
     <string name="notification_button_type">Tipo de botón de notificación</string>
-    <string name="notification_button_close">>Botón de cierre</string>
-    <string name="notification_button_like">>Botón de me gusta</string>
+    <string name="notification_button_close">Botón de cierre</string>
+    <string name="notification_button_like">Botón de me gusta</string>
 
     <!-- Configuración -->
     <string name="settings">Configuración</string>
