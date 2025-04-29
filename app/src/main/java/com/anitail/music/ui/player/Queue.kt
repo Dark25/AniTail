@@ -86,6 +86,7 @@ import androidx.navigation.NavController
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
 import com.anitail.music.constants.ListItemHeight
+import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.QueueEditLockKey
 import com.anitail.music.constants.ShowLyricsKey
 import com.anitail.music.extensions.metadata
@@ -145,6 +146,8 @@ fun Queue(
     var selection by remember {
         mutableStateOf(false)
     }
+
+    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 
@@ -502,19 +505,6 @@ fun Queue(
                                     isActive = index == currentWindowIndex,
                                     isPlaying = isPlaying,
                                     trailingContent = {
-                                        if (!locked) {
-                                            IconButton(
-                                                onClick = { },
-                                                modifier =
-                                                Modifier
-                                                    .detectReorder(reorderableState),
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.drag_handle),
-                                                    contentDescription = null,
-                                                )
-                                            }
-                                        }
                                         IconButton(
                                             onClick = {
                                                 menuState.show {
@@ -539,6 +529,19 @@ fun Queue(
                                                 painter = painterResource(R.drawable.more_vert),
                                                 contentDescription = null,
                                             )
+                                        }
+                                        if (!locked) {
+                                            IconButton(
+                                                onClick = { },
+                                                modifier =
+                                                Modifier
+                                                    .detectReorder(reorderableState),
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.drag_handle),
+                                                    contentDescription = null,
+                                                )
+                                            }
                                         }
                                     },
                                     modifier =
@@ -676,7 +679,8 @@ fun Queue(
             modifier =
             Modifier
                 .background(
-                    MaterialTheme.colorScheme
+                    if (pureBlack) Color.Black
+                    else MaterialTheme.colorScheme
                         .secondaryContainer
                         .copy(alpha = 0.90f),
                 )
@@ -816,6 +820,9 @@ fun Queue(
                     }
                 }
             }
+            if (pureBlack) {
+                    HorizontalDivider()
+            }
         }
 
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
@@ -823,7 +830,12 @@ fun Queue(
         Box(
             modifier =
             Modifier
-                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f))
+                .background(
+                    if (pureBlack) Color.Black
+                    else MaterialTheme.colorScheme
+                        .secondaryContainer
+                        .copy(alpha = 0.90f),
+                )
                 .fillMaxWidth()
                 .height(
                     ListItemHeight +
