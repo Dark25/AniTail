@@ -10,7 +10,6 @@ import com.anitail.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import com.anitail.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.anitail.innertube.models.response.PlayerResponse
 import com.anitail.music.constants.AudioQuality
-import com.anitail.music.db.entities.FormatEntity
 import com.anitail.music.utils.YTPlayerUtils.MAIN_CLIENT
 import com.anitail.music.utils.YTPlayerUtils.STREAM_FALLBACK_CLIENTS
 import com.anitail.music.utils.YTPlayerUtils.validateStatus
@@ -50,7 +49,6 @@ object YTPlayerUtils {
     suspend fun playerResponseForPlayback(
         videoId: String,
         playlistId: String? = null,
-        playedFormat: FormatEntity?,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
     ): Result<PlaybackData> = runCatching {
@@ -109,7 +107,6 @@ object YTPlayerUtils {
                 format =
                     findFormat(
                         streamPlayerResponse,
-                        playedFormat,
                         audioQuality,
                         connectivityManager,
                     ) ?: continue
@@ -164,24 +161,18 @@ object YTPlayerUtils {
         YouTube.player(videoId, playlistId, client = MAIN_CLIENT)
     private fun findFormat(
         playerResponse: PlayerResponse,
-        playedFormat: FormatEntity?,
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
     ): PlayerResponse.StreamingData.Format? =
-        if (playedFormat != null) {
-            playerResponse.streamingData?.adaptiveFormats?.find { it.itag == playedFormat.itag }
-        } else {
-            playerResponse.streamingData?.adaptiveFormats
-                ?.filter { it.isAudio }
-                ?.maxByOrNull {
-                    it.bitrate *
-                        it.bitrate * when (audioQuality) {
-                        AudioQuality.AUTO -> if (connectivityManager.isActiveNetworkMetered) -1 else 1
-                        AudioQuality.HIGH -> 1
-                        AudioQuality.LOW -> -1
-                    } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream
-                }
-        }
+        playerResponse.streamingData?.adaptiveFormats
+            ?.filter { it.isAudio }
+            ?.maxByOrNull {
+                it.bitrate * when (audioQuality) {
+                    AudioQuality.AUTO -> if (connectivityManager.isActiveNetworkMetered) -1 else 1
+                    AudioQuality.HIGH -> 1
+                    AudioQuality.LOW -> -1
+                } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream
+            }
     /**
      * Checks if the stream url returns a successful status.
      * If this returns true the url is likely to work.
