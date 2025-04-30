@@ -76,6 +76,7 @@ import com.anitail.music.playback.ExoDownloadService
 import com.anitail.music.playback.queues.LocalAlbumRadio
 import com.anitail.music.ui.component.AutoResizeText
 import com.anitail.music.ui.component.FontSizeRange
+import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.LocalMenuState
 import com.anitail.music.ui.component.NavigationTitle
 import com.anitail.music.ui.component.SongListItem
@@ -89,6 +90,7 @@ import com.anitail.music.ui.menu.SelectionSongMenu
 import com.anitail.music.ui.menu.SongMenu
 import com.anitail.music.ui.menu.YouTubeAlbumMenu
 import com.anitail.music.ui.utils.ItemWrapper
+import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.viewmodels.AlbumViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -546,6 +548,11 @@ fun AlbumScreen(
                         navController.navigateUp()
                     }
                 },
+                onLongClick = {
+                    if (!selection) {
+                        navController.backToMain()
+                    }
+                }
             ) {
                 Icon(
                     painter = painterResource(
@@ -592,7 +599,6 @@ fun AlbumScreen(
                         contentDescription = null
                     )
                 }
-            } else {
             }
         }
     )

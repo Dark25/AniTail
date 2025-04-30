@@ -94,6 +94,7 @@ import com.anitail.music.models.toMediaMetadata
 import com.anitail.music.playback.queues.YouTubeQueue
 import com.anitail.music.ui.component.AutoResizeText
 import com.anitail.music.ui.component.FontSizeRange
+import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.LocalMenuState
 import com.anitail.music.ui.component.YouTubeListItem
 import com.anitail.music.ui.component.shimmer.ButtonPlaceholder
@@ -104,6 +105,7 @@ import com.anitail.music.ui.menu.SelectionMediaMetadataMenu
 import com.anitail.music.ui.menu.YouTubePlaylistMenu
 import com.anitail.music.ui.menu.YouTubeSongMenu
 import com.anitail.music.ui.utils.ItemWrapper
+import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.utils.rememberPreference
 import com.anitail.music.viewmodels.OnlinePlaylistViewModel
 
@@ -536,6 +538,11 @@ fun OnlinePlaylistScreen(
                             navController.navigateUp()
                         }
                     },
+                    onLongClick = {
+                        if (!isSearching && !selection) {
+                            navController.backToMain()
+                        }
+                    }
                 ) {
                     Icon(
                         painter = painterResource(

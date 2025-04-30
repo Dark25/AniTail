@@ -61,6 +61,7 @@ import com.anitail.music.constants.ListItemHeight
 import com.anitail.music.extensions.togglePlayPause
 import com.anitail.music.models.toMediaMetadata
 import com.anitail.music.playback.queues.YouTubeQueue
+import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.LocalMenuState
 import com.anitail.music.ui.component.NavigationTitle
 import com.anitail.music.ui.component.YouTubeGridItem
@@ -70,6 +71,7 @@ import com.anitail.music.ui.component.shimmer.ShimmerHost
 import com.anitail.music.ui.component.shimmer.TextPlaceholder
 import com.anitail.music.ui.menu.YouTubeSongMenu
 import com.anitail.music.ui.utils.SnapLayoutInfoProvider
+import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.viewmodels.ChartsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -101,7 +103,10 @@ fun ChartsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.charts)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(
+                        onClick = { navController.navigateUp() },
+                        onLongClick = { navController.backToMain() }
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.arrow_back),
                             contentDescription = null,
