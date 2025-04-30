@@ -42,6 +42,9 @@ enum class AudioQuality {
     LOW,
 }
 
+val KaraokeModeKey = booleanPreferencesKey("karaokeMode")
+val KaraokeHighlightColorKey = stringPreferencesKey("karaokeHighlightColor")
+
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")

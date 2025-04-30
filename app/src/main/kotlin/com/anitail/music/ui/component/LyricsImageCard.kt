@@ -142,7 +142,10 @@ fun LyricsImageCard(
     darkBackground: Boolean = true,
     backgroundColor: Color? = null,
     textColor: Color? = null,
-    secondaryTextColor: Color? = null
+    secondaryTextColor: Color? = null,
+    useKaraokeMode: Boolean = false,
+    currentLine: String? = null,
+    karaokeHighlightColor: Color? = null
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -232,11 +235,17 @@ fun LyricsImageCard(
                         .weight(1f)
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
-                ) {
-                    val availableWidth = maxWidth
+                ) {                    val availableWidth = maxWidth
                     val availableHeight = maxHeight
                     val textStyle = TextStyle(
                         color = mainTextColor,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = 0.005.em,
+                    )
+                    
+                    val highlightStyle = TextStyle(
+                        color = karaokeHighlightColor ?: Color(0xFF1DB954), // Default green if not specified
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         letterSpacing = 0.005.em,
@@ -258,20 +267,64 @@ fun LyricsImageCard(
                         density = density,
                         initialFontSize = initialSize,
                         minFontSize = 22.sp,
-                        style = textStyle,
-                        textMeasurer = textMeasurer
+                        style = textStyle,                        textMeasurer = textMeasurer
                     )
 
-                    Text(
-                        text = lyricText,
-                        style = textStyle.copy(
-                            fontSize = dynamicFontSize,
-                            lineHeight = dynamicFontSize.value.sp * 1.2f
-                        ),
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (useKaraokeMode && currentLine != null && lyricText.contains(currentLine)) {
+                        // Display text with karaoke highlighting for current line
+                        val parts = lyricText.split(currentLine, limit = 2)
+                        val beforeText = parts[0]
+                        val afterText = if (parts.size > 1) parts[1] else ""
+                        
+                        if (beforeText.isNotEmpty()) {
+                            Text(
+                                text = beforeText,
+                                style = textStyle.copy(
+                                    fontSize = dynamicFontSize,
+                                    lineHeight = dynamicFontSize.value.sp * 1.2f
+                                ),
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        
+                        Text(
+                            text = currentLine,
+                            style = highlightStyle.copy(
+                                fontSize = dynamicFontSize,
+                                lineHeight = dynamicFontSize.value.sp * 1.2f
+                            ),
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        if (afterText.isNotEmpty()) {
+                            Text(
+                                text = afterText,
+                                style = textStyle.copy(
+                                    fontSize = dynamicFontSize,
+                                    lineHeight = dynamicFontSize.value.sp * 1.2f
+                                ),
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        // Standard text display
+                        Text(
+                            text = lyricText,
+                            style = textStyle.copy(
+                                fontSize = dynamicFontSize,
+                                lineHeight = dynamicFontSize.value.sp * 1.2f
+                            ),
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 // Footer

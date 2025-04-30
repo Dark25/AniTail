@@ -74,6 +74,7 @@ import com.anitail.music.playback.queues.YouTubeQueue
 import com.anitail.music.ui.component.BigSeekBar
 import com.anitail.music.ui.component.BottomSheetState
 import com.anitail.music.ui.component.ListDialog
+import com.anitail.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.log2
@@ -170,7 +171,6 @@ fun PlayerMenu(
             onDismiss = { showPitchTempoDialog = false },
         )
     }
-
     if (isQueueTrigger != true) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -195,6 +195,31 @@ fun PlayerMenu(
                     .height(36.dp), // Reduced height from default (assumed ~48.dp) to 36.dp
             )
         }
+          // Karaoke mode toggle
+        val (karaokeMode, onKaraokeModeChange) = rememberPreference(
+            com.anitail.music.constants.KaraokeModeKey,
+            defaultValue = false
+        )
+        
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.karaoke_mode)) },
+            supportingContent = { Text(stringResource(R.string.karaoke_mode_desc)) },
+            leadingContent = {
+                Icon(
+                    painter = painterResource(R.drawable.lyrics),
+                    contentDescription = null
+                )
+            },
+            trailingContent = {
+                androidx.compose.material3.Switch(
+                    checked = karaokeMode,
+                    onCheckedChange = onKaraokeModeChange
+                )
+            },
+            modifier = Modifier.clickable {
+                onKaraokeModeChange(!karaokeMode)
+            }
+        )
     }
 
     Spacer(modifier = Modifier.height(20.dp))

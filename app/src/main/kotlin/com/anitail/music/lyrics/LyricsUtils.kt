@@ -49,4 +49,27 @@ object LyricsUtils {
         }
         return lines.lastIndex
     }
+    
+    /**
+     * Calculate the progress through the current line (for karaoke animations)
+     * @return a value between 0.0 and 1.0 representing progress through current line
+     */
+    fun calculateLineProgress(
+        lines: List<LyricsEntry>,
+        currentLineIndex: Int,
+        position: Long
+    ): Float {
+        if (currentLineIndex < 0 || currentLineIndex >= lines.size - 1) {
+            return 1.0f
+        }
+        
+        val currentLineTime = lines[currentLineIndex].time
+        val nextLineTime = lines[currentLineIndex + 1].time
+        val duration = nextLineTime - currentLineTime
+        
+        if (duration <= 0) return 1.0f
+        
+        val elapsed = position - currentLineTime
+        return (elapsed.toFloat() / duration).coerceIn(0.0f, 1.0f)
+    }
 }

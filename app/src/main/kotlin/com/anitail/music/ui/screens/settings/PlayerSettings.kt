@@ -27,6 +27,8 @@ import com.anitail.music.constants.AutoDownloadOnLikeKey
 import com.anitail.music.constants.AutoLoadMoreKey
 import com.anitail.music.constants.AutoSkipNextOnErrorKey
 import com.anitail.music.constants.HistoryDuration
+import com.anitail.music.constants.KaraokeHighlightColorKey
+import com.anitail.music.constants.KaraokeModeKey
 import com.anitail.music.constants.NotificationButtonType
 import com.anitail.music.constants.NotificationButtonTypeKey
 import com.anitail.music.constants.PersistentQueueKey
@@ -204,15 +206,36 @@ fun PlayerSettings(
             checked = autoDownloadOnLike,
             onCheckedChange = onAutoDownloadOnLikeChange
         )
-        
-        SwitchPreference(
+          SwitchPreference(
             title = { Text(stringResource(R.string.auto_download_lyrics)) },
             description = stringResource(R.string.auto_download_lyrics_desc),
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = autoDownloadLyrics,
             onCheckedChange = onAutoDownloadLyricsChange
         )
-          PreferenceGroupTitle(
+        
+        PreferenceGroupTitle(
+            title = stringResource(R.string.lyrics)
+        )
+          val (karaokeMode, onKaraokeModeChange) = rememberPreference(
+            KaraokeModeKey,
+            defaultValue = false
+        )
+        
+        val (karaokeHighlightColor, onKaraokeHighlightColorChange) = rememberPreference(
+            KaraokeHighlightColorKey,
+            defaultValue = "#1DB954" // Default Spotify green color
+        )
+        
+        SwitchPreference(
+            title = { Text(stringResource(R.string.karaoke_mode)) },
+            description = stringResource(R.string.karaoke_mode_desc),
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = karaokeMode,
+            onCheckedChange = onKaraokeModeChange
+        )
+          
+        PreferenceGroupTitle(
             title = stringResource(R.string.notification)
         )
         

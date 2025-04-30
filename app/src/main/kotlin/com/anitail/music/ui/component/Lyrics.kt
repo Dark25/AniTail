@@ -6,6 +6,9 @@ import android.content.res.Configuration
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,9 +38,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button // Added import for Button
-import androidx.compose.material3.Card // Renamed import
-import androidx.compose.material3.CardDefaults // Renamed import
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -61,7 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip // Added import
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -73,14 +76,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -90,6 +97,8 @@ import coil.request.ImageRequest
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
 import com.anitail.music.constants.DarkModeKey
+import com.anitail.music.constants.KaraokeHighlightColorKey
+import com.anitail.music.constants.KaraokeModeKey
 import com.anitail.music.constants.LyricsClickKey
 import com.anitail.music.constants.LyricsTextPositionKey
 import com.anitail.music.constants.PlayerBackgroundStyle
@@ -97,6 +106,7 @@ import com.anitail.music.constants.PlayerBackgroundStyleKey
 import com.anitail.music.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.anitail.music.lyrics.LyricsEntry
 import com.anitail.music.lyrics.LyricsEntry.Companion.HEAD_LYRICS_ENTRY
+import com.anitail.music.lyrics.LyricsUtils.calculateLineProgress
 import com.anitail.music.lyrics.LyricsUtils.findCurrentLineIndex
 import com.anitail.music.lyrics.LyricsUtils.parseLyrics
 import com.anitail.music.ui.component.shimmer.ShimmerHost
@@ -113,6 +123,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -151,6 +162,20 @@ fun Lyrics(
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
+    val karaokeMode by rememberPreference(KaraokeModeKey, defaultValue = false)
+    val karaokeHighlightColorString by rememberPreference(KaraokeHighlightColorKey, defaultValue = "#1DB954")
+    var localKaraokeMode by remember { mutableStateOf(karaokeMode) }
+    
+    // Update local mode when preference changes
+    LaunchedEffect(karaokeMode) {
+        localKaraokeMode = karaokeMode
+    }
+    
+    val karaokeHighlightColor = try {
+        Color(karaokeHighlightColorString.toColorInt())
+    } catch (e: Exception) {
+        MaterialTheme.colorScheme.primary
+    }
 
     val lines =
         remember(lyrics) {
@@ -175,9 +200,11 @@ fun Lyrics(
             else
                 MaterialTheme.colorScheme.onPrimary
     }
-
     var currentLineIndex by remember {
         mutableIntStateOf(-1)
+    }
+    var currentLineProgress by remember {
+        mutableStateOf(0.0f)
     }
     // Because LaunchedEffect has delay, which leads to inconsistent with current line color and scroll animation,
     // we use deferredCurrentLineIndex when user is scrolling
@@ -265,7 +292,6 @@ fun Lyrics(
         isSelectionModeActive = false
         selectedIndices.clear()
     }
-
     LaunchedEffect(lyrics) {
         if (lyrics.isNullOrEmpty() || !lyrics.startsWith("[")) {
             currentLineIndex = -1
@@ -275,10 +301,36 @@ fun Lyrics(
             delay(50)
             val sliderPosition = sliderPositionProvider()
             isSeeking = sliderPosition != null
+            val currentPosition = sliderPosition ?: playerConnection.player.currentPosition
             currentLineIndex = findCurrentLineIndex(
                 lines,
-                sliderPosition ?: playerConnection.player.currentPosition
+                currentPosition
             )
+            
+            // Log for debugging - can be removed after testing
+            Timber.tag("Karaoke").d("Index: $currentLineIndex, Progress: $currentLineProgress, Position: $currentPosition")
+            if (karaokeMode && currentLineIndex >= 0 && currentLineIndex < lines.size - 1) {
+                val newProgress = calculateLineProgress(
+                    lines,
+                    currentLineIndex,
+                    currentPosition
+                )
+                
+                // Log for debugging
+                android.util.Log.d(
+                    "KaraokeDebug", 
+                    "Line: $currentLineIndex, Progress: $newProgress, Position: $currentPosition"
+                )
+                
+                // Update progress
+                currentLineProgress = newProgress
+                
+            } else {
+                // Reset progress when not in karaoke mode or no valid line
+                if (currentLineProgress != 0.0f) {
+                    currentLineProgress = 0.0f
+                }
+            }
         }
     }
 
@@ -471,25 +523,102 @@ fun Lyrics(
                         .background(
                             if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             else Color.Transparent
-                        )
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                        )                        .padding(horizontal = 24.dp, vertical = 8.dp)
                         .alpha(
                             if (!isSynced || index == displayedCurrentLineIndex || (isSelectionModeActive && isSelected)) 1f
                             else 0.5f
                         )
-
-                    Text(
-                        text = item.text,
-                        fontSize = 20.sp,
-                        color = textColor,
-                        textAlign = when (lyricsTextPosition) {
-                            LyricsPosition.LEFT -> TextAlign.Left
-                            LyricsPosition.CENTER -> TextAlign.Center
-                            LyricsPosition.RIGHT -> TextAlign.Right
-                        },
-                        fontWeight = FontWeight.Bold,
-                        modifier = itemModifier
-                    )
+                    if (karaokeMode && index == displayedCurrentLineIndex && isSynced) {                        // Karaoke mode active, render with progressive highlighting and animation
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(
+                                    // Faster fade in for better visibility
+                                    animationSpec = androidx.compose.animation.core.tween(
+                                        durationMillis = 100, 
+                                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                    )
+                                ) + expandVertically(
+                                    expandFrom = androidx.compose.ui.Alignment.CenterVertically
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (currentLineProgress > 0 && item.text.isNotEmpty()) {
+                                    // Create progressive highlighting effect based on progress through line
+                                    val textStyle = TextStyle(
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = when (lyricsTextPosition) {
+                                            LyricsPosition.LEFT -> TextAlign.Left
+                                            LyricsPosition.CENTER -> TextAlign.Center
+                                            LyricsPosition.RIGHT -> TextAlign.Right
+                                        }
+                                    )
+                                    
+                                    val highlightedChars = (item.text.length * currentLineProgress).toInt()
+                                        .coerceAtMost(item.text.length)
+                                    
+                                    val annotatedString = buildAnnotatedString {
+                                        // Highlighted part
+                                        if (highlightedChars > 0) {
+                                            withStyle(style = SpanStyle(color = karaokeHighlightColor)) {
+                                                append(item.text.take(highlightedChars))
+                                            }
+                                        }
+                                        // Remaining part
+                                        if (highlightedChars < item.text.length) {
+                                            withStyle(style = SpanStyle(color = textColor)) {
+                                                append(item.text.substring(highlightedChars))
+                                            }
+                                        }
+                                    }
+                                    
+                                    Text(
+                                        text = annotatedString,
+                                        style = textStyle,
+                                        modifier = itemModifier
+                                    )
+                            } else {
+                                    // If no progress data or empty text, still use the annotated string approach
+                                    val textStyle = TextStyle(
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = when (lyricsTextPosition) {
+                                            LyricsPosition.LEFT -> TextAlign.Left
+                                            LyricsPosition.CENTER -> TextAlign.Center
+                                            LyricsPosition.RIGHT -> TextAlign.Right
+                                        }
+                                    )
+                                    
+                                    // Just highlight the whole line since we don't have progress data
+                                    val annotatedString = buildAnnotatedString {
+                                        withStyle(style = SpanStyle(color = karaokeHighlightColor)) {
+                                            append(item.text)
+                                        }
+                                    }
+                                    
+                                    Text(
+                                        text = annotatedString,
+                                        style = textStyle,
+                                        modifier = itemModifier
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = item.text,
+                            fontSize = 20.sp,
+                            color = textColor,
+                            textAlign = when (lyricsTextPosition) {
+                                LyricsPosition.LEFT -> TextAlign.Left
+                                LyricsPosition.CENTER -> TextAlign.Center
+                                LyricsPosition.RIGHT -> TextAlign.Right
+                            },
+                            fontWeight = FontWeight.Bold,
+                            modifier = itemModifier
+                        )
+                    }
                 }
             }
         }
@@ -810,7 +939,19 @@ fun Lyrics(
                             mediaMetadata = mediaMetadata ?: return@Box,
                             backgroundColor = previewBackgroundColor,
                             textColor = previewTextColor,
-                            secondaryTextColor = previewSecondaryTextColor
+                            secondaryTextColor = previewSecondaryTextColor,
+                         useKaraokeMode = karaokeMode,
+                        currentLine = if (karaokeMode && currentLineIndex >= 0 && currentLineIndex < lines.size) {
+                                                    val text = lines[currentLineIndex].text
+                                                    val highlightedChars = (text.length * currentLineProgress).toInt()
+                                                        .coerceAtMost(text.length)
+                                                    if (highlightedChars > 0) {
+                                                        text.take(highlightedChars)
+                                                    } else {
+                                                        text
+                                                    }
+                                                } else null,
+                                                karaokeHighlightColor = karaokeHighlightColor
                             // No fontSize parameter needed as LyricsImageCard now calculates it internally
                         )
                     }
