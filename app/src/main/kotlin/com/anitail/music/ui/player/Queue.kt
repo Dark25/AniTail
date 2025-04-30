@@ -87,7 +87,6 @@ import androidx.navigation.NavController
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
 import com.anitail.music.constants.ListItemHeight
-import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.QueueEditLockKey
 import com.anitail.music.constants.ShowLyricsKey
 import com.anitail.music.extensions.metadata
@@ -124,6 +123,7 @@ fun Queue(
     backgroundColor: Color,
     onBackgroundColor: Color,
     TextBackgroundColor: Color,
+    pureBlack: Boolean,
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -145,8 +145,6 @@ fun Queue(
     var selection by remember {
         mutableStateOf(false)
     }
-
-    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 

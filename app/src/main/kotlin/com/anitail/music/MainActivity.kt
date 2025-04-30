@@ -277,7 +277,6 @@ class MainActivity : ComponentActivity() {
 
             val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
             val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
-            val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
             val isSystemInDarkTheme = isSystemInDarkTheme()
             val useDarkTheme =
                 remember(darkTheme, isSystemInDarkTheme) {
@@ -286,6 +285,9 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(useDarkTheme) {
                 setSystemBarAppearance(useDarkTheme)
             }
+            val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
+            val pureBlack = pureBlackEnabled && useDarkTheme
+
             var themeColor by rememberSaveable(stateSaver = ColorSaver) {
                 mutableStateOf(DefaultThemeColor)
             }
@@ -852,7 +854,8 @@ class MainActivity : ComponentActivity() {
                                 Box {
                                     BottomSheetPlayer(
                                         state = playerBottomSheetState,
-                                        navController = navController
+                                        navController = navController,
+                                        pureBlack = pureBlack
                                     )
                                     NavigationBar(
                                         modifier = Modifier

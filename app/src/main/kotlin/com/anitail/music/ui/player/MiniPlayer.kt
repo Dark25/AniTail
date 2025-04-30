@@ -46,11 +46,9 @@ import coil.compose.AsyncImage
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
 import com.anitail.music.constants.MiniPlayerHeight
-import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.ThumbnailCornerRadius
 import com.anitail.music.extensions.togglePlayPause
 import com.anitail.music.models.MediaMetadata
-import com.anitail.music.utils.rememberPreference
 
 @Composable
 fun MiniPlayer(
@@ -58,8 +56,8 @@ fun MiniPlayer(
     duration: Long,
     modifier: Modifier = Modifier,
     playerBottomSheetState: com.anitail.music.ui.component.BottomSheetState? = null,
+    pureBlack: Boolean,
 ) {
-    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
@@ -161,8 +159,8 @@ fun MiniPlayer(
 fun MiniMediaInfo(
     mediaMetadata: MediaMetadata,
     error: PlaybackException?,
-    pureBlack: Boolean,
     modifier: Modifier = Modifier,
+    pureBlack: Boolean,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,

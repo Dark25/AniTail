@@ -94,7 +94,6 @@ import com.anitail.music.constants.PlayerBackgroundStyleKey
 import com.anitail.music.constants.PlayerButtonsStyle
 import com.anitail.music.constants.PlayerButtonsStyleKey
 import com.anitail.music.constants.PlayerHorizontalPadding
-import com.anitail.music.constants.PureBlackKey
 import com.anitail.music.constants.QueuePeekHeight
 import com.anitail.music.constants.ShowLyricsKey
 import com.anitail.music.constants.SliderStyle
@@ -129,6 +128,7 @@ fun BottomSheetPlayer(
     state: BottomSheetState,
     navController: NavController,
     modifier: Modifier = Modifier,
+    pureBlack: Boolean,
 ) {
     val context = LocalContext.current
     val menuState = LocalMenuState.current
@@ -149,7 +149,6 @@ fun BottomSheetPlayer(
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
-    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val useDarkTheme = remember(darkTheme, isSystemInDarkTheme) {
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
@@ -483,6 +482,7 @@ fun BottomSheetPlayer(
             MiniPlayer(
                 position = position,
                 duration = duration,
+                pureBlack = pureBlack,
                 playerBottomSheetState = state
             )
         },
@@ -966,7 +966,7 @@ fun BottomSheetPlayer(
                             )
                         }
                     }
-                    
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.weight(1f),
@@ -998,6 +998,7 @@ fun BottomSheetPlayer(
             },
             onBackgroundColor = onBackgroundColor,
             TextBackgroundColor = TextBackgroundColor,
+            pureBlack = pureBlack,
         )
     }
 }
