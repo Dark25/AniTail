@@ -304,7 +304,8 @@ fun Lyrics(
             val currentPosition = sliderPosition ?: playerConnection.player.currentPosition
             currentLineIndex = findCurrentLineIndex(
                 lines,
-                currentPosition
+                currentPosition,
+                karaokeMode = localKaraokeMode
             )
             
             // Log for debugging - can be removed after testing

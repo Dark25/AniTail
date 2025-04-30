@@ -41,9 +41,11 @@ object LyricsUtils {
     fun findCurrentLineIndex(
         lines: List<LyricsEntry>,
         position: Long,
+        karaokeMode: Boolean = false,
     ): Int {
+        val effectivePosition = if (karaokeMode) position else position + ANIMATE_SCROLL_DURATION
         for (index in lines.indices) {
-            if (lines[index].time >= position + ANIMATE_SCROLL_DURATION) {
+            if (lines[index].time >= effectivePosition) {
                 return index - 1
             }
         }
