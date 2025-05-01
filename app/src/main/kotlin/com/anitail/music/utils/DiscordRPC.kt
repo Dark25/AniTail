@@ -19,7 +19,7 @@ class DiscordRPC(
         setActivity(
             name = context.getString(R.string.app_name).removeSuffix(" Debug"),
             details = song.song.title,
-            state = song.artists.joinToString { it.name },
+            state = song.song.artistName ?: song.artists.joinToString { it.name },
             largeImage = song.song.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
             smallImage = RpcImage.DiscordImage("emojis/1359946403522285699.webp?quality=lossless"
             ),

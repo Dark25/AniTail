@@ -272,7 +272,7 @@ fun SongListItem(
         ListItem(
             title = song.song.title,
             subtitle = joinByBullet(
-                song.artists.joinToString { it.name },
+                song.song.artistName ?: song.artists.joinToString { it.name },
                 makeTimeString(song.song.duration * 1000L)
             ),
             badges = badges,
@@ -331,7 +331,7 @@ fun SongGridItem(
 ) = GridItem(
     title = song.song.title,
     subtitle = joinByBullet(
-        song.artists.joinToString { it.name },
+        song.song.artistName ?: song.artists.joinToString { it.name },
         makeTimeString(song.song.duration * 1000L)
     ),
     badges = badges,
@@ -673,7 +673,7 @@ fun MediaMetadataListItem(
     ListItem(
         title = mediaMetadata.title,
         subtitle = joinByBullet(
-            mediaMetadata.artists.joinToString { it.name },
+            mediaMetadata.artistName ?: mediaMetadata.artists.joinToString { it.name },
             makeTimeString(mediaMetadata.duration * 1000L)
         ),
         thumbnailContent = {
