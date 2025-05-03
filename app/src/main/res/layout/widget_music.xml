@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/widget_background"
+    android:padding="10dp">
+
+    <!-- Cover art with better elevation and margins -->
+    <ImageView
+        android:id="@+id/widget_cover"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginEnd="12dp"
+        android:background="@drawable/rounded_corners"
+        android:clipToOutline="true"
+        android:elevation="6dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_music_placeholder"
+        tools:ignore="ContentDescription,UnusedAttribute" />
+
+    <!-- Info section with better spacing -->
+    <LinearLayout
+        android:id="@+id/widget_info_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@id/widget_cover"
+        android:layout_toEndOf="@id/widget_cover"
+        android:orientation="vertical"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:shadowColor="#80000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2" />
+
+        <TextView
+            android:id="@+id/widget_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#A6A6A6"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:shadowColor="#80000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="1" />
+    </LinearLayout>
+
+    <!-- Controls section with better spacing and visual feedback -->
+    <LinearLayout
+        android:id="@+id/widget_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/widget_info_section"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="3dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingVertical="3dp">
+
+        <ImageButton
+            android:id="@+id/widget_prev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/skip_previous"
+            android:tint="#FFFFFF"
+            tools:ignore="ContentDescription" />
+
+        <ImageButton
+            android:id="@+id/widget_play_pause"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginHorizontal="8dp"
+            android:background="@android:color/transparent"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/play"
+            android:tint="#FFFFFF"
+            tools:ignore="ContentDescription" />
+
+        <ImageButton
+            android:id="@+id/widget_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/skip_next"
+            android:tint="#FFFFFF"
+            tools:ignore="ContentDescription" />
+
+    </LinearLayout>
+
+    <LinearLayout
+    android:id="@+id/widget_progress"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_below="@id/widget_controls"
+    android:layout_marginTop="4dp"
+    android:orientation="vertical"
+    android:gravity="center_vertical">
+    <ProgressBar
+        android:id="@+id/widget_song_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="8dp"
+        android:indeterminate="false"
+        android:progressDrawable="@drawable/miniplayer_progress"
+        android:max="100"
+        android:progress="0"
+        android:secondaryProgress="0" />
+</LinearLayout>
+</RelativeLayout>

@@ -533,4 +533,5 @@
     <string name="beta_testers">Colaboradores</string>
     <string name="patreon">Patreon</string>
     <string name="patreon_info">¡Apóyanos en Patreon! Cada ayuda suma.</string>
+    <string name="song_notplaying">No se está reproduciendo ninguna canción</string>
 </resources>

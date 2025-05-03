@@ -33,6 +33,20 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.Anitail"
         tools:targetApi="tiramisu">
+        <receiver
+            android:name=".ui.component.MusicWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.anitail.music.widget.ACTION_WIDGET_UPDATE" />
+                <action android:name="com.anitail.music.widget.PLAY_PAUSE" />
+                <action android:name="com.anitail.music.widget.NEXT" />
+                <action android:name="com.anitail.music.widget.PREV" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/music_widget_info" />
+        </receiver>
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
