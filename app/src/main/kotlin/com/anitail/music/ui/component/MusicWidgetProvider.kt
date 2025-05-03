@@ -130,10 +130,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
                                     val playPauseIcon = if (isPlaying) R.drawable.pause else R.drawable.play
                                     updatedViews.setImageViewResource(R.id.widget_play_pause, playPauseIcon)
-                                    
+
                                     updatedViews.setInt(R.id.widget_root, "setBackgroundColor", dominantColor)
 
                                     updatedViews.setImageViewBitmap(R.id.widget_cover, bitmap)
+
+                                    updatedViews.setProgressBar(R.id.widget_song_progress, 100, progress, false)
 
                                     for (appWidgetId in appWidgetIds) {
                                         appWidgetManager.updateAppWidget(appWidgetId, updatedViews)
@@ -170,6 +172,14 @@ class MusicWidgetProvider : AppWidgetProvider() {
     }
 
     private fun setupWidgetControls(context: Context, views: RemoteViews) {
+        val openPlayerIntent = Intent(context, com.anitail.music.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val openPlayerPendingIntent = PendingIntent.getActivity(
+            context, 3, openPlayerIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_cover, openPlayerPendingIntent)
         // Play/Pause intent
         val playPauseIntent = Intent(context, MusicWidgetProvider::class.java).apply {
             action = ACTION_PLAY_PAUSE
