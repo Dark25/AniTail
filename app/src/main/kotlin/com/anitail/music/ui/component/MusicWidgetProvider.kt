@@ -25,8 +25,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         updateWidgets(context, appWidgetManager, appWidgetIds)
         requestMusicServiceUpdate(context)
-    }
-    @RequiresApi(Build.VERSION_CODES.O)
+    }    @RequiresApi(Build.VERSION_CODES.O)
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -35,21 +34,23 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
         when (intent.action) {
             MusicService.ACTION_WIDGET_UPDATE -> {
-
                 updateWidgets(context, appWidgetManager, appWidgetIds, intent)
-            }
-            ACTION_PLAY_PAUSE, ACTION_NEXT, ACTION_PREV -> {
-                forwardActionToService(context, intent.action ?: return)
+            }            ACTION_PLAY_PAUSE, ACTION_NEXT, ACTION_PREV, MusicService.ACTION_PLAY_RECOMMENDATION -> {
+                if (intent.action == MusicService.ACTION_PLAY_RECOMMENDATION) {
+                    val songId = intent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_ID)
 
-                if (intent.action == ACTION_PLAY_PAUSE) {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        kotlinx.coroutines.delay(200)
-                        requestMusicServiceUpdate(context)
-
-                        kotlinx.coroutines.delay(500)
-                        requestMusicServiceUpdate(context)
+                    val serviceIntent = Intent(context, MusicService::class.java).apply {
+                        this.action = MusicService.ACTION_PLAY_RECOMMENDATION
+                        putExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_ID, songId)
+                        addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
                     }
-                } else {
+                    context.startForegroundService(serviceIntent)
+                    return
+                }
+                
+                forwardActionToService(context, intent)
+            if (intent.action == ACTION_PLAY_PAUSE) {
+                }else if (intent.action == ACTION_NEXT || intent.action == ACTION_PREV) {
                     CoroutineScope(Dispatchers.Main).launch {
                         kotlinx.coroutines.delay(300)
                         requestMusicServiceUpdate(context)
@@ -57,7 +58,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 }
             }
         }
-    }    private fun updateWidgets(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, updateIntent: Intent? = null) {
+    }
+    private fun updateWidgets(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, updateIntent: Intent? = null) {
 
         if (appWidgetIds.isEmpty()) {
             Timber.tag(TAG).w("No widget instances found")
@@ -72,23 +74,94 @@ class MusicWidgetProvider : AppWidgetProvider() {
         // Update widget content if we have update data
         if (updateIntent != null && updateIntent.action == MusicService.ACTION_WIDGET_UPDATE) {
 
-            val song = updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_SONG_TITLE) ?: ""
-            val artist = updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_ARTIST) ?: ""
-            val recommendation =
+            // Read up to 4 recommendations
+            val recommendations = listOf(
+                Recommendation(
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_1_TITLE) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_1_COVER_URL) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_1_ID) ?: ""
+                ),
+                Recommendation(
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_2_TITLE) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_2_COVER_URL) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_2_ID) ?: ""
+                ),
+                Recommendation(
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_3_TITLE) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_3_COVER_URL) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_3_ID) ?: ""
+                ),
+                Recommendation(
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_4_TITLE) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_4_COVER_URL) ?: "",
+                    updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_4_ID) ?: ""
+                )
+            )            // Añadimos manejo de errores para los extras del Intent
+            val song = try {
+                updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_SONG_TITLE) ?: ""
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining song title")
+                ""
+            }
+            
+            val artist = try {
+                // Intentamos obtener el texto como String primero
+                updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_ARTIST) ?: 
+                // Si es un recurso ID, obtenemos el texto
+                updateIntent.getIntExtra(MusicService.EXTRA_WIDGET_ARTIST, 0).let { 
+                    if (it != 0) try { context.getString(it) } catch (e: Exception) { "" } else ""
+                }
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining artist name")
+                ""
+            }
+            
+            val recommendation = try {
                 updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION) ?: ""
-            val isPlaying =
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining recommendation")
+                ""
+            }
+            
+            val isPlaying = try {
                 updateIntent.getBooleanExtra(MusicService.EXTRA_WIDGET_IS_PLAYING, false)
-            val themeColor =
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining play state")
+                false
+            }
+            val themeColor = try {
                 updateIntent.getIntExtra(MusicService.EXTRA_WIDGET_THEME_COLOR, 0xFFED5564.toInt())
-            val coverUrl = updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_COVER_URL) ?: ""
-            val progress = updateIntent.getIntExtra(MusicService.EXTRA_WIDGET_PROGRESS, 0)
-            val dominantColor =
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining theme color")
+                0xFFED5564.toInt()
+            }
+            
+            val coverUrl = try {
+                updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_COVER_URL) ?: ""
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining cover URL")
+                ""
+            }
+            
+            val progress = try {
+                updateIntent.getIntExtra(MusicService.EXTRA_WIDGET_PROGRESS, 0)
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining progress")
+                0
+            }
+            
+            val dominantColor = try {
                 updateIntent.getIntExtra(MusicService.EXTRA_WIDGET_DOMINANT_COLOR, themeColor)
                     .let { if (it == 0) themeColor else it }
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error obtaining dominant color")
+                themeColor
+            }
 
             Timber.tag(TAG)
                 .d("Updating widget with song: '$song', artist: '$artist', isPlaying: $isPlaying, recommendation: '$recommendation', coverUrl: $coverUrl")            // Configuración inicial del widget
             views.setTextViewText(R.id.widget_title, song)
+            views.setInt(R.id.widget_root, "setBackgroundColor", dominantColor)
 
             val artistText = artist.ifBlank { context.getString(R.string.unknown_artist) }
             views.setTextViewText(R.id.widget_artist, artistText)
@@ -102,46 +175,103 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             }
 
+            // Set recommendations (image, title, click)
+            recommendations.forEachIndexed { idx, rec ->
+                val coverId = context.resources.getIdentifier("widget_recommendation_cover_${idx+1}", "id", context.packageName)
+                val containerId = context.resources.getIdentifier("widget_recommendation_${idx+1}", "id", context.packageName)
+                val titleId = context.resources.getIdentifier("widget_recommendation_title_${idx+1}", "id", context.packageName)
+                // Set title
+                views.setTextViewText(titleId, rec.title)
+                // Set click intent if id is present
+                if (rec.id.isNotBlank()) {
+                    val intent = Intent(context, MusicWidgetProvider::class.java).apply {
+                        action = MusicService.ACTION_PLAY_RECOMMENDATION
+                        putExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_ID, rec.id)
+                    }
+
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        context, 100 + idx, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    views.setOnClickPendingIntent(coverId, pendingIntent)
+                    views.setOnClickPendingIntent(containerId, pendingIntent)
+                } else {
+                    Timber.tag(TAG).w("[WIDGET] Recommendation idx=$idx has blank id, no click intent set. Title='${rec.title}'")
+                }
+                // Load image async if url present
+                if (rec.coverUrl.isNotBlank()) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val imageLoader = ImageLoader.Builder(context).crossfade(true).build()
+                            val request = ImageRequest.Builder(context)
+                                .data(rec.coverUrl)
+                                .size(96, 96)
+                                .allowHardware(false)
+                                .crossfade(true)
+                                .build()
+                            val result = imageLoader.execute(request)
+                            val bitmap = result.drawable?.toBitmap()
+                            if (bitmap != null) {
+                                withContext(Dispatchers.Main) {
+                                    views.setImageViewBitmap(coverId, bitmap)
+                                    
+                                    try {
+                                        views.setBoolean(coverId, "setClipToOutline", true)
+                                    } catch (e: Exception) {
+                                        Timber.tag(TAG).e(e, "Error setting clip to outline for recommendation cover")
+                                    }
+                                    
+                                    if (rec.id.isNotBlank()) {
+                                        val intent = Intent(context, MusicWidgetProvider::class.java).apply {
+                                            action = MusicService.ACTION_PLAY_RECOMMENDATION
+                                            putExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_ID, rec.id)
+                                        }
+                                        val pendingIntent = PendingIntent.getBroadcast(
+                                            context, 100 + idx, intent,
+                                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                        )
+                                        val containerId = context.resources.getIdentifier("widget_recommendation_${idx+1}", "id", context.packageName)
+                                        views.setOnClickPendingIntent(coverId, pendingIntent)
+                                        views.setOnClickPendingIntent(containerId, pendingIntent)
+                                    } else {
+                                        Timber.tag(TAG).w("[WIDGET-ASYNC] Recommendation idx=$idx has blank id, no click intent set. Title='${rec.title}' (async)")
+                                    }
+                                    for (appWidgetId in appWidgetIds) {
+                                        appWidgetManager.updateAppWidget(appWidgetId, views)
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Timber.tag(TAG).e(e, "Error loading recommendation cover image")
+                        }
+                    }
+                } else {
+                    views.setImageViewResource(coverId, R.drawable.ic_music_placeholder)
+                }
+            }
+
             if (coverUrl.isNotBlank()) {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val imageLoader = ImageLoader.Builder(context)
                             .crossfade(true)
                             .build()
-                val request = ImageRequest.Builder(context)
+                        val request = ImageRequest.Builder(context)
                             .data(coverUrl)
                             .size(135, 135)
                             .allowHardware(false)
                             .crossfade(true)
                             .build()
-                            
                         val result = imageLoader.execute(request)
                         val bitmap = result.drawable?.toBitmap()
 
                         if (bitmap != null) {
                             withContext(Dispatchers.Main) {
-                                try {
-                                    val updatedViews = RemoteViews(context.packageName, R.layout.widget_music)
-                                    setupWidgetControls(context, updatedViews)
-                                    updatedViews.setTextViewText(R.id.widget_title, song)
-
-                                    val artistText = artist.ifBlank { context.getString(R.string.unknown_artist) }
-                                    updatedViews.setTextViewText(R.id.widget_artist, artistText)
-
-                                    val playPauseIcon = if (isPlaying) R.drawable.pause else R.drawable.play
-                                    updatedViews.setImageViewResource(R.id.widget_play_pause, playPauseIcon)
-
-                                    updatedViews.setInt(R.id.widget_root, "setBackgroundColor", dominantColor)
-
-                                    updatedViews.setImageViewBitmap(R.id.widget_cover, bitmap)
-
-                                    updatedViews.setProgressBar(R.id.widget_song_progress, 100, progress, false)
-
-                                    for (appWidgetId in appWidgetIds) {
-                                        appWidgetManager.updateAppWidget(appWidgetId, updatedViews)
-                                    }
-                                } catch (e: Exception) {
-                                    Timber.tag(TAG).e(e, "Error updating widget with bitmap")
+                                views.setImageViewBitmap(R.id.widget_cover, bitmap)
+                                views.setInt(R.id.widget_root, "setBackgroundColor", dominantColor)
+                                for (appWidgetId in appWidgetIds) {
+                                    appWidgetManager.updateAppWidget(appWidgetId, views)
                                 }
                             }
                         } else {
@@ -210,31 +340,45 @@ class MusicWidgetProvider : AppWidgetProvider() {
         )
         views.setOnClickPendingIntent(R.id.widget_prev, prevPendingIntent)
     }    @RequiresApi(Build.VERSION_CODES.O)
-    private fun forwardActionToService(context: Context, action: String) {
-
+    private fun forwardActionToService(context: Context, intent: Intent) {
+        val action = intent.action ?: return
+        // Log para debug
+        Timber.tag(TAG).d("forwardActionToService: Procesando action: $action")
         if (action == ACTION_PLAY_PAUSE) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = ComponentName(context, MusicWidgetProvider::class.java)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-            
-            for (appWidgetId in appWidgetIds) {
+            CoroutineScope(Dispatchers.Main).launch {
                 try {
+                    val appWidgetManager = AppWidgetManager.getInstance(context)
+                    val thisWidget = ComponentName(context, MusicWidgetProvider::class.java)
+                    
                     val views = RemoteViews(context.packageName, R.layout.widget_music)
                     setupWidgetControls(context, views)
 
-                    views.setImageViewResource(R.id.widget_play_pause, R.drawable.equalizer)
-                    appWidgetManager.updateAppWidget(appWidgetId, views)
+                    val isPlaying = intent.getBooleanExtra("current_is_playing", false)
+
+                    views.setImageViewResource(R.id.widget_play_pause,
+                        if (isPlaying) R.drawable.play else R.drawable.pause)
+
+                    appWidgetManager.updateAppWidget(thisWidget, views)
+
+                    kotlinx.coroutines.delay(800)
+                    requestMusicServiceUpdate(context)
                 } catch (e: Exception) {
                     Timber.tag(TAG).e(e, "Error updating widget temporarily")
                 }
             }
         }
-        
+
         val serviceIntent = Intent(context, MusicService::class.java).apply {
             this.action = action
+
+            intent.extras?.let { bundleExtras ->
+                putExtras(bundleExtras)
+            }
+
+            addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
         }
+
         try {
-            // Use PendingIntent.getForegroundService() to properly handle background execution limits
             val pendingIntent = PendingIntent.getForegroundService(
                 context,
                 action.hashCode(),
@@ -242,9 +386,13 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             pendingIntent.send()
-            Timber.tag(TAG).d("Action forwarded to service via PendingIntent")
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error forwarding action to service")
+            Timber.tag(TAG).d("Action forwarded to service via PendingIntent: $action")
+        } catch (_: Exception) {
+            try {
+                context.startForegroundService(serviceIntent)
+            } catch (e2: Exception) {
+                Timber.tag(TAG).e(e2, "Error starting service for action: $action")
+            }
         }
     }
 
@@ -268,6 +416,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
             Timber.tag(TAG).e(e, "Error sending service intent for update")
         }
     }
+    // Helper for recommendation
+    data class Recommendation(val title: String, val coverUrl: String, val id: String)
 
     companion object {
         private const val TAG = "MusicWidgetProvider"
