@@ -60,6 +60,10 @@ class HomeViewModel @Inject constructor(
     val allLocalItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
+        // Account display info
+    val accountName = MutableStateFlow("Guest")
+    val accountImageUrl = MutableStateFlow<String?>(null)
+
     data class HomePageWithBrowseCheck(
         val originalPage: HomePage,
         val browseContentAvailable: Map<String, Boolean>
@@ -100,9 +104,17 @@ class HomeViewModel @Inject constructor(
                 .filter { it is Song || it is Album }
 
         if (YouTube.cookie != null) {
+            YouTube.accountInfo().onSuccess { info ->
+                accountName.value = info.name
+                accountImageUrl.value = info.thumbnailUrl
+            }.onFailure {
+                reportException(it)
+            }
+
             YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
-                accountPlaylists.value = it.items.filterIsInstance<PlaylistItem>()
+                val lists = it.items.filterIsInstance<PlaylistItem>()
                     .filterNot { it.id == "SE" }
+                accountPlaylists.value = lists
             }.onFailure {
                 reportException(it)
             }

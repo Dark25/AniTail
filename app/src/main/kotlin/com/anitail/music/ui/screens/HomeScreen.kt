@@ -45,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -54,6 +56,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.anitail.innertube.models.AlbumItem
 import com.anitail.innertube.models.ArtistItem
 import com.anitail.innertube.models.PlaylistItem
@@ -65,7 +69,6 @@ import com.anitail.music.LocalDatabase
 import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.LocalPlayerConnection
 import com.anitail.music.R
-import com.anitail.music.constants.AccountNameKey
 import com.anitail.music.constants.GridThumbnailHeight
 import com.anitail.music.constants.InnerTubeCookieKey
 import com.anitail.music.constants.ListItemHeight
@@ -144,11 +147,13 @@ fun HomeScreen(
     val quickPicksLazyGridState = rememberLazyGridState()
     val forgottenFavoritesLazyGridState = rememberLazyGridState()
 
-    val accountName by rememberPreference(AccountNameKey, "")
+    val accountName by viewModel.accountName.collectAsState()
+    val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val isLoggedIn = remember(innerTubeCookie) {
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
+    val url = if (isLoggedIn) accountImageUrl else null
 
     val scope = rememberCoroutineScope()
     val lazylistState = rememberLazyListState()
@@ -492,13 +497,31 @@ fun HomeScreen(
                 item {
                     NavigationTitle(
                         label = stringResource(R.string.your_ytb_playlists),
-                        title = if (isLoggedIn) accountName else stringResource(R.string.your_ytb_playlists),
+                        title = accountName,
                         thumbnail = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.person),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            if (url != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(url)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .diskCacheKey(url)
+                                        .crossfade(true)
+                                        .build(),
+                                    placeholder = painterResource(id = R.drawable.person),
+                                    error = painterResource(id = R.drawable.person),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(ListThumbnailSize)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.person),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(ListThumbnailSize)
+                                )
+                            }
                         },
                         onClick = {
                             navController.navigate("account")
