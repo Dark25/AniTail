@@ -534,4 +534,15 @@
     <string name="patreon">Patreon</string>
     <string name="patreon_info">¡Apóyanos en Patreon! Cada ayuda suma.</string>
     <string name="song_notplaying">No se está reproduciendo ninguna canción</string>
+    <!-- Backup y Restore -->
+    <string name="backup_info_description"> Crea una copia de seguridad y restaura tu configuración, listas de reproducción y otros datos. Esta función te permite transferir fácilmente tus datos entre dispositivos o restaurarlos en caso de pérdida.</string>
+    <string name="backup_description">Crea una copia de seguridad de tus listas de reproducción, ajustes y datos</string>
+    <string name="restore_description">Restaura tus datos desde una copia de seguridad anterior</string>
+    <string name="import_online_description">Importa listas de reproducción desde archivos M3U (buscará automáticamente)</string>
+    <string name="import_csv_description">Importa listas de reproducción desde archivos CSV (buscará automáticamente)</string>
+    <string name="backup_link_title">Copia de seguridad compartible</string>
+    <string name="backup_link_description">Puedes compartir este enlace para que otros usuarios puedan descargar tu copia de seguridad. Recuerda que tu copia de seguridad estará disponible durante 14 días.</string>
+    <string name="uploading_backup">Subiendo copia de seguridad…</string>
+    <string name="upload_progress_percentage">%1$d%%</string>
+    <string name="upload_error">Error al subir la copia de seguridad. Intente nuevamente.</string>
 </resources>

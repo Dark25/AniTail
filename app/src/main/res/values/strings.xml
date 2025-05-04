@@ -540,4 +540,15 @@
     <string name="more_options">More options</string>
     <string name="share_selected">Share selected</string>
     <string name="song_notplaying">The song is not playing</string>
+    <!-- Backup y Restore -->
+    <string name="backup_info_description"> Backup and restore your settings, playlists, and other data. This feature allows you to easily transfer your data between devices or restore it in case of data loss.</string>
+    <string name="backup_description">Back up your playlists, settings, and data</string>
+    <string name="restore_description">Restore your data from a previous backup</string>
+    <string name="import_online_description">Import playlists from M3U files (will search automatically)</string>
+    <string name="import_csv_description">Import playlists from CSV files (will search automatically)</string>
+    <string name="backup_link_title">Sharable backup</string>
+    <string name="backup_link_description">You can share this link so others can download your backup. Remember that your backup will be available for 14 days.</string>
+    <string name="uploading_backup">Uploading backup…</string>
+    <string name="upload_progress_percentage">%1$d%%</string>
+    <string name="upload_error">Error uploading backup. Please try again.</string>
 </resources>
