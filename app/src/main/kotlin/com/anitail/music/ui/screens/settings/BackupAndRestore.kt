@@ -62,11 +62,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.R
+import com.anitail.music.constants.EnableBackupUploadKey
 import com.anitail.music.db.entities.Song
 import com.anitail.music.ui.component.IconButton
+import com.anitail.music.ui.component.PreferenceGroupTitle
+import com.anitail.music.ui.component.SwitchPreference
 import com.anitail.music.ui.menu.AddToPlaylistDialogOnline
 import com.anitail.music.ui.menu.LoadingScreen
 import com.anitail.music.ui.utils.backToMain
+import com.anitail.music.utils.rememberPreference
 import com.anitail.music.viewmodels.BackupRestoreViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -104,29 +108,35 @@ fun BackupAndRestore(
     var progressPercentage by rememberSaveable {
         mutableIntStateOf(0)
     }
-    
-    // Estado para seguimiento de carga de backup
+      // Estado para seguimiento de carga de backup
     var uploadStatus by remember { mutableStateOf<UploadStatus?>(null) }
     var uploadProgress by remember { mutableFloatStateOf(0f) }
     
+    // Estado para controlar si se sube el backup automáticamente
+    val (enableBackupUpload, onEnableBackupUploadChange) = rememberPreference(
+        EnableBackupUploadKey,
+        defaultValue = true
+    )
+    
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
-    val backupLauncher =
+      val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
             if (uri != null) {
                 viewModel.backup(context, uri)
-                // Iniciar carga a filebin.net
-                coroutineScope.launch {
-                    uploadStatus = UploadStatus.Uploading
-                    uploadProgress = 0f
-                    val fileUrl = uploadBackupToFilebin(context, uri) { progress ->
-                        uploadProgress = progress
-                    }
-                    uploadStatus = if (fileUrl != null) {
-                        UploadStatus.Success(fileUrl)
-                    } else {
-                        UploadStatus.Failure
+                // Iniciar carga a filebin.net solo si está habilitado
+                if (enableBackupUpload) {
+                    coroutineScope.launch {
+                        uploadStatus = UploadStatus.Uploading
+                        uploadProgress = 0f
+                        val fileUrl = uploadBackupToFilebin(context, uri) { progress ->
+                            uploadProgress = progress
+                        }
+                        uploadStatus = if (fileUrl != null) {
+                            UploadStatus.Success(fileUrl)
+                        } else {
+                            UploadStatus.Failure
+                        }
                     }
                 }
             }
@@ -192,10 +202,14 @@ fun BackupAndRestore(
                 )
             )
         )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Sección de información
+        Spacer(modifier = Modifier.height(8.dp))        // Sección de información
         InfoSection()
+        
+        // Sección de configuración
+        ConfigSection(
+            enableBackupUpload = enableBackupUpload,
+            onEnableBackupUploadChange = onEnableBackupUploadChange
+        )
 
         // Sección de acciones principales
         ActionSection(
@@ -217,17 +231,18 @@ fun BackupAndRestore(
                 importPlaylistFromCsv.launch(arrayOf("text/csv"))
             }
         )
-        
-        // Sección de estado de carga
-        UploadStatusSection(
-            uploadStatus = uploadStatus,
-            uploadProgress = uploadProgress,
-            onCopyClick = {
-                if (uploadStatus is UploadStatus.Success) {
-                    copyToClipboard(context, (uploadStatus as UploadStatus.Success).fileUrl)
+          // Sección de estado de carga, mostrar solo si la subida está habilitada
+        if (enableBackupUpload) {
+            UploadStatusSection(
+                uploadStatus = uploadStatus,
+                uploadProgress = uploadProgress,
+                onCopyClick = {
+                    if (uploadStatus is UploadStatus.Success) {
+                        copyToClipboard(context, (uploadStatus as UploadStatus.Success).fileUrl)
+                    }
                 }
-            }
-        )
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
     }
@@ -256,6 +271,27 @@ fun BackupAndRestore(
         isVisible = isProgressStarted,
         value = progressPercentage,
     )
+}
+
+@Composable
+private fun ConfigSection(
+    enableBackupUpload: Boolean,
+    onEnableBackupUploadChange: (Boolean) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        PreferenceGroupTitle(
+            title = stringResource(R.string.options)
+        )
+          SwitchPreference(
+            title = { Text(stringResource(R.string.enable_backup_upload)) },
+            description = stringResource(R.string.enable_backup_upload_desc),
+            icon = { Icon(painterResource(R.drawable.backup), null) },
+            checked = enableBackupUpload,
+            onCheckedChange = onEnableBackupUploadChange
+        )
+    }
 }
 
 @Composable

@@ -551,4 +551,6 @@
     <string name="uploading_backup">Uploading backup…</string>
     <string name="upload_progress_percentage">%1$d%%</string>
     <string name="upload_error">Error uploading backup. Please try again.</string>
+    <string name="enable_backup_upload">Enable backup upload</string>
+    <string name="enable_backup_upload_desc">Automatically upload your backup to a temporary cloud storage for sharing</string>
 </resources>

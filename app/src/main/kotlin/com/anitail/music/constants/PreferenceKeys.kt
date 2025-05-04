@@ -52,6 +52,7 @@ val StopMusicOnTaskClearKey = booleanPreferencesKey("stopMusicOnTaskClear")
 val AutoDownloadOnLikeKey = booleanPreferencesKey("autoDownloadOnLike")
 val AutoDownloadLyricsKey = booleanPreferencesKey("autoDownloadLyrics")
 val NotificationButtonTypeKey = stringPreferencesKey("notificationButtonType")
+val EnableBackupUploadKey = booleanPreferencesKey("enableBackupUpload")
 
 enum class NotificationButtonType {
     CLOSE,
