@@ -547,4 +547,8 @@
     <string name="upload_error">Error al subir la copia de seguridad. Intente nuevamente.</string>
     <string name="enable_backup_upload">Habilitar subida de copia de seguridad</string>
     <string name="enable_backup_upload_desc">Subir automáticamente tu copia de seguridad a un almacenamiento temporal en la nube para compartirla</string>
+    <string name="avatar_source">Elegir avatar</string>
+    <string name="avatar_source_youtube">YouTube</string>
+    <string name="avatar_source_discord">Discord</string>
+    <string name="avatar">Avatar</string>
 </resources>

@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
@@ -62,6 +63,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -73,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -95,6 +98,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.core.util.Consumer
 import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -103,6 +107,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.anitail.innertube.YouTube
@@ -659,19 +664,51 @@ class MainActivity : ComponentActivity() {
                                                     contentDescription = stringResource(R.string.search)
                                                 )
                                             }
+
+                                            // --- Avatar logic start ---
+                                            // ViewModel and preferences
+                                            val homeViewModel: com.anitail.music.viewmodels.HomeViewModel =
+                                                hiltViewModel()
+                                            val accountImageUrl by homeViewModel.accountImageUrl.collectAsState()
+                                            val discordAvatarUrl by homeViewModel.discordAvatarUrl.collectAsState()
+                                            val (preferredAvatarSource) = rememberEnumPreference(
+                                                com.anitail.music.constants.PreferredAvatarSourceKey,
+                                                defaultValue = com.anitail.music.constants.AvatarSource.YOUTUBE
+                                            )
+
+                                            // Determine which avatar to use
+                                            val avatarUrl = when (preferredAvatarSource) {
+                                                com.anitail.music.constants.AvatarSource.YOUTUBE -> accountImageUrl
+                                                com.anitail.music.constants.AvatarSource.DISCORD -> discordAvatarUrl
+                                            }
+
                                             IconButton(onClick = { navController.navigate("settings") }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {
                                                         Badge()
                                                     }
                                                 }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.settings),
-                                                        contentDescription = stringResource(R.string.settings),
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
+                                                    if (!avatarUrl.isNullOrBlank()) {
+                                                        AsyncImage(
+                                                            model = avatarUrl,
+                                                            contentDescription = stringResource(R.string.settings),
+                                                            modifier = Modifier
+                                                                .size(28.dp)
+                                                                .clip(CircleShape),
+                                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                            placeholder = painterResource(R.drawable.settings),
+                                                            error = painterResource(R.drawable.settings)
+                                                        )
+                                                    } else {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.settings),
+                                                            contentDescription = stringResource(R.string.settings),
+                                                            modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
+                                            // --- Avatar logic end ---
                                         },
                                         scrollBehavior =
                                         searchBarScrollBehavior,
