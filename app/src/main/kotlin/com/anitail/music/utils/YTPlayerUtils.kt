@@ -6,7 +6,7 @@ import com.anitail.innertube.NewPipeUtils
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.YouTubeClient
 import com.anitail.innertube.models.YouTubeClient.Companion.IOS
-import com.anitail.innertube.models.YouTubeClient.Companion.WEB_CREATOR
+import com.anitail.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
 import com.anitail.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.anitail.innertube.models.response.PlayerResponse
 import com.anitail.music.constants.AudioQuality
@@ -32,7 +32,10 @@ object YTPlayerUtils {
     /**
      * Clients used for fallback streams in case the streams of the main client do not work.
      */
-    private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(WEB_CREATOR, IOS)
+    private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        IOS,
+    )
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
         val videoDetails: PlayerResponse.VideoDetails?,
