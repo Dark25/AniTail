@@ -27,6 +27,7 @@ import com.anitail.music.constants.AutoDownloadOnLikeKey
 import com.anitail.music.constants.AutoLoadMoreKey
 import com.anitail.music.constants.AutoSkipNextOnErrorKey
 import com.anitail.music.constants.HistoryDuration
+import com.anitail.music.constants.JossRedMultimedia
 import com.anitail.music.constants.NotificationButtonType
 import com.anitail.music.constants.NotificationButtonTypeKey
 import com.anitail.music.constants.PersistentQueueKey
@@ -97,6 +98,10 @@ fun PlayerSettings(
         HistoryDuration,
         defaultValue = 30f
     )
+    val (useJossRed, onUseJossRedChange) = rememberPreference(
+        key = JossRedMultimedia,
+        defaultValue = false
+    )
 
     Column(
         Modifier
@@ -134,6 +139,14 @@ fun PlayerSettings(
             icon = { Icon(painterResource(R.drawable.history), null) },
             value = historyDuration,
             onValueChange = onHistoryDurationChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.playSongJR)) },
+            description = stringResource(R.string.playSongJRDesc),
+            icon = { Icon(painterResource(R.drawable.play), null) },
+            checked = useJossRed,
+            onCheckedChange = onUseJossRedChange
         )
 
         SwitchPreference(
