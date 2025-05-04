@@ -79,8 +79,8 @@
 
         <ImageButton
             android:id="@+id/widget_prev"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@android:color/transparent"
             android:padding="8dp"
             android:scaleType="fitCenter"
@@ -90,8 +90,8 @@
 
         <ImageButton
             android:id="@+id/widget_play_pause"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginHorizontal="8dp"
             android:background="@android:color/transparent"
             android:padding="10dp"
@@ -102,8 +102,8 @@
 
         <ImageButton
             android:id="@+id/widget_next"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@android:color/transparent"
             android:padding="8dp"
             android:scaleType="fitCenter"
@@ -134,7 +134,6 @@
         android:secondaryProgress="0" />
 </LinearLayout>
 
-    <!-- Recomendaciones: fila horizontal de carátulas con título -->
     <LinearLayout
         android:id="@+id/widget_recommendations"
         android:layout_width="match_parent"
@@ -142,7 +141,9 @@
         android:layout_below="@id/widget_progress"
         android:layout_marginTop="8dp"
         android:orientation="horizontal"
-        android:gravity="center">        <!-- Carátula 1 -->        <LinearLayout
+        android:gravity="center">
+
+        <LinearLayout
             android:id="@+id/widget_recommendation_1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -152,7 +153,8 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
-            android:gravity="center"><ImageView
+            android:gravity="center">
+        <ImageView
                 android:id="@+id/widget_recommendation_cover_1"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
@@ -171,7 +173,9 @@
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:gravity="center"/>
-        </LinearLayout>        <!-- Carátula 2 -->        <LinearLayout
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/widget_recommendation_2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -182,7 +186,9 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
-            android:gravity="center"><ImageView
+            android:gravity="center">
+
+        <ImageView
                 android:id="@+id/widget_recommendation_cover_2"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
@@ -203,7 +209,9 @@
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:gravity="center"/>
-        </LinearLayout>        <!-- Carátula 3 -->        <LinearLayout
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/widget_recommendation_3"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -214,7 +222,8 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
-            android:gravity="center"><ImageView
+            android:gravity="center">
+        <ImageView
                 android:id="@+id/widget_recommendation_cover_3"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
@@ -235,7 +244,9 @@
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:gravity="center"/>
-        </LinearLayout>        <!-- Carátula 4 -->        <LinearLayout
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/widget_recommendation_4"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -245,7 +256,8 @@
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
-            android:gravity="center"><ImageView
+            android:gravity="center">
+            <ImageView
                 android:id="@+id/widget_recommendation_cover_4"
                 android:layout_width="48dp"
                 android:layout_height="48dp"

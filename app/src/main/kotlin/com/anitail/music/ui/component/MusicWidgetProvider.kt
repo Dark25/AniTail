@@ -11,6 +11,7 @@ import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
 import androidx.core.graphics.drawable.toBitmap
 import coil.ImageLoader
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.anitail.music.R
 import com.anitail.music.playback.MusicService
@@ -51,7 +52,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 forwardActionToService(context, intent)
             if (intent.action == ACTION_PLAY_PAUSE) {
                 }else if (intent.action == ACTION_NEXT || intent.action == ACTION_PREV) {
-                    CoroutineScope(Dispatchers.Main).launch {
+                    CoroutineScope(Dispatchers.IO).launch {
                         kotlinx.coroutines.delay(300)
                         requestMusicServiceUpdate(context)
                     }
@@ -96,7 +97,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
                     updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_4_COVER_URL) ?: "",
                     updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_RECOMMENDATION_4_ID) ?: ""
                 )
-            )            // Añadimos manejo de errores para los extras del Intent
+            )
+
             val song = try {
                 updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_SONG_TITLE) ?: ""
             } catch (e: Exception) {
@@ -105,9 +107,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             }
             
             val artist = try {
-                // Intentamos obtener el texto como String primero
-                updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_ARTIST) ?: 
-                // Si es un recurso ID, obtenemos el texto
+                updateIntent.getStringExtra(MusicService.EXTRA_WIDGET_ARTIST) ?:
                 updateIntent.getIntExtra(MusicService.EXTRA_WIDGET_ARTIST, 0).let { 
                     if (it != 0) try { context.getString(it) } catch (e: Exception) { "" } else ""
                 }
@@ -158,8 +158,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 themeColor
             }
 
-            Timber.tag(TAG)
-                .d("Updating widget with song: '$song', artist: '$artist', isPlaying: $isPlaying, recommendation: '$recommendation', coverUrl: $coverUrl")            // Configuración inicial del widget
             views.setTextViewText(R.id.widget_title, song)
             views.setInt(R.id.widget_root, "setBackgroundColor", dominantColor)
 
@@ -203,7 +201,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 if (rec.coverUrl.isNotBlank()) {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            val imageLoader = ImageLoader.Builder(context).crossfade(true).build()
+                            val imageLoader = ImageLoader.Builder(context)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .crossfade(true)
+                                .build()
                             val request = ImageRequest.Builder(context)
                                 .data(rec.coverUrl)
                                 .size(96, 96)
@@ -213,7 +214,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                             val result = imageLoader.execute(request)
                             val bitmap = result.drawable?.toBitmap()
                             if (bitmap != null) {
-                                withContext(Dispatchers.Main) {
+                                withContext(Dispatchers.IO) {
                                     views.setImageViewBitmap(coverId, bitmap)
                                     
                                     try {
@@ -255,6 +256,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val imageLoader = ImageLoader.Builder(context)
+                            .memoryCachePolicy(CachePolicy.ENABLED)
                             .crossfade(true)
                             .build()
                         val request = ImageRequest.Builder(context)
@@ -267,7 +269,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
                         val bitmap = result.drawable?.toBitmap()
 
                         if (bitmap != null) {
-                            withContext(Dispatchers.Main) {
+                            withContext(Dispatchers.IO) {
                                 views.setImageViewBitmap(R.id.widget_cover, bitmap)
                                 views.setInt(R.id.widget_root, "setBackgroundColor", dominantColor)
                                 for (appWidgetId in appWidgetIds) {
@@ -339,13 +341,13 @@ class MusicWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_prev, prevPendingIntent)
-    }    @RequiresApi(Build.VERSION_CODES.O)
+    }
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun forwardActionToService(context: Context, intent: Intent) {
         val action = intent.action ?: return
-        // Log para debug
-        Timber.tag(TAG).d("forwardActionToService: Procesando action: $action")
+
         if (action == ACTION_PLAY_PAUSE) {
-            CoroutineScope(Dispatchers.Main).launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val appWidgetManager = AppWidgetManager.getInstance(context)
                     val thisWidget = ComponentName(context, MusicWidgetProvider::class.java)

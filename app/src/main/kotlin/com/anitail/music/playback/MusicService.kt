@@ -171,8 +171,7 @@ class MusicService :
 
     @Inject
     lateinit var syncUtils: SyncUtils
-    
-    // Controlador para actualizaciones periódicas del widget para mostrar progreso
+
     private var widgetUpdateJob: Job? = null
 
     @Inject
@@ -688,8 +687,7 @@ class MusicService :
         }
     }
 
-    // --- Foreground service state ---
-    private var isForeground = false
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -697,17 +695,6 @@ class MusicService :
             return super.onStartCommand(intent, flags, startId)
         }
 
-        // --- INICIO: foreground service fix ---
-        if (!isForeground) {
-            try {
-                val notification = createServiceNotification()
-                startForeground(NOTIFICATION_ID, notification)
-                isForeground = true
-            } catch (e: Exception) {
-                Timber.tag("MusicService").e(e, "Error al crear notificación para startForeground")
-            }
-        }
-        // --- FIN: foreground service fix ---
 
         when (intent.action) {
             ACTION_PLAY_RECOMMENDATION -> {
@@ -764,69 +751,14 @@ class MusicService :
             ACTION_NEXT -> {
                 player.seekToNext()
                 player.playWhenReady = true
-                scope.launch {
-                    delay(200)  //
-                    sendWidgetUpdateBroadcast()
-                }
             }
             ACTION_PREV -> {
                 player.seekToPrevious()
                 player.playWhenReady = true
-                scope.launch {
-                    delay(200)
-                    sendWidgetUpdateBroadcast()
-                }
             }
         }
 
         return super.onStartCommand(intent, flags, startId)
-    }
-
-    // Crea una notificación dinámica para el foreground service
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun createServiceNotification(): android.app.Notification {
-        val channelId = CHANNEL_ID
-        val channel = android.app.NotificationChannel(
-            channelId,
-            "Anitail Music",
-            android.app.NotificationManager.IMPORTANCE_LOW
-        )
-        val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-        nm.createNotificationChannel(channel)
-
-        val meta = currentMediaMetadata.value
-        val song = currentSong.value
-        val songTitle = meta?.title ?: song?.song?.title ?: getString(R.string.music_player)
-        var artistName = meta?.artistName ?: song?.song?.artistName ?: ""
-        if (artistName.isBlank() && meta?.artists?.isNotEmpty() == true) {
-            artistName = meta.artists.joinToString(", ") { it.name }
-        }
-        val coverUrl = meta?.thumbnailUrl ?: song?.song?.thumbnailUrl
-
-        val builder = android.app.Notification.Builder(this, channelId)
-            .setContentTitle(songTitle)
-            .setContentText(artistName.ifBlank { getString(R.string.app_name) })
-            .setSmallIcon(R.drawable.ic_ani)
-            .setOngoing(true)
-
-        if (!coverUrl.isNullOrBlank()) {
-            try {
-                val bmp = runBlocking {
-                    val loader = coil.ImageLoader(this@MusicService)
-                    val req = coil.request.ImageRequest.Builder(this@MusicService)
-                        .data(coverUrl)
-                        .allowHardware(false)
-                        .build()
-                    val result = loader.execute(req)
-                    (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
-                }
-                if (bmp != null) {
-                    builder.setLargeIcon(bmp)
-                }
-            } catch (_: Exception) {}
-        }
-
-        return builder.build()
     }
 
     fun toggleLike() {
@@ -923,32 +855,35 @@ class MusicService :
         }
     }
 
-    /**
-     * Envía un broadcast para actualizar el widget de música con la canción actual,
-     * artista y recomendación.
-     */    private fun sendWidgetUpdateBroadcast() {
+    private fun sendWidgetUpdateBroadcast() {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             scope.launch(Dispatchers.Main) {
                 sendWidgetUpdateBroadcast()
             }
             return
         }
-        
+
         val meta = currentMediaMetadata.value
-        var recommendationTitle = ""
-        meta?.id?.let { id ->
+
+        if (meta?.id != null) {
             scope.launch(Dispatchers.IO) {
-                recommendationTitle = database.getRelatedSongs(id).firstOrNull()?.firstOrNull()?.song?.title ?: ""
-                if (recommendationTitle.isNotEmpty()) {
+                try {
+                    val recommendationTitle = database.getRelatedSongs(meta.id).firstOrNull()?.firstOrNull()?.song?.title ?: ""
                     withContext(Dispatchers.Main) {
                         sendWidgetUpdateInternal(recommendationTitle)
                     }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error obteniendo recomendaciones: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        sendWidgetUpdateInternal("")
+                    }
                 }
             }
+        } else {
+            sendWidgetUpdateInternal("")
         }
-
-        sendWidgetUpdateInternal(recommendationTitle)
     }
+
     private fun sendWidgetUpdateInternal(recommendationTitle: String) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             scope.launch(Dispatchers.Main) {
@@ -1375,8 +1310,10 @@ class MusicService :
         }.onFailure {
             reportException(it)
         }
-    }        override fun onDestroy() {
+    }
+    override fun onDestroy() {
         stopPeriodicWidgetUpdates()
+        widgetUpdateJob?.cancel()
         
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
@@ -1502,7 +1439,7 @@ class MusicService :
                     if (player.isPlaying && player.playbackState == STATE_READY) {
                         sendWidgetUpdateBroadcast()
                     }
-                    delay(500)
+                    delay(2000)
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error in periodic widget updates")
