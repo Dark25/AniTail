@@ -10,6 +10,10 @@ import android.database.SQLException
 import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.os.Binder
+import android.os.Build
+import android.os.Looper
+import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
@@ -24,6 +28,7 @@ import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_IDLE
+import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.datasource.DataSource
@@ -103,6 +108,9 @@ import com.anitail.music.playback.queues.ListQueue
 import com.anitail.music.playback.queues.Queue
 import com.anitail.music.playback.queues.YouTubeQueue
 import com.anitail.music.playback.queues.filterExplicit
+import com.anitail.music.ui.component.MusicWidgetProvider.Companion.ACTION_NEXT
+import com.anitail.music.ui.component.MusicWidgetProvider.Companion.ACTION_PLAY_PAUSE
+import com.anitail.music.ui.component.MusicWidgetProvider.Companion.ACTION_PREV
 import com.anitail.music.utils.CoilBitmapLoader
 import com.anitail.music.utils.DiscordRPC
 import com.anitail.music.utils.SyncUtils
@@ -163,6 +171,8 @@ class MusicService :
 
     @Inject
     lateinit var syncUtils: SyncUtils
+
+    private var widgetUpdateJob: Job? = null
 
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
@@ -292,7 +302,6 @@ class MusicService :
                 settings[PlayerVolumeKey] = volume
             }
         }
-
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null) {
@@ -678,12 +687,44 @@ class MusicService :
         }
     }
 
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == null) {
             return super.onStartCommand(intent, flags, startId)
         }
 
+
         when (intent.action) {
+            ACTION_PLAY_RECOMMENDATION -> {
+                val songId = intent.getStringExtra(EXTRA_WIDGET_RECOMMENDATION_ID)
+                if (!songId.isNullOrBlank()) {
+                    scope.launch(Dispatchers.IO + kotlinx.coroutines.SupervisorJob()) {
+                        try {
+                            val song = database.song(songId).firstOrNull()
+                            if (song != null) {
+                                val mediaItem = song.toMediaMetadata().toMediaItem()
+                                withContext(Dispatchers.Main) {
+                                    try {
+                                        player.setMediaItem(mediaItem)
+                                        player.prepare()
+                                        player.playWhenReady = true
+                                    } catch (e: Exception) {
+                                        Timber.tag("MusicService").e(e, "Error to set media item")
+                                    }
+                                }
+                            } else {
+                                Timber.tag("MusicService").e("non existent songId: $songId")
+                            }
+                        } catch (e: Exception) {
+                            Timber.tag("MusicService").e(e, "Error to play recommendation")
+                        }
+                    }
+                } else {
+                    Timber.tag("MusicService").e("songId is null or blank")
+                }
+            }
             ACTION_DOWNLOAD_LYRICS -> {
                 val songId = intent.getStringExtra(EXTRA_SONG_ID)
                 if (songId != null) {
@@ -691,6 +732,29 @@ class MusicService :
                         downloadLyricsForSong(songId)
                     }
                 }
+            }
+            "com.anitail.music.action.UPDATE_WIDGET" -> {
+                sendWidgetUpdateBroadcast()
+            }
+            ACTION_PLAY_PAUSE -> {
+
+                val wasPlaying = player.isPlaying
+
+                if (wasPlaying) {
+                    player.pause()
+                } else {
+                    player.play()
+                }
+
+                sendWidgetUpdateBroadcast()
+            }
+            ACTION_NEXT -> {
+                player.seekToNext()
+                player.playWhenReady = true
+            }
+            ACTION_PREV -> {
+                player.seekToPrevious()
+                player.playWhenReady = true
             }
         }
 
@@ -791,6 +855,175 @@ class MusicService :
         }
     }
 
+    private fun sendWidgetUpdateBroadcast() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            scope.launch(Dispatchers.Main) {
+                sendWidgetUpdateBroadcast()
+            }
+            return
+        }
+
+        val meta = currentMediaMetadata.value
+
+        if (meta?.id != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val recommendationTitle = database.getRelatedSongs(meta.id).firstOrNull()?.firstOrNull()?.song?.title ?: ""
+                    withContext(Dispatchers.Main) {
+                        sendWidgetUpdateInternal(recommendationTitle)
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error obteniendo recomendaciones: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        sendWidgetUpdateInternal("")
+                    }
+                }
+            }
+        } else {
+            sendWidgetUpdateInternal("")
+        }
+    }
+
+    private fun sendWidgetUpdateInternal(recommendationTitle: String) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            scope.launch(Dispatchers.Main) {
+                sendWidgetUpdateInternal(recommendationTitle)
+            }
+            return
+        }
+        
+        val meta = currentMediaMetadata.value
+        val song = currentSong.value
+        val isPlaying = player.isPlaying
+        val songTitle = meta?.title ?: song?.song?.title ?: ""
+
+        var artistName = meta?.artistName ?: song?.song?.artistName ?: ""
+
+        if (artistName.isBlank() && meta?.artists?.isNotEmpty() == true) {
+            artistName = meta.artists.joinToString(", ") { it.name }
+        }
+
+        val coverUrl = meta?.thumbnailUrl ?: song?.song?.thumbnailUrl ?: ""
+
+        val defaultColor = com.anitail.music.ui.theme.DefaultThemeColor.toArgb()
+
+        if (coverUrl.isNotBlank()) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val loader = coil.ImageLoader(this@MusicService)
+                    val req = coil.request.ImageRequest.Builder(this@MusicService)
+                        .data(coverUrl)
+                        .allowHardware(false)
+                        .build()
+                    val result = loader.execute(req)
+                    val bmp = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+
+                    val finalColor = if (bmp != null) {
+                        try {
+                            val palette = androidx.palette.graphics.Palette.Builder(bmp)
+                                .maximumColorCount(32)
+                                .generate()
+
+                            palette.vibrantSwatch?.rgb
+                                ?: palette.mutedSwatch?.rgb
+                                ?: palette.darkVibrantSwatch?.rgb
+                                ?: palette.darkMutedSwatch?.rgb
+                                ?: defaultColor
+                        } catch (e: Exception) {
+                            Timber.tag("MusicService").e(e, "Error generating palette from bitmap")
+                            defaultColor
+                        }
+                    } else {
+                        defaultColor
+                    }
+
+                    sendWidgetBroadcast(
+                        songTitle, 
+                        artistName, 
+                        recommendationTitle, 
+                        isPlaying, 
+                        finalColor,
+                        coverUrl, 
+                        finalColor
+                    )                } catch (e: Exception) {
+                    Timber.tag("MusicService").e(e, "Error extracting dominant color, using default color")
+
+                    withContext(Dispatchers.Main) {
+                        sendWidgetBroadcast(songTitle, artistName, recommendationTitle, isPlaying, 
+                                       defaultColor, coverUrl, defaultColor)
+                    }
+                }
+            }
+        } else {
+            scope.launch(Dispatchers.IO) {
+                sendWidgetBroadcast(songTitle, artistName, recommendationTitle, isPlaying, defaultColor, coverUrl, defaultColor)
+            }
+        }
+    }
+    private suspend fun sendWidgetBroadcast(
+        songTitle: String,
+        artistName: String,
+        recommendationTitle: String,
+        isPlaying: Boolean,
+        themeColor: Int,
+        coverUrl: String,
+        dominantColor: Int
+    ) {
+        val meta = currentMediaMetadata.value
+        val song = currentSong.value
+
+        val related = database.getRelatedSongs(song?.song?.id ?: meta?.id ?: "").firstOrNull()?.take(4) ?: emptyList()
+        val finalArtistName = artistName.ifBlank { getString(R.string.unknown_artist) }
+        val (duration, position) = withContext(Dispatchers.Main) {
+            player.duration.coerceAtLeast(1L) to player.currentPosition.coerceAtLeast(0L)
+        }
+        val progress = ((position.toFloat() / duration.toFloat()) * 100).toInt().coerceIn(0, 100)
+
+        val intent = Intent(ACTION_WIDGET_UPDATE).apply {
+            component = ComponentName(this@MusicService, com.anitail.music.ui.component.MusicWidgetProvider::class.java)
+            putExtra(EXTRA_WIDGET_SONG_TITLE, songTitle)
+            putExtra(EXTRA_WIDGET_ARTIST, finalArtistName)
+            putExtra(EXTRA_WIDGET_RECOMMENDATION, recommendationTitle)
+            putExtra(EXTRA_WIDGET_IS_PLAYING, isPlaying)
+            putExtra(EXTRA_WIDGET_THEME_COLOR, themeColor)
+            putExtra(EXTRA_WIDGET_COVER_URL, coverUrl)
+            putExtra(EXTRA_WIDGET_DOMINANT_COLOR, dominantColor)
+            putExtra(EXTRA_WIDGET_PROGRESS, progress)
+            putExtra(EXTRA_WIDGET_CURRENT_POSITION, position)
+            putExtra(EXTRA_WIDGET_DURATION, duration)
+            // Add up to 4 recommendations (title, cover, id)
+            related.getOrNull(0)?.let {
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_1_TITLE, it.song.title)
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_1_COVER_URL, it.song.thumbnailUrl ?: "")
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_1_ID, it.song.id)
+            }
+            related.getOrNull(1)?.let {
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_2_TITLE, it.song.title)
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_2_COVER_URL, it.song.thumbnailUrl ?: "")
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_2_ID, it.song.id)
+            }
+            related.getOrNull(2)?.let {
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_3_TITLE, it.song.title)
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_3_COVER_URL, it.song.thumbnailUrl ?: "")
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_3_ID, it.song.id)
+            }
+            related.getOrNull(3)?.let {
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_4_TITLE, it.song.title)
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_4_COVER_URL, it.song.thumbnailUrl ?: "")
+                putExtra(EXTRA_WIDGET_RECOMMENDATION_4_ID, it.song.id)
+            }
+            addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+            addCategory(Intent.CATEGORY_DEFAULT)
+        }
+
+        try {
+            sendBroadcast(intent)
+        } catch (e: Exception) {
+            Timber.tag("MusicService").e(e, "Error sending widget update broadcast")
+        }
+    }
+
+
     override fun onPlaybackStateChanged(
         @Player.State playbackState: Int,
     ) {
@@ -799,34 +1032,47 @@ class MusicService :
             player.shuffleModeEnabled = false
             queueTitle = null
         }
-    }
-
-    override fun onEvents(
+    }    override fun onEvents(
         player: Player,
         events: Player.Events,
-    ) {
-        if (events.containsAny(
+    ) {        if (events.containsAny(
                 Player.EVENT_PLAYBACK_STATE_CHANGED,
                 Player.EVENT_PLAY_WHEN_READY_CHANGED
             )
-        ) {
+        ) {            
             val isBufferingOrReady =
-                player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
+                player.playbackState == Player.STATE_BUFFERING || player.playbackState == STATE_READY
             if (isBufferingOrReady && player.playWhenReady) {
                 openAudioEffectSession()
             } else {
                 closeAudioEffectSession()
             }
+            val isPlayingNow = player.isPlaying
+            val hasDuration = player.duration > 0
+            
+            scope.launch(Dispatchers.Main) {
+                delay(50)
+                sendWidgetUpdateBroadcast()
+                if (isPlayingNow && hasDuration) {
+                    startPeriodicWidgetUpdates()
+                } else {
+                    stopPeriodicWidgetUpdates()
+                }
+            }
         }
+        
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
+            scope.launch(Dispatchers.Main) {
+                delay(100)
+                sendWidgetUpdateBroadcast()
+            }
         }
     }
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
         if (shuffleModeEnabled) {
-            // Always put current playing item at first
             val shuffledIndices = IntArray(player.mediaItemCount) { it }
             shuffledIndices.shuffle()
             shuffledIndices[shuffledIndices.indexOf(player.currentMediaItemIndex)] =
@@ -893,7 +1139,6 @@ class MusicService :
                 return@Factory dataSpec
             }
 
-            // Renovar la URL si está a punto de expirar (menos de 10 segundos)
             val now = System.currentTimeMillis()
             songUrlCache[mediaId]?.let { (url, expiry) ->
                 if (expiry > now + 10_000) {
@@ -1065,7 +1310,11 @@ class MusicService :
         }.onFailure {
             reportException(it)
         }
-    }    override fun onDestroy() {
+    }
+    override fun onDestroy() {
+        stopPeriodicWidgetUpdates()
+        widgetUpdateJob?.cancel()
+        
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
@@ -1097,7 +1346,34 @@ class MusicService :
     }
 
     companion object {
+        const val EXTRA_WIDGET_RECOMMENDATION_ID = "com.anitail.music.widget.RECOMMENDATION_ID"
+        // Widget recommendation actions and extras
+        const val ACTION_PLAY_RECOMMENDATION = "com.anitail.music.widget.ACTION_PLAY_RECOMMENDATION"
+        const val EXTRA_WIDGET_RECOMMENDATION_1_TITLE = "com.anitail.music.widget.RECOMMENDATION_1_TITLE"
+        const val EXTRA_WIDGET_RECOMMENDATION_1_COVER_URL = "com.anitail.music.widget.RECOMMENDATION_1_COVER_URL"
+        const val EXTRA_WIDGET_RECOMMENDATION_1_ID = "com.anitail.music.widget.RECOMMENDATION_1_ID"
+        const val EXTRA_WIDGET_RECOMMENDATION_2_TITLE = "com.anitail.music.widget.RECOMMENDATION_2_TITLE"
+        const val EXTRA_WIDGET_RECOMMENDATION_2_COVER_URL = "com.anitail.music.widget.RECOMMENDATION_2_COVER_URL"
+        const val EXTRA_WIDGET_RECOMMENDATION_2_ID = "com.anitail.music.widget.RECOMMENDATION_2_ID"
+        const val EXTRA_WIDGET_RECOMMENDATION_3_TITLE = "com.anitail.music.widget.RECOMMENDATION_3_TITLE"
+        const val EXTRA_WIDGET_RECOMMENDATION_3_COVER_URL = "com.anitail.music.widget.RECOMMENDATION_3_COVER_URL"
+        const val EXTRA_WIDGET_RECOMMENDATION_3_ID = "com.anitail.music.widget.RECOMMENDATION_3_ID"
+        const val EXTRA_WIDGET_RECOMMENDATION_4_TITLE = "com.anitail.music.widget.RECOMMENDATION_4_TITLE"
+        const val EXTRA_WIDGET_RECOMMENDATION_4_COVER_URL = "com.anitail.music.widget.RECOMMENDATION_4_COVER_URL"
+        const val EXTRA_WIDGET_RECOMMENDATION_4_ID = "com.anitail.music.widget.RECOMMENDATION_4_ID"
         const val ROOT = "root"
+        // --- Widget Broadcast constants ---
+        const val ACTION_WIDGET_UPDATE = "com.anitail.music.widget.ACTION_WIDGET_UPDATE"
+        const val EXTRA_WIDGET_SONG_TITLE = "com.anitail.music.widget.EXTRA_WIDGET_SONG_TITLE"
+        const val EXTRA_WIDGET_ARTIST = "com.anitail.music.widget.EXTRA_WIDGET_ARTIST"
+        const val EXTRA_WIDGET_RECOMMENDATION = "com.anitail.music.widget.EXTRA_WIDGET_RECOMMENDATION"
+        const val EXTRA_WIDGET_IS_PLAYING = "com.anitail.music.widget.IS_PLAYING"
+        const val EXTRA_WIDGET_THEME_COLOR = "com.anitail.music.widget.THEME_COLOR"
+        const val EXTRA_WIDGET_COVER_URL = "com.anitail.music.widget.COVER_URL"
+        const val EXTRA_WIDGET_DOMINANT_COLOR = "com.anitail.music.widget.DOMINANT_COLOR"
+        const val EXTRA_WIDGET_PROGRESS = "com.anitail.music.widget.PROGRESS"
+        const val EXTRA_WIDGET_CURRENT_POSITION = "com.anitail.music.widget.CURRENT_POSITION"
+        const val EXTRA_WIDGET_DURATION = "com.anitail.music.widget.DURATION"
         const val SONG = "song"
         const val ARTIST = "artist"
         const val ALBUM = "album"
@@ -1142,5 +1418,41 @@ class MusicService :
         mediaSession.setCustomLayout(emptyList())
         updateNotification()
         stopSelf()
+    }
+
+    /**
+     * Starts periodic widget updates to show song progress
+     */
+    private fun startPeriodicWidgetUpdates() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            scope.launch(Dispatchers.Main) {
+                startPeriodicWidgetUpdates()
+            }
+            return
+        }
+
+        widgetUpdateJob?.cancel()
+
+        widgetUpdateJob = scope.launch(Dispatchers.Main) {
+            try {
+                while (isActive) {
+                    if (player.isPlaying && player.playbackState == STATE_READY) {
+                        sendWidgetUpdateBroadcast()
+                    }
+                    delay(2000)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error in periodic widget updates")
+            }
+        }
+    }
+
+    /**
+     * Stops periodic widget updates
+     */
+
+    private fun stopPeriodicWidgetUpdates() {
+        widgetUpdateJob?.cancel()
+        widgetUpdateJob = null
     }
 }
