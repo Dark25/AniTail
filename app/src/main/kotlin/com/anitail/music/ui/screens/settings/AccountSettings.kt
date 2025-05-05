@@ -41,11 +41,15 @@ import com.anitail.music.R
 import com.anitail.music.constants.AccountChannelHandleKey
 import com.anitail.music.constants.AccountEmailKey
 import com.anitail.music.constants.AccountNameKey
+import com.anitail.music.constants.AvatarSource
 import com.anitail.music.constants.DataSyncIdKey
+import com.anitail.music.constants.DiscordTokenKey
 import com.anitail.music.constants.InnerTubeCookieKey
+import com.anitail.music.constants.PreferredAvatarSourceKey
 import com.anitail.music.constants.UseLoginForBrowse
 import com.anitail.music.constants.VisitorDataKey
 import com.anitail.music.constants.YtmSyncKey
+import com.anitail.music.ui.component.EnumListPreference
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.InfoLabel
 import com.anitail.music.ui.component.PreferenceEntry
@@ -53,6 +57,7 @@ import com.anitail.music.ui.component.PreferenceGroupTitle
 import com.anitail.music.ui.component.SwitchPreference
 import com.anitail.music.ui.component.TextFieldDialog
 import com.anitail.music.ui.utils.backToMain
+import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
 import com.anitail.music.viewmodels.HomeViewModel
 
@@ -76,6 +81,7 @@ fun AccountSettings(
     }
     val (useLoginForBrowse, onUseLoginForBrowseChange) = rememberPreference(UseLoginForBrowse, true)
     val (ytmSync, onYtmSyncChange) = rememberPreference(YtmSyncKey, true)
+    val (discordToken, _) = rememberPreference(DiscordTokenKey, "")
 
     val viewModel: HomeViewModel = hiltViewModel()
     val accountName by viewModel.accountName.collectAsState()
@@ -259,11 +265,32 @@ fun AccountSettings(
             PreferenceGroupTitle(
                 title = stringResource(R.string.discord),
             )
-
             PreferenceEntry(
                 title = { Text(stringResource(R.string.discord_integration)) },
                 icon = { Icon(painterResource(R.drawable.discord), null) },
                 onClick = { navController.navigate("settings/discord") }
+            )
+
+            PreferenceGroupTitle(
+                title = stringResource(R.string.avatar)
+            )
+            
+            val (preferredAvatarSource, onPreferredAvatarSourceChange) = rememberEnumPreference(
+                PreferredAvatarSourceKey,
+                defaultValue = AvatarSource.YOUTUBE
+            )
+              EnumListPreference(
+                title = { Text(stringResource(R.string.avatar_source)) },
+                icon = { Icon(painterResource(R.drawable.person), null) },
+                selectedValue = preferredAvatarSource,
+                onValueSelected = onPreferredAvatarSourceChange,
+                valueText = {
+                    when (it) {
+                        AvatarSource.YOUTUBE -> stringResource(R.string.avatar_source_youtube)
+                        AvatarSource.DISCORD -> stringResource(R.string.avatar_source_discord)
+                    }
+                },
+                isEnabled = isLoggedIn || discordToken.isNotEmpty()
             )
         }
     }

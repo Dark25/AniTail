@@ -10,6 +10,7 @@ import com.anitail.innertube.models.YTItem
 import com.anitail.innertube.pages.ExplorePage
 import com.anitail.innertube.pages.HomePage
 import com.anitail.innertube.utils.completed
+import com.anitail.music.constants.DiscordTokenKey
 import com.anitail.music.constants.QuickPicks
 import com.anitail.music.constants.QuickPicksKey
 import com.anitail.music.constants.YtmSyncKey
@@ -23,6 +24,7 @@ import com.anitail.music.models.SimilarRecommendation
 import com.anitail.music.utils.SyncUtils
 import com.anitail.music.utils.dataStore
 import com.anitail.music.utils.reportException
+import com.my.kizzy.rpc.KizzyRPC
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +65,9 @@ class HomeViewModel @Inject constructor(
         // Account display info
     val accountName = MutableStateFlow("Guest")
     val accountImageUrl = MutableStateFlow<String?>(null)
+
+    // Discord avatar URL state
+    val discordAvatarUrl = MutableStateFlow<String?>(null)
 
     data class HomePageWithBrowseCheck(
         val originalPage: HomePage,
@@ -212,6 +217,24 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             load()
+            // Listen for Discord token changes and fetch Discord avatar
+            context.dataStore.data.map { it[DiscordTokenKey] ?: "" }.distinctUntilChanged().collect { token ->
+                if (token.isNotEmpty()) {
+                    runCatching {
+                        KizzyRPC.getUserInfo(token)
+                    }.onSuccess { result ->
+                        result.getOrNull()?.avatarUrl?.let {
+                            discordAvatarUrl.value = it
+                        } ?: run {
+                            discordAvatarUrl.value = null
+                        }
+                    }.onFailure {
+                        discordAvatarUrl.value = null
+                    }
+                } else {
+                    discordAvatarUrl.value = null
+                }
+            }
 
             val isSyncEnabled = context.dataStore.data
                 .map { it[YtmSyncKey] ?: true }
