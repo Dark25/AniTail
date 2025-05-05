@@ -49,11 +49,26 @@ import java.util.Locale
 
 @HiltAndroidApp
 class App : Application(), ImageLoaderFactory {
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
-        instance = this;
+        instance = this
         Timber.plant(Timber.DebugTree())
+
+        // OneSignal initialization
+        // TODO: Replace with your real OneSignal App ID
+        val oneSignalAppId = "8f09b52f-d61a-469e-9d7d-203ebf6b9e1b"
+        try {
+            // Enable verbose logging for debugging (remove in production)
+            com.onesignal.OneSignal.Debug.logLevel = com.onesignal.debug.LogLevel.VERBOSE
+            com.onesignal.OneSignal.initWithContext(this, oneSignalAppId)
+            GlobalScope.launch(Dispatchers.IO) {
+                com.onesignal.OneSignal.Notifications.requestPermission(true)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "OneSignal initialization failed")
+        }
 
         val locale = Locale.getDefault()
         val languageTag = locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*
