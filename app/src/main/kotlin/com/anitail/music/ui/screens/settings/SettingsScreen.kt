@@ -31,8 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,11 +78,6 @@ fun SettingsScreen(
         }
     }
 
-    // JAM: ViewModel para JAM
-    val jamViewModel: JamViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-    val isJamEnabled by jamViewModel.isJamEnabled.collectAsState()
-    val isJamHost by jamViewModel.isJamHost.collectAsState()
-    val hostIp by jamViewModel.hostIp.collectAsState()
 
     Column(
         Modifier
@@ -172,6 +165,11 @@ fun SettingsScreen(
             icon = { Icon(painterResource(R.drawable.restore), null) },
             onClick = { navController.navigate("settings/backup_restore") }
         )
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.jam_lan_sync)) },
+            icon = { Icon(painterResource(R.drawable.sync), null) },
+            onClick = { navController.navigate("settings/jam") }
+        )
         if (isAndroid12OrLater) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.default_links)) },
@@ -241,16 +239,6 @@ fun SettingsScreen(
             ReleaseNotesCard()
         }
 
-        // JAM: Controles de JAM
-        JamControls(
-            isJamEnabled = isJamEnabled,
-            isJamHost = isJamHost,
-            hostIp = hostIp,
-            onJamEnabledChange = { jamViewModel.setJamEnabled(it) },
-            onJamHostChange = { jamViewModel.setJamHost(it) },
-            onHostIpChange = { jamViewModel.setHostIp(it) },
-            viewModel = jamViewModel
-        )
     }
 
     TopAppBar(
