@@ -556,4 +556,18 @@
     <string name="upload_error">Error uploading backup. Please try again.</string>
     <string name="enable_backup_upload">Enable backup upload</string>
     <string name="enable_backup_upload_desc">Automatically upload your backup to a temporary cloud storage for sharing</string>
+    <!-- JAM LAN Sync -->
+    <string name="jam_lan_sync">JAM LAN Sync</string>
+    <string name="jam_enable_lan_sync">Enable LAN sync</string>
+    <string name="jam_connection_mode">Connection mode</string>
+    <string name="jam_host_mode">Host (server)</string>
+    <string name="jam_client_mode">Client</string>
+    <string name="jam_host_ip">Host IP</string>
+    <string name="jam_clients_connect_info">Clients can connect using your local IP address</string>
+    <string name="jam_show_connection_history">Show connection history</string>
+    <string name="jam_hide_connection_history">Hide connection history</string>
+    <string name="jam_active_connections">Active connections</string>
+    <string name="jam_connection_history">Connection history</string>
+    <string name="jam_no_connections">No connections registered</string>
+    <string name="clear">Clear connection history</string>
 </resources>

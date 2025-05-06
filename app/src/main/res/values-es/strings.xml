@@ -551,4 +551,18 @@
     <string name="avatar_source_youtube">YouTube</string>
     <string name="avatar_source_discord">Discord</string>
     <string name="avatar">Avatar</string>
+    <!-- JAM LAN Sync -->
+    <string name="jam_lan_sync">Sincronización JAM LAN</string>
+    <string name="jam_enable_lan_sync">Activar sincronización LAN</string>
+    <string name="jam_connection_mode">Modo de conexión</string>
+    <string name="jam_host_mode">Host (servidor)</string>
+    <string name="jam_client_mode">Cliente</string>
+    <string name="jam_host_ip">IP del host</string>
+    <string name="jam_clients_connect_info">Los clientes pueden conectarse usando tu dirección IP local</string>
+    <string name="jam_show_connection_history">Ver historial de conexiones</string>
+    <string name="jam_hide_connection_history">Ocultar historial de conexiones</string>
+    <string name="jam_active_connections">Conexiones activas</string>
+    <string name="jam_connection_history">Historial de conexiones</string>
+    <string name="jam_no_connections">No hay conexiones registradas</string>
+    <string name="clear">Limpiar historial</string>
 </resources>

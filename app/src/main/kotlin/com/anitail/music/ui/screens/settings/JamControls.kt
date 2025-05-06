@@ -15,7 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anitail.music.R
@@ -58,7 +60,7 @@ fun JamControls(
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(
-                text = "JAM LAN Sync",
+                text = stringResource(R.string.jam_lan_sync),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -69,7 +71,7 @@ fun JamControls(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    "Activar sincronización LAN",
+                    stringResource(R.string.jam_enable_lan_sync),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -85,7 +87,7 @@ fun JamControls(
                     Spacer(Modifier.height(16.dp))
                     
                     Text(
-                        text = "Modo de conexión",
+                        text = stringResource(R.string.jam_connection_mode),
                         style = MaterialTheme.typography.titleMedium
                     )
                     
@@ -101,7 +103,7 @@ fun JamControls(
                                     selected = isJamHost, 
                                     onClick = { onJamHostChange(true) }
                                 )
-                                Text("Host (servidor)")
+                                Text(stringResource(R.string.jam_host_mode))
                             }
                         }
                         
@@ -111,7 +113,7 @@ fun JamControls(
                                     selected = !isJamHost, 
                                     onClick = { onJamHostChange(false) }
                                 )
-                                Text("Cliente")
+                                Text(stringResource(R.string.jam_client_mode))
                             }
                         }
                     }
@@ -122,7 +124,7 @@ fun JamControls(
                         OutlinedTextField(
                             value = hostIp,
                             onValueChange = onHostIpChange,
-                            label = { Text("IP del host") },
+                            label = { Text(stringResource(R.string.jam_host_ip)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -140,7 +142,7 @@ fun JamControls(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    "Los clientes pueden conectarse usando tu dirección IP local",
+                                    stringResource(R.string.jam_clients_connect_info),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -152,10 +154,10 @@ fun JamControls(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    if (showConnectionHistory) 
-                                        "Ocultar historial de conexiones" 
-                                    else 
-                                        "Ver historial de conexiones"
+                                    if (showConnectionHistory)
+                                        stringResource(R.string.jam_hide_connection_history)
+                                    else
+                                        stringResource(R.string.jam_show_connection_history)
                                 )
                             }
                             
@@ -170,7 +172,7 @@ fun JamControls(
                                     // Mostrar conexiones activas si hay alguna
                                     if (activeConnections.isNotEmpty()) {
                                         Text(
-                                            text = "Conexiones activas",
+                                            text = stringResource(R.string.jam_active_connections),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -205,8 +207,12 @@ fun JamControls(
                                                 }
                                             }
                                         }
-                                        
-                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            thickness = DividerDefaults.Thickness,
+                                            color = DividerDefaults.color
+                                        )
                                     }
                                     
                                     // Historial de conexiones
@@ -215,14 +221,14 @@ fun JamControls(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text(
-                                            text = "Historial de conexiones",
+                                            text = stringResource(R.string.jam_connection_history),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.weight(1f)
                                         )
                                         
                                         TextButton(onClick = { viewModel.clearConnectionHistory() }) {
-                                            Text("Limpiar")
+                                            Text(stringResource(R.string.clear))
                                         }
                                     }
                                     
@@ -234,7 +240,7 @@ fun JamControls(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                "No hay conexiones registradas",
+                                                stringResource(R.string.jam_no_connections),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -270,10 +276,12 @@ fun JamControls(
                                                 }
                                                 
                                                 if (connectionHistory.indexOf(connection) < connectionHistory.size - 1) {
-                                                    Divider(
+                                                    HorizontalDivider(
                                                         modifier = Modifier
                                                             .padding(vertical = 2.dp)
-                                                            .fillMaxWidth(0.9f)
+                                                            .fillMaxWidth(0.9f),
+                                                        thickness = DividerDefaults.Thickness,
+                                                        color = DividerDefaults.color
                                                     )
                                                 }
                                             }

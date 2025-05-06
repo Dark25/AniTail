@@ -1,5 +1,6 @@
 package com.anitail.music.ui.screens.settings
 
+import android.annotation.SuppressLint
 import android.app.Application
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.AndroidViewModel
@@ -19,6 +20,7 @@ import java.util.Date
 import java.util.Locale
 
 class JamViewModel(application: Application) : AndroidViewModel(application) {
+    @SuppressLint("StaticFieldLeak")
     private val context = getApplication<Application>().applicationContext
 
     private val _isJamEnabled = MutableStateFlow(false)
