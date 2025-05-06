@@ -248,7 +248,8 @@ fun SettingsScreen(
             hostIp = hostIp,
             onJamEnabledChange = { jamViewModel.setJamEnabled(it) },
             onJamHostChange = { jamViewModel.setJamHost(it) },
-            onHostIpChange = { jamViewModel.setHostIp(it) }
+            onHostIpChange = { jamViewModel.setHostIp(it) },
+            viewModel = jamViewModel
         )
     }
 
@@ -267,3 +268,4 @@ fun SettingsScreen(
         }
     )
 }
+

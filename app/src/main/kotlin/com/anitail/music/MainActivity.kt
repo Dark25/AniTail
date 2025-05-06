@@ -285,7 +285,20 @@ class MainActivity : ComponentActivity() {
                     isHost = isJamHost,
                     hostIp = hostIp
                 )
+                
+                // Actualizar periódicamente las conexiones activas si es host
+                if (isJamEnabled && isJamHost) {
+                    while (true) {
+                        playerConnection?.service?.lanJamServer?.clientList?.let { clients ->
+                            jamViewModel.updateActiveConnections(
+                                clients.map { client -> client.ip to client.connectedAt.toLong() }
+                            )
+                        }
+                        delay(5000)  // Actualizar cada 5 segundos
+                    }
+                }
             }
+
             LaunchedEffect(Unit) {
                 if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
                     Updater.getLatestVersionName().onSuccess {
@@ -1223,3 +1236,4 @@ val LocalPlayerAwareWindowInsets =
     compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
+

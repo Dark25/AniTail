@@ -1,14 +1,11 @@
 package com.anitail.music.models
 
-import java.io.Serializable
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class PersistQueue(
     val title: String?,
     val items: List<MediaMetadata>,
     val mediaItemIndex: Int,
     val position: Long,
-) : Serializable {
-    companion object {
-        private const val serialVersionUID = 1L
-    }
-}
+)

@@ -64,6 +64,7 @@ val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 val JamEnabledKey = booleanPreferencesKey("jam_enabled")
 val JamHostKey = booleanPreferencesKey("jam_host")
 val JamHostIpKey = stringPreferencesKey("jam_host_ip")
+val JamConnectionHistoryKey = stringPreferencesKey("jam_connection_history")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
 val PauseRemoteListenHistoryKey = booleanPreferencesKey("pauseRemoteListenHistory")
@@ -510,3 +511,4 @@ val CountryCodeToName =
         "YE" to "Yemen",
         "ZW" to "Zimbabwe",
     )
+

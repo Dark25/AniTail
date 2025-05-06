@@ -67,6 +67,7 @@ import com.anitail.music.constants.DiscordTokenKey
 import com.anitail.music.constants.EnableDiscordRPCKey
 import com.anitail.music.constants.HideExplicitKey
 import com.anitail.music.constants.HistoryDuration
+import com.anitail.music.constants.JamConnectionHistoryKey
 import com.anitail.music.constants.MediaSessionConstants.CommandClosePlayer
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleLike
 import com.anitail.music.constants.MediaSessionConstants.CommandToggleRepeatMode
@@ -142,10 +143,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import timber.log.Timber
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -196,7 +196,7 @@ class MusicService :
     var queueTitle: String? = null
 
     // LAN JAM: Server/client for queue sync
-    private var lanJamServer: LanJamServer? = null
+    var lanJamServer: LanJamServer? = null
     private var lanJamClient: LanJamClient? = null
     private var isJamHost: Boolean = false
     private var isJamEnabled: Boolean = false
@@ -283,68 +283,201 @@ class MusicService :
         player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 
         // JAM: No inicializar aquí, se hace dinámicamente con updateJamSettings
-    }
-
-    /**
-     * Llama esto desde MainActivity o donde observes el JamViewModel
+    }    /**
+     * Actualiza la configuración de LAN JAM y gestiona los ciclos de vida de servidor/cliente
+     * Llamar desde MainActivity o donde se observe el JamViewModel
+     * 
+     * @param enabled Si LAN JAM está activado
+     * @param isHost Si este dispositivo es el host (servidor)
+     * @param hostIp IP del host al que conectar si este dispositivo es cliente
      */
     fun updateJamSettings(enabled: Boolean, isHost: Boolean, hostIp: String) {
         // Previene crash si player no está inicializado
         if (!this::player.isInitialized) {
-            // Puedes loguear aquí si quieres saber cuándo ocurre
+            Timber.tag("LanJam").d("Player no inicializado, posponiendo configuración JAM")
             return
         }
+        
+        // Verificar conectividad de red si se está activando JAM
+        if (enabled && !isJamEnabled) {
+            val hasNetwork = isInternetAvailable(this)
+            if (!hasNetwork) {
+                Timber.tag("LanJam").w("No se puede activar JAM: no hay conectividad de red")
+                return
+            }
+        }
+        
         // Solo reiniciar JAM si hay un cambio real de estado o de hostIp
         val currentHostIp = lanJamClient?.host ?: ""
-        if (isJamEnabled == enabled && isJamHost == isHost && (!isJamEnabled || (!isJamHost && currentHostIp == hostIp))) return
+        val shouldReconnectClient = isJamEnabled && !isJamHost && enabled && !isHost && currentHostIp != hostIp
+        val settingsChanged = isJamEnabled != enabled || isJamHost != isHost || 
+                             (!isJamHost && enabled && hostIp != currentHostIp && hostIp.isNotBlank())
+        
+        if (!settingsChanged && !shouldReconnectClient) {
+            // No hay cambios significativos
+            Timber.tag("LanJam").d("No hay cambios en configuración JAM, manteniendo estado actual")
+            return
+        }
 
-        // Detener JAM actual solo si estaba activo
-        if (lanJamServer != null) {
-            android.util.Log.d("LanJam", "Deteniendo JAM server")
-            lanJamServer?.stop()
-            lanJamServer = null
-        }
-        if (lanJamClient != null) {
-            android.util.Log.d("LanJam", "Desconectando JAM client")
-            lanJamClient?.disconnect()
-            lanJamClient = null
-        }
+        scope.launch {
+            // Siempre realizar limpieza en un hilo separado para evitar bloqueos en UI
+            withContext(Dispatchers.IO) {
+                // Limpiar los recursos actuales
+                if (lanJamServer != null) {
+                    Timber.tag("LanJam").d("Deteniendo JAM server")
+                    try {
+                        lanJamServer?.stop()
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error al detener JAM server: ${e.message}")
+                    } finally {
+                        lanJamServer = null
+                    }
+                }
+                
+                if (lanJamClient != null) {
+                    Timber.tag("LanJam").d("Desconectando JAM client")
+                    try {
+                        lanJamClient?.disconnect()
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error al desconectar JAM client: ${e.message}")
+                    } finally {
+                        lanJamClient = null
+                    }
+                }
+            }
 
         isJamEnabled = enabled
         isJamHost = isHost
 
         if (isJamEnabled) {
             if (isJamHost) {
-                android.util.Log.d("LanJam", "Iniciando JAM server (host)")
-                lanJamServer = LanJamServer(onMessage = { msg ->
-                    if (!ignoreNextRemoteQueue) {
-                        try {
-                            val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
-                            ignoreNextRemoteQueue = true
-                            playRemoteQueue(remoteQueue)
-                        } catch (_: Exception) {}
-                    } else {
-                        ignoreNextRemoteQueue = false
+                Timber.tag("LanJam").d("Iniciando JAM server (host)")
+                lanJamServer = LanJamServer(
+                    onMessage = { msg ->
+                        // Verificar si es un mensaje de ping
+                        if (msg == "PING") {
+                            Timber.tag("LanJam").d("Recibido PING de cliente, enviando PONG")
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    lanJamServer?.send("PONG")
+                                } catch (e: Exception) {
+                                    Timber.tag("LanJam").e(e, "Error enviando PONG: ${e.message}")
+                                }
+                            }
+                            return@LanJamServer
+                        }
+                        
+                        if (!ignoreNextRemoteQueue) {
+                            try {
+                                Timber.tag("LanJam").d("Servidor recibió mensaje de cliente, procesando...")
+                                val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
+                                ignoreNextRemoteQueue = true
+                                playRemoteQueue(remoteQueue)
+                            } catch (e: Exception) {
+                                Timber.tag("LanJam").e(e, "Error procesando cola remota: ${e.message}")
+                            }
+                        } else {
+                            ignoreNextRemoteQueue = false
+                        }
+                    },
+                    onClientConnected = { clientIp, timestamp ->
+                        // Registrar conexión en las preferencias
+                        scope.launch {
+                            saveJamConnection(clientIp, timestamp)
+                        }
+                          // Enviar la cola actual al cliente que se acaba de conectar
+                        scope.launch {
+                            delay(1000) // Dar tiempo al cliente para establecer bien la conexión
+                            // Obtener datos del player en el hilo principal
+                            val isEmpty = player.mediaItems.isEmpty()
+                            if (!isEmpty) {
+                                Timber.tag("LanJam").d("Enviando cola actual al cliente recién conectado")
+                                val title = queueTitle
+                                val items = player.mediaItems.mapNotNull { it.metadata }
+                                val currentIndex = player.currentMediaItemIndex
+                                val position = player.currentPosition
+                                
+                                // Ahora podemos cambiar al hilo IO para la operación de red
+                                withContext(Dispatchers.IO) {
+                                    try {
+                                        val persistQueue = PersistQueue(
+                                            title = title,
+                                            items = items,
+                                            mediaItemIndex = currentIndex,
+                                            position = position,
+                                        )
+                                        lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+                                    } catch (e: Exception) {
+                                        Timber.tag("LanJam").e(e, "Error enviando cola al cliente: ${e.message}")
+                                    }
+                                }
+                            }
+                        }
                     }
-                })
-                lanJamServer?.start()
+                )
+                
+                try {
+                    lanJamServer?.start()
+                } catch (e: Exception) {
+                    Timber.tag("LanJam").e(e, "Error iniciando servidor JAM: ${e.message}")
+                }
             } else {
-                android.util.Log.d("LanJam", "Conectando JAM client a $hostIp")
+                if (hostIp.isBlank()) {
+                    Timber.tag("LanJam").e("No se puede conectar: IP del host está vacía")
+                    return@launch
+                }
+                
+                Timber.tag("LanJam").d("Conectando JAM client a $hostIp")
                 lanJamClient = LanJamClient(hostIp, onMessage = { msg ->
+                    // Verificar si el mensaje es un PONG (respuesta a ping)
+                    if (msg == "PONG") {
+                        Timber.tag("LanJam").d("Recibido PONG del servidor - conexión estable")
+                        return@LanJamClient
+                    }
+                    
                     if (!ignoreNextRemoteQueue) {
                         try {
+                            Timber.tag("LanJam").d("Cliente recibió mensaje del servidor: procesando cola...")
                             val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
                             ignoreNextRemoteQueue = true
                             playRemoteQueue(remoteQueue)
-                        } catch (_: Exception) {}
+                        } catch (e: Exception) {
+                            Timber.tag("LanJam").e(e, "Error procesando cola remota: ${e.message}")
+                        }
                     } else {
                         ignoreNextRemoteQueue = false
                     }
                 })
-                lanJamClient?.connect()
+                
+                try {
+                    lanJamClient?.connect()
+                } catch (e: Exception) {
+                    Timber.tag("LanJam").e(e, "Error conectando cliente JAM: ${e.message}")
+                }
+                
+                // Configurar ping periódico para verificar la conexión
+                scope.launch {
+                    delay(1000) // Esperar un segundo para que se establezca la conexión inicial
+                    
+                    while (isJamEnabled && !isJamHost && lanJamClient != null) {
+                        try {
+                            withContext(Dispatchers.IO) {
+                                if (lanJamClient?.isConnected() == true) {
+                                    lanJamClient?.send("PING")
+                                    Timber.tag("LanJam").d("Ping enviado al servidor")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Timber.tag("LanJam").e(e, "Error enviando ping al servidor: ${e.message}")
+                        }
+                        
+                        delay(15000) // Enviar ping cada 15 segundos
+                    }
+                }
             }
         } else {
-            android.util.Log.d("LanJam", "JAM desactivado")
+            Timber.tag("LanJam").d("JAM desactivado")
+        }
         }
         // JAM solo controla server/cliente, NO recrea player ni mediaSession
 
@@ -442,31 +575,35 @@ class MusicService :
 
         if (dataStore.get(PersistentQueueKey, true)) {
             runCatching {
-                filesDir.resolve(PERSISTENT_QUEUE_FILE).inputStream().use { fis ->
-                    ObjectInputStream(fis).use { oos ->
-                        oos.readObject() as PersistQueue
-                    }
-                }
+                val file = filesDir.resolve(PERSISTENT_QUEUE_FILE)
+                if (file.exists()) {
+                    val json = file.readText(Charsets.UTF_8)
+                    Json.decodeFromString<PersistQueue>(json)
+                } else null
             }.onSuccess { queue ->
-                playQueue(
-                    queue =
-                    ListQueue(
-                        title = queue.title,
-                        items = queue.items.map { it.toMediaItem() },
-                        startIndex = queue.mediaItemIndex,
-                        position = queue.position,
-                    ),
-                    playWhenReady = false,
-                )
+                if (queue != null) {
+                    playQueue(
+                        queue =
+                        ListQueue(
+                            title = queue.title,
+                            items = queue.items.map { it.toMediaItem() },
+                            startIndex = queue.mediaItemIndex,
+                            position = queue.position,
+                        ),
+                        playWhenReady = false,
+                    )
+                }
             }
             runCatching {
-                filesDir.resolve(PERSISTENT_AUTOMIX_FILE).inputStream().use { fis ->
-                    ObjectInputStream(fis).use { oos ->
-                        oos.readObject() as PersistQueue
-                    }
-                }
+                val file = filesDir.resolve(PERSISTENT_AUTOMIX_FILE)
+                if (file.exists()) {
+                    val json = file.readText(Charsets.UTF_8)
+                    Json.decodeFromString<PersistQueue>(json)
+                } else null
             }.onSuccess { queue ->
-                automixItems.value = queue.items.map { it.toMediaItem() }
+                if (queue != null) {
+                    automixItems.value = queue.items.map { it.toMediaItem() }
+                }
             }
         }
 
@@ -636,32 +773,102 @@ class MusicService :
                 player.prepare()
                 player.playWhenReady = playWhenReady
             }
-        }
-        // JAM: Broadcast queue if host and not from remote
+        }        // JAM: Broadcast queue if host and not from remote
         if (isJamEnabled && isJamHost && !skipJamBroadcast) {
-            val persistQueue = PersistQueue(
-                title = queueTitle,
-                items = player.mediaItems.mapNotNull { it.metadata },
-                mediaItemIndex = player.currentMediaItemIndex,
-                position = player.currentPosition,
-            )
-            lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+            // Capturar valores del player en hilo principal
+            val title = queueTitle
+            val items = player.mediaItems.mapNotNull { it.metadata }
+            val currentIndex = player.currentMediaItemIndex
+            val position = player.currentPosition
+            
+            // Enviar en un hilo IO
+            scope.launch(Dispatchers.IO) {
+                val persistQueue = PersistQueue(
+                    title = title,
+                    items = items,
+                    mediaItemIndex = currentIndex,
+                    position = position,
+                )
+                lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+            }
         }
-    }
-
-    // JAM: Play queue from remote, don't rebroadcast
+    }    /**
+     * Reproduce una cola recibida de forma remota desde otro dispositivo
+     * Implementa validaciones de seguridad y manejo de errores mejorado
+     * No rebroadcastea la cola para evitar bucles
+     * 
+     * @param persistQueue Cola serializada recibida del dispositivo remoto
+     */
     private fun playRemoteQueue(persistQueue: PersistQueue) {
-        // Convert PersistQueue to ListQueue and play
-        playQueue(
-            ListQueue(
-                title = persistQueue.title,
-                items = persistQueue.items.map { it.toMediaItem() },
-                startIndex = persistQueue.mediaItemIndex,
-                position = persistQueue.position,
-            ),
-            playWhenReady = false,
-            skipJamBroadcast = true
-        )
+        // Validación de entrada
+        if (persistQueue.items.isEmpty()) {
+            Timber.tag("LanJam").e("No se puede reproducir cola remota: lista de elementos vacía")
+            return
+        }
+        
+        // Verificar si estamos en el hilo principal para usar withContext si es necesario
+        val isMainThread = Thread.currentThread() == Looper.getMainLooper().thread
+        
+        try {
+            // Validar los elementos de la cola
+            val validItems = persistQueue.items.filter { item ->
+                if (item.id.isBlank()) {
+                    Timber.tag("LanJam").w("Elemento de cola remota con ID en blanco ignorado")
+                    false
+                } else {
+                    true
+                }
+            }
+            
+            // Verificar que tengamos elementos válidos después del filtrado
+            if (validItems.isEmpty()) {
+                Timber.tag("LanJam").e("No quedaron elementos válidos en la cola remota después de filtrar")
+                return
+            }
+            
+            // Calcular índice de inicio seguro
+            val safeStartIndex = persistQueue.mediaItemIndex.coerceIn(0, validItems.size - 1)
+            
+            // Convertir PersistQueue a ListQueue con elementos validados
+            val queue = ListQueue(
+                title = persistQueue.title ?: "Cola remota",
+                items = validItems.map { it.toMediaItem() },
+                startIndex = safeStartIndex,
+                position = persistQueue.position.coerceAtLeast(0L) // Asegurar posición no negativa
+            )
+            
+            // Ejecutar en el hilo principal si no estamos ya en él
+            if (!isMainThread) {
+                scope.launch(Dispatchers.Main) {
+                    try {
+                        Timber.tag("LanJam").d("Reproduciendo cola remota con ${validItems.size} elementos desde índice $safeStartIndex")
+                        playQueue(
+                            queue = queue,
+                            playWhenReady = true, // Iniciar reproducción automáticamente
+                            skipJamBroadcast = true // No reenviar para evitar bucles
+                        )
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error reproduciendo cola remota: ${e.message}")
+                    }
+                }
+            } else {
+                // Ya estamos en el hilo principal
+                try {
+                    Timber.tag("LanJam").d("Reproduciendo cola remota con ${validItems.size} elementos desde índice $safeStartIndex")
+                    playQueue(
+                        queue = queue,
+                        playWhenReady = true,
+                        skipJamBroadcast = true
+                    )
+                } catch (e: Exception) {
+                    Timber.tag("LanJam").e(e, "Error reproduciendo cola remota: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Timber.tag("LanJam").e(e, "Error preparando cola remota: ${e.message}")
+            // Reportar excepciones no esperadas
+            reportException(e)
+        }
     }
 
     fun startRadioSeamlessly() {
@@ -742,8 +949,7 @@ class MusicService :
         filesDir.resolve(PERSISTENT_QUEUE_FILE).delete()
         automixItems.value = emptyList()
     }
-
-    fun playNext(items: List<MediaItem>) {
+        fun playNext(items: List<MediaItem>) {
         player.addMediaItems(
             if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
             items
@@ -751,28 +957,45 @@ class MusicService :
         player.prepare()
         // JAM: Broadcast queue update
         if (isJamEnabled && isJamHost) {
-            val persistQueue = PersistQueue(
-                title = queueTitle,
-                items = player.mediaItems.mapNotNull { it.metadata },
-                mediaItemIndex = player.currentMediaItemIndex,
-                position = player.currentPosition,
-            )
-            lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+            // Capturar los datos en el hilo principal
+            val title = queueTitle
+            val items = player.mediaItems.mapNotNull { it.metadata }
+            val currentIndex = player.currentMediaItemIndex
+            val position = player.currentPosition
+            
+            // Operaciones de red en hilo background
+            scope.launch(Dispatchers.IO) {
+                val persistQueue = PersistQueue(
+                    title = title,
+                    items = items,
+                    mediaItemIndex = currentIndex,
+                    position = position,
+                )
+                lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+            }
         }
     }
-
-    fun addToQueue(items: List<MediaItem>) {
+        fun addToQueue(items: List<MediaItem>) {
         player.addMediaItems(items)
         player.prepare()
         // JAM: Broadcast queue update
         if (isJamEnabled && isJamHost) {
-            val persistQueue = PersistQueue(
-                title = queueTitle,
-                items = player.mediaItems.mapNotNull { it.metadata },
-                mediaItemIndex = player.currentMediaItemIndex,
-                position = player.currentPosition,
-            )
-            lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+            // Capturar los datos en el hilo principal
+            val title = queueTitle
+            val items = player.mediaItems.mapNotNull { it.metadata }
+            val currentIndex = player.currentMediaItemIndex
+            val position = player.currentPosition
+            
+            // Operaciones de red en hilo background
+            scope.launch(Dispatchers.IO) {
+                val persistQueue = PersistQueue(
+                    title = title,
+                    items = items,
+                    mediaItemIndex = currentIndex,
+                    position = position,
+                )
+                lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+            }
         }
     }
 
@@ -1129,7 +1352,8 @@ class MusicService :
             player.shuffleModeEnabled = false
             queueTitle = null
         }
-    }    override fun onEvents(
+    }
+        override fun onEvents(
         player: Player,
         events: Player.Events,
     ) {        if (events.containsAny(
@@ -1390,20 +1614,14 @@ class MusicService :
                 position = 0,
             )
         runCatching {
-            filesDir.resolve(PERSISTENT_QUEUE_FILE).outputStream().use { fos ->
-                ObjectOutputStream(fos).use { oos ->
-                    oos.writeObject(persistQueue)
-                }
-            }
+            val json = Json.encodeToString(persistQueue)
+            filesDir.resolve(PERSISTENT_QUEUE_FILE).writeText(json, Charsets.UTF_8)
         }.onFailure {
             reportException(it)
         }
         runCatching {
-            filesDir.resolve(PERSISTENT_AUTOMIX_FILE).outputStream().use { fos ->
-                ObjectOutputStream(fos).use { oos ->
-                    oos.writeObject(persistAutomix)
-                }
-            }
+            val json = Json.encodeToString(persistAutomix)
+            filesDir.resolve(PERSISTENT_AUTOMIX_FILE).writeText(json, Charsets.UTF_8)
         }.onFailure {
             reportException(it)
         }
@@ -1552,4 +1770,25 @@ class MusicService :
         widgetUpdateJob?.cancel()
         widgetUpdateJob = null
     }
+
+    // Nueva función para guardar conexiones
+    private suspend fun saveJamConnection(clientIp: String, timestamp: String) {
+        dataStore.edit { preferences ->
+            val existingHistory = preferences[JamConnectionHistoryKey] ?: ""
+            val newEntry = "$clientIp|$timestamp"
+            
+            // Limitar a las últimas 30 conexiones
+            val historyEntries = existingHistory.split(";")
+                .filter { it.isNotEmpty() }
+                .toMutableList()
+            
+            // Añadir la nueva conexión al principio
+            historyEntries.add(0, newEntry)
+            
+            // Mantener solo las últimas 30 entradas
+            val trimmedHistory = historyEntries.take(30).joinToString(";")
+            preferences[JamConnectionHistoryKey] = trimmedHistory
+        }
+    }
 }
+
