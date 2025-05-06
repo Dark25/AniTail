@@ -1023,15 +1023,15 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
                                     }
+                                    val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+                                    val insetBg = if (playerBottomSheetState.progress > 0f) Color.Transparent else baseBg
+
                                     Box(
                                         modifier = Modifier
-                                           .background(
-                                               if (pureBlack) Color.Black
-                                               else MaterialTheme.colorScheme.surfaceContainer
-                                           )
-                                           .fillMaxWidth()
-                                           .align(Alignment.BottomCenter)
-                                           .height(bottomInsetDp)
+                                            .background(insetBg)
+                                            .fillMaxWidth()
+                                            .align(Alignment.BottomCenter)
+                                            .height(bottomInsetDp)
                                     )
                                 }
                             },
