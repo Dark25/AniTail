@@ -7,4 +7,8 @@ data class PersistQueue(
     val items: List<MediaMetadata>,
     val mediaItemIndex: Int,
     val position: Long,
-) : Serializable
+) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+}

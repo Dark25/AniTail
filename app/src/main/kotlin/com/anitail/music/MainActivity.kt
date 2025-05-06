@@ -272,6 +272,20 @@ class MainActivity : ComponentActivity() {
         intent?.let { handlevideoIdIntent(it) }
 
         setContent {
+            // JAM: Observe JamViewModel and update MusicService JAM settings
+            val jamViewModel: com.anitail.music.ui.screens.settings.JamViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val isJamEnabled by jamViewModel.isJamEnabled.collectAsState()
+            val isJamHost by jamViewModel.isJamHost.collectAsState()
+            val hostIp by jamViewModel.hostIp.collectAsState()
+
+            // Keep MusicService JAM settings in sync with UI
+            LaunchedEffect(isJamEnabled, isJamHost, hostIp, playerConnection) {
+                playerConnection?.service?.updateJamSettings(
+                    enabled = isJamEnabled,
+                    isHost = isJamHost,
+                    hostIp = hostIp
+                )
+            }
             LaunchedEffect(Unit) {
                 if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
                     Updater.getLatestVersionName().onSuccess {

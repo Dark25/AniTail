@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.Looper
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
@@ -51,11 +50,8 @@ import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.session.CommandButton
-import androidx.media3.session.DefaultMediaNotificationProvider
-import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
-import androidx.media3.session.SessionToken
 import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.SongItem
 import com.anitail.innertube.models.WatchEndpoint
@@ -113,6 +109,9 @@ import com.anitail.music.ui.component.MusicWidgetProvider.Companion.ACTION_PLAY_
 import com.anitail.music.ui.component.MusicWidgetProvider.Companion.ACTION_PREV
 import com.anitail.music.utils.CoilBitmapLoader
 import com.anitail.music.utils.DiscordRPC
+import com.anitail.music.utils.LanJamClient
+import com.anitail.music.utils.LanJamQueueSync
+import com.anitail.music.utils.LanJamServer
 import com.anitail.music.utils.SyncUtils
 import com.anitail.music.utils.YTPlayerUtils
 import com.anitail.music.utils.dataStore
@@ -120,7 +119,6 @@ import com.anitail.music.utils.enumPreference
 import com.anitail.music.utils.get
 import com.anitail.music.utils.isInternetAvailable
 import com.anitail.music.utils.reportException
-import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -197,6 +195,13 @@ class MusicService :
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
 
+    // LAN JAM: Server/client for queue sync
+    private var lanJamServer: LanJamServer? = null
+    private var lanJamClient: LanJamClient? = null
+    private var isJamHost: Boolean = false
+    private var isJamEnabled: Boolean = false
+    private var ignoreNextRemoteQueue: Boolean = false
+
     val currentMediaMetadata = MutableStateFlow<com.anitail.music.models.MediaMetadata?>(null)
     private val currentSong =
         currentMediaMetadata
@@ -232,40 +237,33 @@ class MusicService :
     override fun onCreate() {
         super.onCreate()
         instance = this
-        setMediaNotificationProvider(
-            DefaultMediaNotificationProvider(
-                this,
-                { NOTIFICATION_ID },
-                CHANNEL_ID,
-                R.string.music_player
-            )
-                .apply {
-                    setSmallIcon(R.drawable.ic_ani)
-                },
-        )
-        player =
-            ExoPlayer
-                .Builder(this)
-                .setMediaSourceFactory(createMediaSourceFactory())
-                .setRenderersFactory(createRenderersFactory())
-                .setHandleAudioBecomingNoisy(true)
-                .setWakeMode(C.WAKE_MODE_NETWORK)
-                .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
-                    true,
-                ).setSeekBackIncrementMs(5000)
-                .setSeekForwardIncrementMs(5000)
-                .build()
-                .apply {
-                    addListener(this@MusicService)
-                    sleepTimer = SleepTimer(scope, this)
-                    addListener(sleepTimer)
-                    addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
-                }
+
+        // Inicializa connectivityManager primero
+        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        // Inicializa player y mediaSession ANTES de exponer el servicio
+        player = ExoPlayer
+            .Builder(this)
+            .setMediaSourceFactory(createMediaSourceFactory())
+            .setRenderersFactory(createRenderersFactory())
+            .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setAudioAttributes(
+                AudioAttributes
+                    .Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(),
+                true,
+            ).setSeekBackIncrementMs(5000)
+            .setSeekForwardIncrementMs(5000)
+            .build()
+            .apply {
+                addListener(this@MusicService)
+                sleepTimer = SleepTimer(scope, this)
+                addListener(sleepTimer)
+                addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
+            }
         mediaLibrarySessionCallback.apply {
             toggleLike = ::toggleLike
             toggleLibrary = ::toggleLibrary
@@ -284,18 +282,71 @@ class MusicService :
                 .build()
         player.repeatMode = dataStore.get(RepeatModeKey, REPEAT_MODE_OFF)
 
-        // Keep a connected controller so that notification works
-        val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
-        val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-        controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
+        // JAM: No inicializar aquí, se hace dinámicamente con updateJamSettings
+    }
 
-        connectivityManager = getSystemService()!!
-
-        combine(playerVolume, normalizeFactor) { playerVolume, normalizeFactor ->
-            playerVolume * normalizeFactor
-        }.collectLatest(scope) {
-            player.volume = it
+    /**
+     * Llama esto desde MainActivity o donde observes el JamViewModel
+     */
+    fun updateJamSettings(enabled: Boolean, isHost: Boolean, hostIp: String) {
+        // Previene crash si player no está inicializado
+        if (!this::player.isInitialized) {
+            // Puedes loguear aquí si quieres saber cuándo ocurre
+            return
         }
+        // Solo reiniciar JAM si hay un cambio real de estado o de hostIp
+        val currentHostIp = lanJamClient?.host ?: ""
+        if (isJamEnabled == enabled && isJamHost == isHost && (!isJamEnabled || (!isJamHost && currentHostIp == hostIp))) return
+
+        // Detener JAM actual solo si estaba activo
+        if (lanJamServer != null) {
+            android.util.Log.d("LanJam", "Deteniendo JAM server")
+            lanJamServer?.stop()
+            lanJamServer = null
+        }
+        if (lanJamClient != null) {
+            android.util.Log.d("LanJam", "Desconectando JAM client")
+            lanJamClient?.disconnect()
+            lanJamClient = null
+        }
+
+        isJamEnabled = enabled
+        isJamHost = isHost
+
+        if (isJamEnabled) {
+            if (isJamHost) {
+                android.util.Log.d("LanJam", "Iniciando JAM server (host)")
+                lanJamServer = LanJamServer(onMessage = { msg ->
+                    if (!ignoreNextRemoteQueue) {
+                        try {
+                            val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
+                            ignoreNextRemoteQueue = true
+                            playRemoteQueue(remoteQueue)
+                        } catch (_: Exception) {}
+                    } else {
+                        ignoreNextRemoteQueue = false
+                    }
+                })
+                lanJamServer?.start()
+            } else {
+                android.util.Log.d("LanJam", "Conectando JAM client a $hostIp")
+                lanJamClient = LanJamClient(hostIp, onMessage = { msg ->
+                    if (!ignoreNextRemoteQueue) {
+                        try {
+                            val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
+                            ignoreNextRemoteQueue = true
+                            playRemoteQueue(remoteQueue)
+                        } catch (_: Exception) {}
+                    } else {
+                        ignoreNextRemoteQueue = false
+                    }
+                })
+                lanJamClient?.connect()
+            }
+        } else {
+            android.util.Log.d("LanJam", "JAM desactivado")
+        }
+        // JAM solo controla server/cliente, NO recrea player ni mediaSession
 
         playerVolume.debounce(1000).collect(scope) { volume ->
             dataStore.edit { settings ->
@@ -538,6 +589,7 @@ class MusicService :
     fun playQueue(
         queue: Queue,
         playWhenReady: Boolean = true,
+        skipJamBroadcast: Boolean = false
     ) {
         if (!scope.isActive) scope = CoroutineScope(Dispatchers.Main) + Job()
         currentQueue = queue
@@ -585,6 +637,31 @@ class MusicService :
                 player.playWhenReady = playWhenReady
             }
         }
+        // JAM: Broadcast queue if host and not from remote
+        if (isJamEnabled && isJamHost && !skipJamBroadcast) {
+            val persistQueue = PersistQueue(
+                title = queueTitle,
+                items = player.mediaItems.mapNotNull { it.metadata },
+                mediaItemIndex = player.currentMediaItemIndex,
+                position = player.currentPosition,
+            )
+            lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+        }
+    }
+
+    // JAM: Play queue from remote, don't rebroadcast
+    private fun playRemoteQueue(persistQueue: PersistQueue) {
+        // Convert PersistQueue to ListQueue and play
+        playQueue(
+            ListQueue(
+                title = persistQueue.title,
+                items = persistQueue.items.map { it.toMediaItem() },
+                startIndex = persistQueue.mediaItemIndex,
+                position = persistQueue.position,
+            ),
+            playWhenReady = false,
+            skipJamBroadcast = true
+        )
     }
 
     fun startRadioSeamlessly() {
@@ -672,11 +749,31 @@ class MusicService :
             items
         )
         player.prepare()
+        // JAM: Broadcast queue update
+        if (isJamEnabled && isJamHost) {
+            val persistQueue = PersistQueue(
+                title = queueTitle,
+                items = player.mediaItems.mapNotNull { it.metadata },
+                mediaItemIndex = player.currentMediaItemIndex,
+                position = player.currentPosition,
+            )
+            lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+        }
     }
 
     fun addToQueue(items: List<MediaItem>) {
         player.addMediaItems(items)
         player.prepare()
+        // JAM: Broadcast queue update
+        if (isJamEnabled && isJamHost) {
+            val persistQueue = PersistQueue(
+                title = queueTitle,
+                items = player.mediaItems.mapNotNull { it.metadata },
+                mediaItemIndex = player.currentMediaItemIndex,
+                position = player.currentPosition,
+            )
+            lanJamServer?.send(LanJamQueueSync.serializeQueue(persistQueue))
+        }
     }
 
     private fun toggleLibrary() {

@@ -20,8 +20,19 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +79,12 @@ fun SettingsScreen(
             else -> R.drawable.ic_user_device_night
         }
     }
+
+    // JAM: ViewModel para JAM
+    val jamViewModel: JamViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val isJamEnabled by jamViewModel.isJamEnabled.collectAsState()
+    val isJamHost by jamViewModel.isJamHost.collectAsState()
+    val hostIp by jamViewModel.hostIp.collectAsState()
 
     Column(
         Modifier
@@ -223,6 +240,16 @@ fun SettingsScreen(
             )
             ReleaseNotesCard()
         }
+
+        // JAM: Controles de JAM
+        JamControls(
+            isJamEnabled = isJamEnabled,
+            isJamHost = isJamHost,
+            hostIp = hostIp,
+            onJamEnabledChange = { jamViewModel.setJamEnabled(it) },
+            onJamHostChange = { jamViewModel.setJamHost(it) },
+            onHostIpChange = { jamViewModel.setHostIp(it) }
+        )
     }
 
     TopAppBar(
