@@ -94,7 +94,7 @@ constructor(
                         sampleRate = format.audioSampleRate,
                         contentLength = format.contentLength!!,
                         loudnessDb = playbackData.audioConfig?.loudnessDb,
-                        playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+                        playbackUrl = playbackData.streamUrl
                     ),
                 )
 
