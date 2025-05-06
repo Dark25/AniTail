@@ -116,17 +116,39 @@ fun MiniPlayer(
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
-
             IconButton(
                 onClick = {
                     if (playbackState == Player.STATE_ENDED) {
                         playerConnection.player.seekTo(0, 0)
                         playerConnection.player.playWhenReady = true
+                        
+                        // Enviar comando PLAY y SEEK a los clientes JAM
+                        if (playerConnection.service.isJamEnabled && 
+                            playerConnection.service.isJamHost) {
+                            playerConnection.service.sendJamCommand(
+                                com.anitail.music.utils.LanJamCommands.CommandType.SEEK,
+                                position = 0
+                            )
+                            playerConnection.service.sendJamCommand(
+                                com.anitail.music.utils.LanJamCommands.CommandType.PLAY
+                            )
+                        }
                     } else {
                         playerConnection.player.togglePlayPause()
+                        
+                        // Enviar comando PLAY o PAUSE a los clientes JAM
+                        if (playerConnection.service.isJamEnabled && 
+                            playerConnection.service.isJamHost) {
+                            val commandType = if (playerConnection.player.playWhenReady) {
+                                com.anitail.music.utils.LanJamCommands.CommandType.PAUSE
+                            } else {
+                                com.anitail.music.utils.LanJamCommands.CommandType.PLAY
+                            }
+                            playerConnection.service.sendJamCommand(commandType)
+                        }
                     }
                 },
-            ) {
+            ){
                 Icon(
                     painter =
                     painterResource(
@@ -141,7 +163,6 @@ fun MiniPlayer(
                     contentDescription = null,
                 )
             }
-
             IconButton(
                 enabled = canSkipNext,
                 onClick = playerConnection::seekToNext,

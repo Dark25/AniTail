@@ -116,6 +116,7 @@ import com.anitail.music.ui.menu.PlayerMenu
 import com.anitail.music.ui.screens.settings.DarkMode
 import com.anitail.music.ui.theme.extractGradientColors
 import com.anitail.music.ui.utils.ShowMediaInfo
+import com.anitail.music.utils.LanJamCommands
 import com.anitail.music.utils.makeTimeString
 import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
@@ -652,6 +653,15 @@ fun BottomSheetPlayer(
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
+                                
+                                // Enviar comando de SEEK a los clientes JAM cuando se cambia manualmente la posición
+                                if (playerConnection.service.isJamEnabled && 
+                                    playerConnection.service.isJamHost) {
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.SEEK,
+                                        position = it
+                                    )
+                                }
                             }
                             sliderPosition = null
                         },
@@ -675,19 +685,25 @@ fun BottomSheetPlayer(
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
+                                
+                                // Enviar comando de SEEK a los clientes JAM cuando se cambia manualmente la posición
+                                if (playerConnection.service.isJamEnabled && 
+                                    playerConnection.service.isJamHost) {
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.SEEK,
+                                        position = it
+                                    )
+                                }
                             }
                             sliderPosition = null
                         },
+                        modifier = Modifier
+                            .padding(horizontal = PlayerHorizontalPadding)
+                            .height(24.dp),
                         colors = SliderDefaults.colors(
                             activeTrackColor = textButtonColor,
                             activeTickColor = textButtonColor,
-                            thumbColor = textButtonColor
-                        ),
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                        squigglesSpec =
-                        SquigglySlider.SquigglesSpec(
-                            amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
-                            strokeWidth = 3.dp,
+                            thumbColor = textButtonColor,
                         ),
                     )
                 }
@@ -796,13 +812,35 @@ fun BottomSheetPlayer(
                     Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(playPauseRoundness))
-                        .background(textButtonColor)
-                        .clickable {
+                        .background(textButtonColor)                        .clickable {
                             if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
+                                
+                                // Enviar comando PLAY y SEEK a los clientes JAM
+                                if (playerConnection.service.isJamEnabled && 
+                                    playerConnection.service.isJamHost) {
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.SEEK,
+                                        position = 0
+                                    )
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.PLAY
+                                    )
+                                }
                             } else {
                                 playerConnection.player.togglePlayPause()
+                                
+                                // Enviar comando PLAY o PAUSE a los clientes JAM
+                                if (playerConnection.service.isJamEnabled && 
+                                    playerConnection.service.isJamHost) {
+                                    val commandType = if (playerConnection.player.playWhenReady) {
+                                        LanJamCommands.CommandType.PAUSE
+                                    } else {
+                                        LanJamCommands.CommandType.PLAY
+                                    }
+                                    playerConnection.service.sendJamCommand(commandType)
+                                }
                             }
                         },
                 ) {

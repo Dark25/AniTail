@@ -17,6 +17,7 @@ import com.anitail.music.extensions.getQueueWindows
 import com.anitail.music.extensions.metadata
 import com.anitail.music.playback.MusicService.MusicBinder
 import com.anitail.music.playback.queues.Queue
+import com.anitail.music.utils.LanJamCommands
 import com.anitail.music.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -118,18 +119,59 @@ class PlayerConnection(
 
     fun toggleLike() {
         service.toggleLike()
-    }
-
-    fun seekToNext() {
+    }    fun seekToNext() {
         player.seekToNext()
         player.prepare()
         player.playWhenReady = true
+        
+        // Enviar comando NEXT a los clientes JAM cuando se cambia a la siguiente canción
+        if (service.isJamEnabled && service.isJamHost) {
+            service.sendJamCommand(LanJamCommands.CommandType.NEXT)
+        }
     }
 
     fun seekToPrevious() {
         player.seekToPrevious()
         player.prepare()
         player.playWhenReady = true
+        
+        // Enviar comando PREVIOUS a los clientes JAM cuando se cambia a la canción anterior
+        if (service.isJamEnabled && service.isJamHost) {
+            service.sendJamCommand(LanJamCommands.CommandType.PREVIOUS)
+        }
+    }
+
+    /**
+     * Elimina un elemento de la cola y sincroniza el cambio con los clientes JAM
+     */
+    fun removeQueueItem(index: Int) {
+        player.removeMediaItem(index)
+        
+        // Sincronizar cambio con clientes JAM si es host
+        if (service.isJamEnabled && service.isJamHost) {
+            coroutineScope.launch {
+                delay(100) // Pequeño retraso para asegurar que el player procesó el cambio
+                service.syncQueueWithClients()
+            }
+        }
+    }
+    
+    /**
+     * Elimina varios elementos de la cola y sincroniza el cambio con los clientes JAM
+     */
+    fun removeQueueItems(indices: List<Int>) {
+        // Eliminar en orden descendente para mantener índices válidos
+        indices.sortedDescending().forEach { 
+            player.removeMediaItem(it)
+        }
+        
+        // Sincronizar cambio con clientes JAM si es host
+        if (service.isJamEnabled && service.isJamHost) {
+            coroutineScope.launch {
+                delay(100) // Pequeño retraso para asegurar que el player procesó el cambio
+                service.syncQueueWithClients()
+            }
+        }
     }
 
     override fun onPlaybackStateChanged(state: Int) {
@@ -163,6 +205,17 @@ class PlayerConnection(
         currentMediaItemIndex.value = player.currentMediaItemIndex
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()
+        
+        // Si el cambio en la línea de tiempo se debe a una reorganización manual
+        // de la cola, sincronizar con los clientes JAM
+        if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED && 
+            service.isJamEnabled && service.isJamHost) {
+            // Pequeño delay para permitir que cambios internos del Player terminen
+            coroutineScope.launch {
+                delay(100)
+                service.syncQueueWithClients()
+            }
+        }
     }
 
     override fun onShuffleModeEnabledChanged(enabled: Boolean) {

@@ -415,6 +415,15 @@ fun Queue(
                             )
                         )
                     }
+                    
+                    // Sincronizar después de reorganizar la cola
+                    if (playerConnection.service.isJamEnabled && playerConnection.service.isJamHost) {
+                        coroutineScope.launch {
+                            delay(100)
+                            playerConnection.service.syncQueueWithClients()
+                        }
+                    }
+                    
                     dragInfo = null
                 }
             }
@@ -478,7 +487,8 @@ fun Queue(
                                     if (dismissValue == SwipeToDismissBoxValue.StartToEnd ||
                                         dismissValue == SwipeToDismissBoxValue.EndToStart
                                     ) {
-                                        playerConnection.player.removeMediaItem(currentItem.firstPeriodIndex)
+                                        // Usar el nuevo método que maneja la sincronización JAM
+                                        playerConnection.removeQueueItem(currentItem.firstPeriodIndex)
                                         dismissJob?.cancel()
                                         dismissJob =
                                             coroutineScope.launch {
@@ -498,6 +508,12 @@ fun Queue(
                                                         mutableQueueWindows.size,
                                                         currentItem.firstPeriodIndex,
                                                     )
+                                                    // Sincronizar después de deshacer la eliminación
+                                                    if (playerConnection.service.isJamEnabled && 
+                                                       playerConnection.service.isJamHost) {
+                                                        delay(100)
+                                                        playerConnection.service.syncQueueWithClients()
+                                                    }
                                                 }
                                             }
                                     }

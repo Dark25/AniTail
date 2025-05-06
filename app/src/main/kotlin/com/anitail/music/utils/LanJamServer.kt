@@ -166,6 +166,15 @@ class LanJamServer(
                 // Guardar el socket para enviar mensajes directamente
                 clientSockets[clientIp] = socket
                 
+                // Crear PrintWriter para ConnectedClient
+                val printWriter = java.io.PrintWriter(writer, true)
+                // Guardar información completa del cliente
+                connectedClients[clientIp] = ConnectedClient(
+                    ip = clientIp,
+                    socket = socket,
+                    writer = printWriter
+                )
+                
                 while (isRunning.get() && !socket.isClosed) {
                     val message = try {
                         reader.readLine()
@@ -222,6 +231,7 @@ class LanJamServer(
                     socket.inetAddress.hostAddress?.let { ip ->
                         activeConnections.remove(ip)
                         clientSockets.remove(ip)
+                        connectedClients.remove(ip)
                         Timber.tag("LanJamServer").d("Cliente $ip eliminado de conexiones activas")
                     }
                 } catch (e: Exception) {
@@ -233,6 +243,9 @@ class LanJamServer(
 
     // Mapa para almacenar sockets activos por IP
     private val clientSockets = ConcurrentHashMap<String, Socket>()
+    
+    // Estructura para almacenar la información completa del cliente
+    private val connectedClients = ConcurrentHashMap<String, ConnectedClient>()
     
     fun send(message: String) {
         if (!isRunning.get()) {
@@ -275,6 +288,7 @@ class LanJamServer(
                             }
                             clientSockets.remove(clientIp)
                             activeConnections.remove(clientIp)
+                            connectedClients.remove(clientIp)
                         }
                     }
                     
@@ -282,6 +296,7 @@ class LanJamServer(
                     if (existingSocket == null || existingSocket.isClosed || !existingSocket.isConnected) {
                         activeConnections.remove(clientIp)
                         clientSockets.remove(clientIp)
+                        connectedClients.remove(clientIp)
                         Timber.tag("LanJamServer").d("Cliente $clientIp eliminado por socket inválido")
                         continue
                     }
@@ -290,9 +305,54 @@ class LanJamServer(
                     // Remover cliente que ya no está disponible
                     activeConnections.remove(clientIp)
                     clientSockets.remove(clientIp)
+                    connectedClients.remove(clientIp)
                 }
             }
         }
+    }
+
+    /**
+     * Reintenta enviar un mensaje a todos los clientes, manejando posibles desconexiones
+     * @param message El mensaje a enviar
+     * @param maxRetries Número máximo de reintentos por cliente
+     * @return Número de clientes a los que se envió el mensaje exitosamente
+     */
+    fun sendWithRetry(message: String, maxRetries: Int = 2): Int {
+        var successCount = 0
+        val clientsCopy = ArrayList(connectedClients.values)
+        
+        clientsCopy.forEach { client ->
+            var retries = 0
+            var success = false
+            
+            while (!success && retries < maxRetries) {
+                try {
+                    client.writer.println(message)
+                    client.writer.flush()
+                    success = true
+                    successCount++
+                } catch (e: Exception) {
+                    Timber.tag("LanJam").w("Intento ${retries + 1} fallido al enviar mensaje a ${client.ip}: ${e.message}")
+                    retries++
+                    
+                    if (retries >= maxRetries) {
+                        // Si se alcanzó el límite de reintentos, marcar el cliente para desconexión
+                        try {
+                            connectedClients.remove(client.ip)
+                            Timber.tag("LanJam").d("Cliente ${client.ip} eliminado por fallos de comunicación")
+                            client.socket?.close()
+                        } catch (e: Exception) {
+                            Timber.tag("LanJam").e(e, "Error cerrando conexión de cliente fallido")
+                        }
+                    } else {
+                        // Pausa breve antes del siguiente intento
+                        Thread.sleep(100)
+                    }
+                }
+            }
+        }
+        
+        return successCount
     }
 
     fun stop() {
@@ -327,6 +387,7 @@ class LanJamServer(
         }
         
         activeConnections.clear()
+        connectedClients.clear()
     }
     
     fun getLocalIpAddress(): String {
@@ -413,5 +474,11 @@ class LanJamServer(
     data class ClientInfo(
         val ip: String,
         val connectedAt: Long
+    )
+    
+    data class ConnectedClient(
+        val ip: String,
+        val socket: Socket?,
+        val writer: java.io.PrintWriter
     )
 }
