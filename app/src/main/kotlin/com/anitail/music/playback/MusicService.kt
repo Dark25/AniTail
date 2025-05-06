@@ -307,297 +307,6 @@ class MusicService :
             player.volume = it
         }
 
-    }
-    /**
-     * Actualiza la configuración de LAN JAM y gestiona los ciclos de vida de servidor/cliente
-     * Llamar desde MainActivity o donde se observe el JamViewModel
-     * 
-     * @param enabled Si LAN JAM está activado
-     * @param isHost Si este dispositivo es el host (servidor)
-     * @param hostIp IP del host al que conectar si este dispositivo es cliente
-     */
-    fun updateJamSettings(enabled: Boolean, isHost: Boolean, hostIp: String) {
-        // Previene crash si player no está inicializado
-        if (!this::player.isInitialized) {
-            Timber.tag("LanJam").d("Player no inicializado, posponiendo configuración JAM")
-            return
-        }
-        
-        // Verificar conectividad de red si se está activando JAM
-        if (enabled && !isJamEnabled) {
-            val hasNetwork = isInternetAvailable(this)
-            if (!hasNetwork) {
-                Timber.tag("LanJam").w("No se puede activar JAM: no hay conectividad de red")
-                return
-            }
-        }
-        
-        // Solo reiniciar JAM si hay un cambio real de estado o de hostIp
-        val currentHostIp = lanJamClient?.host ?: ""
-        val shouldReconnectClient = isJamEnabled && !isJamHost && enabled && !isHost && currentHostIp != hostIp
-        val settingsChanged = isJamEnabled != enabled || isJamHost != isHost || 
-                             (!isJamHost && enabled && hostIp != currentHostIp && hostIp.isNotBlank())
-        
-        if (!settingsChanged && !shouldReconnectClient) {
-            // No hay cambios significativos
-            Timber.tag("LanJam").d("No hay cambios en configuración JAM, manteniendo estado actual")
-            return
-        }
-
-        scope.launch {
-            // Siempre realizar limpieza en un hilo separado para evitar bloqueos en UI
-            withContext(Dispatchers.IO) {
-                // Limpiar los recursos actuales
-                if (lanJamServer != null) {
-                    Timber.tag("LanJam").d("Deteniendo JAM server")
-                    try {
-                        lanJamServer?.stop()
-                    } catch (e: Exception) {
-                        Timber.tag("LanJam").e(e, "Error al detener JAM server: ${e.message}")
-                    } finally {
-                        lanJamServer = null
-                    }
-                }
-                
-                if (lanJamClient != null) {
-                    Timber.tag("LanJam").d("Desconectando JAM client")
-                    try {
-                        lanJamClient?.disconnect()
-                    } catch (e: Exception) {
-                        Timber.tag("LanJam").e(e, "Error al desconectar JAM client: ${e.message}")
-                    } finally {
-                        lanJamClient = null
-                    }
-                }
-            }
-
-        isJamEnabled = enabled
-        isJamHost = isHost
-
-        if (isJamEnabled) {
-            if (isJamHost) {
-                Timber.tag("LanJam").d("Iniciando JAM server (host)")
-                lanJamServer = LanJamServer(
-                    onMessage = { msg ->
-                        // Verificar si es un mensaje de ping
-                        if (msg == "PING") {
-                            Timber.tag("LanJam").d("Recibido PING de cliente, enviando PONG")
-                            scope.launch(Dispatchers.IO) {
-                                try {
-                                    lanJamServer?.send("PONG")
-                                } catch (e: Exception) {
-                                    Timber.tag("LanJam").e(e, "Error enviando PONG: ${e.message}")
-                                }
-                            }
-                            return@LanJamServer
-                        }
-                        
-                        if (!ignoreNextRemoteQueue) {
-                            try {
-                                Timber.tag("LanJam").d("Servidor recibió mensaje de cliente, procesando...")
-                                val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
-                                ignoreNextRemoteQueue = true
-                                playRemoteQueue(remoteQueue)
-                            } catch (e: Exception) {
-                                Timber.tag("LanJam").e(e, "Error procesando cola remota: ${e.message}")
-                            }
-                        } else {
-                            ignoreNextRemoteQueue = false
-                        }
-                    },
-                    onClientConnected = { clientIp, timestamp ->
-                        // Registrar conexión en las preferencias
-                        scope.launch {
-                            saveJamConnection(clientIp, timestamp)
-                        }
-                        
-                        // Enviar la cola actual al cliente que se acaba de conectar
-                        scope.launch {
-                            delay(1000) // Dar tiempo al cliente para establecer bien la conexión
-                            
-                            // Verificar si hay elementos en la cola
-                            val isEmpty = player.mediaItems.isEmpty()
-                            if (!isEmpty) {
-                                Timber.tag("LanJam").d("Enviando cola actual al cliente recién conectado")
-                                
-                                // Obtener datos del player en el hilo principal
-                                val title = queueTitle
-                                val items = player.mediaItems.mapNotNull { it.metadata }
-                                val currentIndex = player.currentMediaItemIndex
-                                val position = player.currentPosition
-                                
-                                // Mostrar detalles de la cola para depuración
-                                Timber.tag("LanJam").d("Cola para cliente nuevo - Elementos: ${items.size}, Índice: $currentIndex, Posición: $position")
-                                
-                                // Ahora podemos cambiar al hilo IO para la operación de red
-                                withContext(Dispatchers.IO) {
-                                    try {
-                                        val persistQueue = PersistQueue(
-                                            title = title,
-                                            items = items,
-                                            mediaItemIndex = currentIndex,
-                                            position = position,
-                                        )
-                                        val queueMessage = LanJamQueueSync.serializeQueue(persistQueue)
-                                        val success = lanJamServer?.sendWithRetry(queueMessage, 3) ?: 0
-                                        
-                                        if (success > 0) {
-                                            Timber.tag("LanJam").d("Cola enviada al cliente nuevo correctamente")
-                                            
-                                            // También enviar el estado actual de reproducción
-                                            delay(200) // Una pequeña pausa para asegurar que se procese la cola primero
-                                            val playStateCommand = LanJamCommands.serialize(
-                                                LanJamCommands.Command(
-                                                    type = if (player.isPlaying) 
-                                                           LanJamCommands.CommandType.PLAY 
-                                                           else LanJamCommands.CommandType.PAUSE
-                                                )
-                                            )
-                                            lanJamServer?.sendWithRetry(playStateCommand, 2)
-                                            
-                                            // Enviar también configuración de repetición y aleatorio
-                                            delay(100)
-                                            lanJamServer?.sendWithRetry(LanJamCommands.serialize(
-                                                LanJamCommands.Command(
-                                                    type = LanJamCommands.CommandType.TOGGLE_REPEAT,
-                                                    repeatMode = player.repeatMode
-                                                )
-                                            ), 2)
-                                            
-                                            if (player.shuffleModeEnabled) {
-                                                delay(100)
-                                                lanJamServer?.sendWithRetry(LanJamCommands.serialize(
-                                                    LanJamCommands.Command(
-                                                        type = LanJamCommands.CommandType.TOGGLE_SHUFFLE
-                                                    )
-                                                ), 2)
-                                            }
-                                        } else {
-                                            Timber.tag("LanJam").w("No se pudo enviar cola al cliente recién conectado")
-                                        }
-                                    } catch (e: Exception) {
-                                        Timber.tag("LanJam").e(e, "Error enviando cola al cliente: ${e.message}")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
-                
-                try {
-                    lanJamServer?.start()
-                } catch (e: Exception) {
-                    Timber.tag("LanJam").e(e, "Error iniciando servidor JAM: ${e.message}")
-                }
-            } else {
-                if (hostIp.isBlank()) {
-                    Timber.tag("LanJam").e("No se puede conectar: IP del host está vacía")
-                    return@launch
-                }
-                
-                Timber.tag("LanJam").d("Conectando JAM client a $hostIp")
-                lanJamClient = LanJamClient(hostIp, onMessage = { msg ->
-                    // Verificar si el mensaje es un PONG (respuesta a ping)
-                    if (msg == "PONG") {
-                        Timber.tag("LanJam").d("Recibido PONG del servidor - conexión estable")
-                        return@LanJamClient
-                    }
-                    
-                    // Verificar si es un comando JAM
-                    if (LanJamCommands.isCommand(msg)) {
-                        try {
-                            val command = LanJamCommands.deserialize(msg)
-                            command?.let { 
-                                scope.launch(Dispatchers.Main) {
-                                    Timber.tag("LanJam").d("Cliente procesando comando: ${command.type}")
-                                    when (command.type) {
-                                        LanJamCommands.CommandType.PLAY -> {
-                                            // Asegurarnos de que el reproductor esté preparado antes de reproducir
-                                            if (player.playbackState == STATE_IDLE) {
-                                                player.prepare()
-                                            }
-                                            player.playWhenReady = true
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando PLAY")
-                                        }
-                                        LanJamCommands.CommandType.PAUSE -> {
-                                            player.playWhenReady = false
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando PAUSE")
-                                        }
-                                        LanJamCommands.CommandType.NEXT -> {
-                                            player.seekToNext()
-                                            player.prepare()
-                                            player.playWhenReady = true
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando NEXT")
-                                        }
-                                        LanJamCommands.CommandType.PREVIOUS -> {
-                                            player.seekToPrevious()
-                                            player.prepare()
-                                            player.playWhenReady = true
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando PREVIOUS")
-                                        }
-                                        LanJamCommands.CommandType.SEEK -> {
-                                            player.seekTo(command.position)
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando SEEK a posición ${command.position}")
-                                        }
-                                        LanJamCommands.CommandType.TOGGLE_REPEAT -> {
-                                            player.repeatMode = command.repeatMode
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando TOGGLE_REPEAT: ${command.repeatMode}")
-                                        }
-                                        LanJamCommands.CommandType.TOGGLE_SHUFFLE -> {
-                                            player.shuffleModeEnabled = !player.shuffleModeEnabled
-                                            Timber.tag("LanJam").d("Cliente ejecutando comando TOGGLE_SHUFFLE")
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Timber.tag("LanJam").e(e, "Error procesando comando JAM: ${e.message}")
-                        }
-                    } else if (!ignoreNextRemoteQueue) {
-                        try {
-                            Timber.tag("LanJam").d("Cliente recibió mensaje del servidor: procesando cola...")
-                            val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
-                            ignoreNextRemoteQueue = true
-                            playRemoteQueue(remoteQueue)
-                        } catch (e: Exception) {
-                            Timber.tag("LanJam").e(e, "Error procesando cola remota: ${e.message}")
-                        }
-                    } else {
-                        ignoreNextRemoteQueue = false
-                    }
-                })
-                
-                try {
-                    lanJamClient?.connect()
-                } catch (e: Exception) {
-                    Timber.tag("LanJam").e(e, "Error conectando cliente JAM: ${e.message}")
-                }
-                
-                // Configurar ping periódico para verificar la conexión
-                scope.launch {
-                    delay(1000) // Esperar un segundo para que se establezca la conexión inicial
-                    
-                    while (isJamEnabled && !isJamHost && lanJamClient != null) {
-                        try {
-                            withContext(Dispatchers.IO) {
-                                if (lanJamClient?.isConnected() == true) {
-                                    lanJamClient?.send("PING")
-                                    Timber.tag("LanJam").d("Ping enviado al servidor")
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Timber.tag("LanJam").e(e, "Error enviando ping al servidor: ${e.message}")
-                        }
-                        
-                        delay(15000) // Enviar ping cada 15 segundos
-                    }
-                }
-            }
-        } else {
-            Timber.tag("LanJam").d("JAM desactivado")
-        }
-        }
-        // JAM solo controla server/cliente, NO recrea player ni mediaSession
 
         playerVolume.debounce(1000).collect(scope) { volume ->
             dataStore.edit { settings ->
@@ -735,6 +444,298 @@ class MusicService :
             }
         }
     }
+
+    /**
+     * Actualiza la configuración de LAN JAM y gestiona los ciclos de vida de servidor/cliente
+     * Llamar desde MainActivity o donde se observe el JamViewModel
+     *
+     * @param enabled Si LAN JAM está activado
+     * @param isHost Si este dispositivo es el host (servidor)
+     * @param hostIp IP del host al que conectar si este dispositivo es cliente
+     */
+    fun updateJamSettings(enabled: Boolean, isHost: Boolean, hostIp: String) {
+        // Previene crash si player no está inicializado
+        if (!this::player.isInitialized) {
+            Timber.tag("LanJam").d("Player no inicializado, posponiendo configuración JAM")
+            return
+        }
+
+        // Verificar conectividad de red si se está activando JAM
+        if (enabled && !isJamEnabled) {
+            val hasNetwork = isInternetAvailable(this)
+            if (!hasNetwork) {
+                Timber.tag("LanJam").w("No se puede activar JAM: no hay conectividad de red")
+                return
+            }
+        }
+
+        // Solo reiniciar JAM si hay un cambio real de estado o de hostIp
+        val currentHostIp = lanJamClient?.host ?: ""
+        val shouldReconnectClient = isJamEnabled && !isJamHost && enabled && !isHost && currentHostIp != hostIp
+        val settingsChanged = isJamEnabled != enabled || isJamHost != isHost ||
+                (!isJamHost && enabled && hostIp != currentHostIp && hostIp.isNotBlank())
+
+        if (!settingsChanged && !shouldReconnectClient) {
+            // No hay cambios significativos
+            Timber.tag("LanJam").d("No hay cambios en configuración JAM, manteniendo estado actual")
+            return
+        }
+
+        scope.launch {
+            // Siempre realizar limpieza en un hilo separado para evitar bloqueos en UI
+            withContext(Dispatchers.IO) {
+                // Limpiar los recursos actuales
+                if (lanJamServer != null) {
+                    Timber.tag("LanJam").d("Deteniendo JAM server")
+                    try {
+                        lanJamServer?.stop()
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error al detener JAM server: ${e.message}")
+                    } finally {
+                        lanJamServer = null
+                    }
+                }
+
+                if (lanJamClient != null) {
+                    Timber.tag("LanJam").d("Desconectando JAM client")
+                    try {
+                        lanJamClient?.disconnect()
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error al desconectar JAM client: ${e.message}")
+                    } finally {
+                        lanJamClient = null
+                    }
+                }
+            }
+
+            isJamEnabled = enabled
+            isJamHost = isHost
+
+            if (isJamEnabled) {
+                if (isJamHost) {
+                    Timber.tag("LanJam").d("Iniciando JAM server (host)")
+                    lanJamServer = LanJamServer(
+                        onMessage = { msg ->
+                            // Verificar si es un mensaje de ping
+                            if (msg == "PING") {
+                                Timber.tag("LanJam").d("Recibido PING de cliente, enviando PONG")
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        lanJamServer?.send("PONG")
+                                    } catch (e: Exception) {
+                                        Timber.tag("LanJam").e(e, "Error enviando PONG: ${e.message}")
+                                    }
+                                }
+                                return@LanJamServer
+                            }
+
+                            if (!ignoreNextRemoteQueue) {
+                                try {
+                                    Timber.tag("LanJam").d("Servidor recibió mensaje de cliente, procesando...")
+                                    val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
+                                    ignoreNextRemoteQueue = true
+                                    playRemoteQueue(remoteQueue)
+                                } catch (e: Exception) {
+                                    Timber.tag("LanJam").e(e, "Error procesando cola remota: ${e.message}")
+                                }
+                            } else {
+                                ignoreNextRemoteQueue = false
+                            }
+                        },
+                        onClientConnected = { clientIp, timestamp ->
+                            // Registrar conexión en las preferencias
+                            scope.launch {
+                                saveJamConnection(clientIp, timestamp)
+                            }
+
+                            // Enviar la cola actual al cliente que se acaba de conectar
+                            scope.launch {
+                                delay(1000) // Dar tiempo al cliente para establecer bien la conexión
+
+                                // Verificar si hay elementos en la cola
+                                val isEmpty = player.mediaItems.isEmpty()
+                                if (!isEmpty) {
+                                    Timber.tag("LanJam").d("Enviando cola actual al cliente recién conectado")
+
+                                    // Obtener datos del player en el hilo principal
+                                    val title = queueTitle
+                                    val items = player.mediaItems.mapNotNull { it.metadata }
+                                    val currentIndex = player.currentMediaItemIndex
+                                    val position = player.currentPosition
+
+                                    // Mostrar detalles de la cola para depuración
+                                    Timber.tag("LanJam").d("Cola para cliente nuevo - Elementos: ${items.size}, Índice: $currentIndex, Posición: $position")
+
+                                    // Ahora podemos cambiar al hilo IO para la operación de red
+                                    withContext(Dispatchers.IO) {
+                                        try {
+                                            val persistQueue = PersistQueue(
+                                                title = title,
+                                                items = items,
+                                                mediaItemIndex = currentIndex,
+                                                position = position,
+                                            )
+                                            val queueMessage = LanJamQueueSync.serializeQueue(persistQueue)
+                                            val success = lanJamServer?.sendWithRetry(queueMessage, 3) ?: 0
+
+                                            if (success > 0) {
+                                                Timber.tag("LanJam").d("Cola enviada al cliente nuevo correctamente")
+
+                                                // También enviar el estado actual de reproducción
+                                                delay(200) // Una pequeña pausa para asegurar que se procese la cola primero
+                                                val playStateCommand = LanJamCommands.serialize(
+                                                    LanJamCommands.Command(
+                                                        type = if (player.isPlaying)
+                                                            LanJamCommands.CommandType.PLAY
+                                                        else LanJamCommands.CommandType.PAUSE
+                                                    )
+                                                )
+                                                lanJamServer?.sendWithRetry(playStateCommand, 2)
+
+                                                // Enviar también configuración de repetición y aleatorio
+                                                delay(100)
+                                                lanJamServer?.sendWithRetry(LanJamCommands.serialize(
+                                                    LanJamCommands.Command(
+                                                        type = LanJamCommands.CommandType.TOGGLE_REPEAT,
+                                                        repeatMode = player.repeatMode
+                                                    )
+                                                ), 2)
+
+                                                if (player.shuffleModeEnabled) {
+                                                    delay(100)
+                                                    lanJamServer?.sendWithRetry(LanJamCommands.serialize(
+                                                        LanJamCommands.Command(
+                                                            type = LanJamCommands.CommandType.TOGGLE_SHUFFLE
+                                                        )
+                                                    ), 2)
+                                                }
+                                            } else {
+                                                Timber.tag("LanJam").w("No se pudo enviar cola al cliente recién conectado")
+                                            }
+                                        } catch (e: Exception) {
+                                            Timber.tag("LanJam").e(e, "Error enviando cola al cliente: ${e.message}")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    )
+
+                    try {
+                        lanJamServer?.start()
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error iniciando servidor JAM: ${e.message}")
+                    }
+                } else {
+                    if (hostIp.isBlank()) {
+                        Timber.tag("LanJam").e("No se puede conectar: IP del host está vacía")
+                        return@launch
+                    }
+
+                    Timber.tag("LanJam").d("Conectando JAM client a $hostIp")
+                    lanJamClient = LanJamClient(hostIp, onMessage = { msg ->
+                        // Verificar si el mensaje es un PONG (respuesta a ping)
+                        if (msg == "PONG") {
+                            Timber.tag("LanJam").d("Recibido PONG del servidor - conexión estable")
+                            return@LanJamClient
+                        }
+
+                        // Verificar si es un comando JAM
+                        if (LanJamCommands.isCommand(msg)) {
+                            try {
+                                val command = LanJamCommands.deserialize(msg)
+                                command?.let {
+                                    scope.launch(Dispatchers.Main) {
+                                        Timber.tag("LanJam").d("Cliente procesando comando: ${command.type}")
+                                        when (command.type) {
+                                            LanJamCommands.CommandType.PLAY -> {
+                                                // Asegurarnos de que el reproductor esté preparado antes de reproducir
+                                                if (player.playbackState == STATE_IDLE) {
+                                                    player.prepare()
+                                                }
+                                                player.playWhenReady = true
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando PLAY")
+                                            }
+                                            LanJamCommands.CommandType.PAUSE -> {
+                                                player.playWhenReady = false
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando PAUSE")
+                                            }
+                                            LanJamCommands.CommandType.NEXT -> {
+                                                player.seekToNext()
+                                                player.prepare()
+                                                player.playWhenReady = true
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando NEXT")
+                                            }
+                                            LanJamCommands.CommandType.PREVIOUS -> {
+                                                player.seekToPrevious()
+                                                player.prepare()
+                                                player.playWhenReady = true
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando PREVIOUS")
+                                            }
+                                            LanJamCommands.CommandType.SEEK -> {
+                                                player.seekTo(command.position)
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando SEEK a posición ${command.position}")
+                                            }
+                                            LanJamCommands.CommandType.TOGGLE_REPEAT -> {
+                                                player.repeatMode = command.repeatMode
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando TOGGLE_REPEAT: ${command.repeatMode}")
+                                            }
+                                            LanJamCommands.CommandType.TOGGLE_SHUFFLE -> {
+                                                player.shuffleModeEnabled = !player.shuffleModeEnabled
+                                                Timber.tag("LanJam").d("Cliente ejecutando comando TOGGLE_SHUFFLE")
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Timber.tag("LanJam").e(e, "Error procesando comando JAM: ${e.message}")
+                            }
+                        } else if (!ignoreNextRemoteQueue) {
+                            try {
+                                Timber.tag("LanJam").d("Cliente recibió mensaje del servidor: procesando cola...")
+                                val remoteQueue = LanJamQueueSync.deserializeQueue(msg)
+                                ignoreNextRemoteQueue = true
+                                playRemoteQueue(remoteQueue)
+                            } catch (e: Exception) {
+                                Timber.tag("LanJam").e(e, "Error procesando cola remota: ${e.message}")
+                            }
+                        } else {
+                            ignoreNextRemoteQueue = false
+                        }
+                    })
+
+                    try {
+                        lanJamClient?.connect()
+                    } catch (e: Exception) {
+                        Timber.tag("LanJam").e(e, "Error conectando cliente JAM: ${e.message}")
+                    }
+
+                    // Configurar ping periódico para verificar la conexión
+                    scope.launch {
+                        delay(1000) // Esperar un segundo para que se establezca la conexión inicial
+
+                        while (isJamEnabled && !isJamHost && lanJamClient != null) {
+                            try {
+                                withContext(Dispatchers.IO) {
+                                    if (lanJamClient?.isConnected() == true) {
+                                        lanJamClient?.send("PING")
+                                        Timber.tag("LanJam").d("Ping enviado al servidor")
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Timber.tag("LanJam").e(e, "Error enviando ping al servidor: ${e.message}")
+                            }
+
+                            delay(15000) // Enviar ping cada 15 segundos
+                        }
+                    }
+                }
+            } else {
+                Timber.tag("LanJam").d("JAM desactivado")
+            }
+        }
+    }
+
     private fun updateNotification() {
         val buttons = mutableListOf<CommandButton>()
         when (buttonType) {
