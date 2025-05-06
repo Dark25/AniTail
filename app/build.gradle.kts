@@ -19,8 +19,8 @@ android {
         applicationId = "com.anitail.music"
         minSdk = 21
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.5.3"
+        versionCode = 6
+        versionName = "1.5.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -197,6 +197,8 @@ dependencies {
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
+
+    implementation(project(":jossredconnect"))
 
     coreLibraryDesugaring(libs.desugaring)
 
