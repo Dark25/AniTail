@@ -21,6 +21,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
+import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
 import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
@@ -88,6 +90,7 @@ import com.anitail.music.db.entities.Event
 import com.anitail.music.db.entities.FormatEntity
 import com.anitail.music.db.entities.LyricsEntity
 import com.anitail.music.db.entities.RelatedSongMap
+import com.anitail.music.db.entities.Song
 import com.anitail.music.di.DownloadCache
 import com.anitail.music.di.PlayerCache
 import com.anitail.music.extensions.SilentHandler
@@ -316,40 +319,72 @@ class MusicService :
         currentSong.debounce(1000).collect(scope) { song ->
             updateNotification()
             if (song != null) {
-                try {
-                    discordRpc?.updateSong(
-                        song = song,
-                        timeStart = if (player.isPlaying)
-                            System.currentTimeMillis() - player.currentPosition else 0L,
-                        timeEnd = if (player.isPlaying)
-                            (System.currentTimeMillis() - player.currentPosition) + player.duration else 0L
-                    )
-                } catch (e: Exception) {
-                    Timber.e(e, "Error updating Discord RPC")
-                    discordRpc?.closeRPC()
-                }
+                updateDiscordPresence(song)
             } else {
                 discordRpc?.closeRPC()
             }
         }
-
         combine(
             currentMediaMetadata.distinctUntilChangedBy { it?.id },
             dataStore.data.map { it[ShowLyricsKey] ?: false }.distinctUntilChanged(),
         ) { mediaMetadata, showLyrics ->
             mediaMetadata to showLyrics
         }.collectLatest(scope) { (mediaMetadata, showLyrics) ->
-            if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
-                    .first() == null
-            ) {
-                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
-                database.query {
-                    upsert(
-                        LyricsEntity(
-                            id = mediaMetadata.id,
-                            lyrics = lyrics,
-                        ),
-                    )
+            if (mediaMetadata != null) {
+                // Cargar las letras en segundo plano para la canción actual
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        // Verificar si ya tenemos las letras en la base de datos
+                        val existingLyrics = database.lyrics(mediaMetadata.id).firstOrNull()
+                        
+                        if (existingLyrics == null) {
+                            Timber.d("Descargando letras para ${mediaMetadata.title}")
+                            val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+                            
+                            // Guardar en la base de datos
+                            database.query {
+                                upsert(
+                                    LyricsEntity(
+                                        id = mediaMetadata.id,
+                                        lyrics = lyrics,
+                                    ),
+                                )
+                            }
+                            Timber.d("Letras guardadas para ${mediaMetadata.title}")
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error al obtener letras para ${mediaMetadata.title}")
+                    }
+                }
+                
+                // Precargar las letras de las próximas canciones en la cola
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val nextItems = getNextQueueItems(3) // Obtener las próximas 3 canciones
+                        nextItems.forEach { nextItem ->
+                            val nextId = nextItem.mediaId
+                            val metadata = nextItem.metadata ?: return@forEach
+                            
+                            if (database.lyrics(nextId).firstOrNull() == null) {
+                                Timber.d("Precargando letras para próxima canción: ${metadata.title}")
+                                try {
+                                    val lyrics = lyricsHelper.getLyrics(metadata)
+                                    database.query {
+                                        upsert(
+                                            LyricsEntity(
+                                                id = nextId,
+                                                lyrics = lyrics,
+                                            ),
+                                        )
+                                    }
+                                } catch(e: Exception) {
+                                    Timber.e(e, "Error precargando letras: ${e.message}")
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error precargando letras de canciones próximas")
+                    }
                 }
             }
         }
@@ -377,26 +412,27 @@ class MusicService :
                 }
         }
 
-        dataStore.data
+    dataStore.data
             .map { it[DiscordTokenKey] to (it[EnableDiscordRPCKey] ?: true) }
             .debounce(300)
             .distinctUntilChanged()
             .collect(scope) { (key, enabled) ->
-                if (discordRpc?.isRpcRunning() == true) {
-                    discordRpc?.closeRPC()
-                }
-                discordRpc = null
                 if (key != null && enabled) {
-                    discordRpc = DiscordRPC(this, key)
-                    currentSong.value?.let {
-                        discordRpc?.updateSong(
-                            song = it,
-                            timeStart = if (player.isPlaying)
-                                System.currentTimeMillis() - player.currentPosition else 0L,
-                            timeEnd = if (player.isPlaying)
-                                (System.currentTimeMillis() - player.currentPosition) + player.duration else 0L
-                        )
+                    if (discordRpc == null || dataStore[DiscordTokenKey] != key) {
+                        // Solo cerrar y recrear si no existe o cambió el token
+                        if (discordRpc?.isRpcRunning() == true) {
+                            discordRpc?.closeRPC()
+                        }
+                        discordRpc = DiscordRPC(this, key)
+                        
+                        // Inicializar con la canción actual
+                        currentSong.value?.let {
+                            updateDiscordPresence(it)
+                        }
                     }
+                } else if (discordRpc?.isRpcRunning() == true) {
+                    discordRpc?.closeRPC()
+                    discordRpc = null
                 }
             }
 
@@ -1580,6 +1616,13 @@ class MusicService :
                 }
             }
         }
+        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+            currentMediaMetadata.value = player.currentMetadata
+            scope.launch(Dispatchers.Main) {
+                delay(100)
+                sendWidgetUpdateBroadcast()
+            }
+        }
     }
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
         updateNotification()
@@ -2049,6 +2092,60 @@ class MusicService :
                 Timber.tag("LanJam").e(e, "Error sincronizando cola: ${e.message}")
             }
         }
+    }
+
+    // Añade este nuevo método para centralizar la lógica de actualizar Discord RPC
+    private suspend fun updateDiscordPresence(song: Song) {
+        if (discordRpc?.isRpcRunning() == true || discordRpc != null) {
+            try {
+                discordRpc?.updateSong(
+                    song = song,
+                    timeStart = if (player.isPlaying)
+                        System.currentTimeMillis() - player.currentPosition else 0L,
+                    timeEnd = if (player.isPlaying)
+                        (System.currentTimeMillis() - player.currentPosition) + player.duration else 0L
+                )
+                Timber.d("Discord RPC actualizado correctamente")
+            } catch (e: Exception) {
+                Timber.e(e, "Error actualizando Discord RPC, reintentando en 3 segundos")
+                
+                // En lugar de cerrar inmediatamente, programar un reintento
+                scope.launch {
+                    delay(3000)
+                    if (discordRpc?.isRpcRunning() != true) {
+                        try {
+                            val token = dataStore[DiscordTokenKey]
+                            discordRpc?.closeRPC()
+                            if (token != null) {
+                                discordRpc = DiscordRPC(this@MusicService, token)
+                                delay(500) // Pequeña espera para inicialización
+                                updateDiscordPresence(song)
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Falló la reconexión de Discord RPC")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Método para obtener las próximas canciones en la cola
+    private fun getNextQueueItems(count: Int): List<MediaItem> {
+        val result = mutableListOf<MediaItem>()
+        val currentIndex = player.currentMediaItemIndex
+        val totalItems = player.mediaItemCount
+        
+        for (i in 1..count) {
+            val nextIndex = currentIndex + i
+            if (nextIndex < totalItems) {
+                player.getMediaItemAt(nextIndex)?.let {
+                    result.add(it)
+                }
+            }
+        }
+        
+        return result
     }
 }
 
