@@ -653,8 +653,7 @@ fun BottomSheetPlayer(
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
-                                
-                                // Enviar comando de SEEK a los clientes JAM cuando se cambia manualmente la posición
+
                                 if (playerConnection.service.isJamEnabled && 
                                     playerConnection.service.isJamHost) {
                                     playerConnection.service.sendJamCommand(
@@ -686,8 +685,7 @@ fun BottomSheetPlayer(
                                 playerConnection.player.seekTo(it)
                                 position = it
                                 
-                                // Enviar comando de SEEK a los clientes JAM cuando se cambia manualmente la posición
-                                if (playerConnection.service.isJamEnabled && 
+                                if (playerConnection.service.isJamEnabled &&
                                     playerConnection.service.isJamHost) {
                                     playerConnection.service.sendJamCommand(
                                         LanJamCommands.CommandType.SEEK,
@@ -817,8 +815,7 @@ fun BottomSheetPlayer(
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
                                 
-                                // Enviar comando PLAY y SEEK a los clientes JAM
-                                if (playerConnection.service.isJamEnabled && 
+                                if (playerConnection.service.isJamEnabled &&
                                     playerConnection.service.isJamHost) {
                                     playerConnection.service.sendJamCommand(
                                         LanJamCommands.CommandType.SEEK,
@@ -831,8 +828,7 @@ fun BottomSheetPlayer(
                             } else {
                                 playerConnection.player.togglePlayPause()
                                 
-                                // Enviar comando PLAY o PAUSE a los clientes JAM
-                                if (playerConnection.service.isJamEnabled && 
+                                if (playerConnection.service.isJamEnabled &&
                                     playerConnection.service.isJamHost) {
                                     val commandType = if (playerConnection.player.playWhenReady) {
                                         LanJamCommands.CommandType.PAUSE

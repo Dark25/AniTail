@@ -121,8 +121,7 @@ fun MiniPlayer(
                     if (playbackState == Player.STATE_ENDED) {
                         playerConnection.player.seekTo(0, 0)
                         playerConnection.player.playWhenReady = true
-                        
-                        // Enviar comando PLAY y SEEK a los clientes JAM
+
                         if (playerConnection.service.isJamEnabled && 
                             playerConnection.service.isJamHost) {
                             playerConnection.service.sendJamCommand(
@@ -135,8 +134,7 @@ fun MiniPlayer(
                         }
                     } else {
                         playerConnection.player.togglePlayPause()
-                        
-                        // Enviar comando PLAY o PAUSE a los clientes JAM
+
                         if (playerConnection.service.isJamEnabled && 
                             playerConnection.service.isJamHost) {
                             val commandType = if (playerConnection.player.playWhenReady) {

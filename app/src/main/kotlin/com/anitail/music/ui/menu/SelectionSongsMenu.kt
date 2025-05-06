@@ -541,12 +541,10 @@ fun SelectionMediaMetadataMenu(
                     },
                     modifier = Modifier.clickable {
                         onDismiss()
-                        // Recopilar índices de elementos a eliminar
                         val indicesToRemove = currentItems
                             .filter { playerConnection.player.availableCommands.contains(Player.COMMAND_CHANGE_MEDIA_ITEMS) }
                             .map { it.firstPeriodIndex }
-                        
-                        // Usar el nuevo método que maneja la sincronización JAM
+
                         if (indicesToRemove.isNotEmpty()) {
                             playerConnection.removeQueueItems(indicesToRemove)
                         }
