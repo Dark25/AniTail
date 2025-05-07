@@ -551,8 +551,7 @@
     <string name="avatar_source_youtube">YouTube</string>
     <string name="avatar_source_discord">Discord</string>
     <string name="avatar">Avatar</string>
-    <!-- JAM LAN Sync -->
-    <string name="jam_lan_sync">Sincronización JAM LAN</string>
+    <!-- JAM LAN Sync -->    <string name="jam_lan_sync">Sincronización JAM LAN</string>
     <string name="jam_enable_lan_sync">Activar sincronización LAN</string>
     <string name="jam_connection_mode">Modo de conexión</string>
     <string name="jam_host_mode">Host (servidor)</string>
@@ -564,5 +563,15 @@
     <string name="jam_active_connections">Conexiones activas</string>
     <string name="jam_connection_history">Historial de conexiones</string>
     <string name="jam_no_connections">No hay conexiones registradas</string>
+    <string name="jam_server_status">Estado del servidor</string>
+    <string name="jam_online">En línea</string>
+    <string name="jam_offline">Desconectado</string>
+    <string name="jam_server_address">Dirección del servidor</string>
+    <string name="jam_connected_devices">Dispositivos conectados</string>
+    <string name="jam_host_description">Crea un servidor al que otros dispositivos puedan conectarse</string>
+    <string name="jam_client_description">Conectarse a otro dispositivo ejecutando JAM</string>
+    <string name="jam_scan_network">Escanear red</string>
+    <string name="jam_music_in_sync">Música sincronizada</string>
+    <string name="jam_settings_subtitle">Conecta y sincroniza tu música con otros dispositivos</string>
     <string name="clear">Limpiar historial</string>
 </resources>

@@ -571,5 +571,15 @@
     <string name="jam_active_connections">Active connections</string>
     <string name="jam_connection_history">Connection history</string>
     <string name="jam_no_connections">No connections registered</string>
-    <string name="clear">Clear connection history</string>
+    <string name="clear">Clear</string>
+    <string name="jam_server_status">Server Status</string>
+    <string name="jam_online">Online</string>
+    <string name="jam_offline">Offline</string>
+    <string name="jam_server_address">Server Address</string>
+    <string name="jam_connected_devices">Connected Devices</string>
+    <string name="jam_host_description">Create a server that other devices can connect to</string>
+    <string name="jam_client_description">Connect to another device running JAM</string>
+    <string name="jam_scan_network">Scan Network</string>
+    <string name="jam_music_in_sync">Music In Sync</string>
+    <string name="jam_settings_subtitle">Connect and sync your music with other devices</string>
 </resources>
