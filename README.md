@@ -57,7 +57,7 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 >
 >If you're in a region where YouTube Music is not supported, you won't be able to use this app
 ***unless*** you have a proxy or VPN to connect to a YTM supported region.
-
+<div align="center">
 <h1>Screenshots</h1>
 
   <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="30%" />
@@ -75,6 +75,7 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 
 <img
 src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
+</div>
 
 <div align="center">
 <h1> Q: Why AniTail isn't showing in Android Auto? </h1>
