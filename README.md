@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
+<img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
 <h1>AniTail</h1>
 <p>YouTube Music client for Android</p>
 
@@ -19,7 +19,7 @@
 
 
 <img
-src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
+src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
 
 [![Latest release](https://img.shields.io/github/v/release/Animetailapp/AniTail?style=for-the-badge)](https://github.com/Animetailapp/AniTail/releases)
 [![GitHub license](https://img.shields.io/github/license/Animetailapp/anitail?style=for-the-badge)](https://github.com/Animetailapp/AniTail/blob/master/LICENSE)
