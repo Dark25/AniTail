@@ -60,17 +60,17 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 <div align="center">
 <h1>Screenshots</h1>
 
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.jpg" width="20%" />
 
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_10.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="20%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_10.jpg" width="20%" />
 
 
 <img
