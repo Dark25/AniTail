@@ -3,24 +3,6 @@
 <h1>AniTail</h1>
 <p>YouTube Music client for Android</p>
 
-<h1>Screenshots</h1>
-
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.jpg" width="30%" />
-
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="30%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_10.jpg" width="30%" />
-
-
-<img
-src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
-
 [![Latest release](https://img.shields.io/github/v/release/Animetailapp/AniTail?style=for-the-badge)](https://github.com/Animetailapp/AniTail/releases)
 [![GitHub license](https://img.shields.io/github/license/Animetailapp/anitail?style=for-the-badge)](https://github.com/Animetailapp/AniTail/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/Animetailapp/AniTail/total?style=for-the-badge)](https://github.com/Animetailapp/AniTail/releases)
@@ -75,6 +57,24 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 >
 >If you're in a region where YouTube Music is not supported, you won't be able to use this app
 ***unless*** you have a proxy or VPN to connect to a YTM supported region.
+
+<h1>Screenshots</h1>
+
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.jpg" width="30%" />
+
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="30%" />
+  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_10.jpg" width="30%" />
+
+
+<img
+src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
 
 <div align="center">
 <h1> Q: Why AniTail isn't showing in Android Auto? </h1>
