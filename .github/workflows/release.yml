@@ -11,9 +11,13 @@ jobs:
   check-version:
     if: "!contains(github.ref, 'refs/tags')"
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     outputs:
       version_changed: ${{ steps.check_version.outputs.version_changed }}
       new_version: ${{ steps.check_version.outputs.new_version }}
+
     steps:
       - uses: actions/checkout@v4
         with:
