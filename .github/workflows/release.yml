@@ -140,13 +140,13 @@ jobs:
           -d '{
             "content": "**🚀 ¡Nuevo release disponible!** <@&1196139193664028764>",
             "username": "AniTail Bot",
-            "avatar_url": "https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png?raw=true",
+            "avatar_url": "https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png?raw=true",
             "embeds": [{
               "title": "🚀 Nuevo Release - AniTail Release v${{ needs.check-version.outputs.new_version }}",
               "description": "🎉 **¡Se ha creado un nuevo release para Animetail!**\n\nPuedes revisar los commits recientes, descargar las APKs y verificar los checksums a continuación.\n\n**¡Gracias por tu apoyo!**",
               "color": 51711,
               "image": {
-              "url": "https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png?raw=true"
+              "url": "https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png?raw=true"
               },
               "fields": [
                 {
@@ -177,7 +177,7 @@ jobs:
               ],
               "footer": {
                 "text": "Release generado automáticamente por AniTail Bot",
-                "icon_url": "https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png?raw=true"
+                "icon_url": "https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png?raw=true"
               },
               "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
             }]

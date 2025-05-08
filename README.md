@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
+<img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/icon.png" width="160" height="160" style="display: block; margin: 0 auto"/>
 <h1>AniTail</h1>
 <p>YouTube Music client for Android</p>
 
@@ -60,21 +60,21 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 <div align="center">
 <h1>Screenshots</h1>
 
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_1.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_2.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_3.jpg" width="20%" />
 
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="20%" />
-  <img src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_10.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_4.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_5.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_6.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_7.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_8.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_9.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/screenshot_10.jpg" width="20%" />
 
 
 <img
-src="https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
+src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
 </div>
 
 <div align="center">
