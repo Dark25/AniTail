@@ -148,6 +148,9 @@ jobs:
               "thumbnail": {
                 "url": "https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png?raw=true"
               },
+              "image": {
+              "url": "https://github.com/Dark25/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png?raw=true"
+              },
               "fields": [
                 {
                   "name": "📱 **arm64 APK**",
