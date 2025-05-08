@@ -431,7 +431,7 @@ fun RichPresence(song: Song?) {
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Vistit our Discord")
+                Text("Join our discord")
             }
         }
     }

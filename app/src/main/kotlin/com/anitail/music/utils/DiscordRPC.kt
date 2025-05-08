@@ -27,7 +27,7 @@ class DiscordRPC(
             smallText = song.artists.firstOrNull()?.name,
             buttons = listOf(
                 "Listen on YouTube Music" to "https://music.youtube.com/watch?v=${song.song.id}",
-                "Vistit our Discord" to "https://discord.gg/H8x3yNbc67",
+                "Join our discord" to "https://discord.gg/H8x3yNbc67",
             ),
             type = Type.LISTENING,
             startTime = timeStart,
