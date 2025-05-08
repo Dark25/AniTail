@@ -25,11 +25,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.anitail.music.R
 import com.anitail.music.ui.components.CircularProgressIndicator
+import com.anitail.music.utils.LanJamServer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +48,29 @@ fun JamSettingsScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
     val jamViewModel: JamViewModel = viewModel()
     val isJamEnabled = jamViewModel.isJamEnabled.collectAsState().value
     val isJamHost = jamViewModel.isJamHost.collectAsState().value
     val hostIp = jamViewModel.hostIp.collectAsState().value
+    val availableHosts = jamViewModel.availableHosts.collectAsState().value
+      // Obtener y establecer la IP local cuando esté en modo host
+    LaunchedEffect(isJamHost, isJamEnabled) {
+        if (isJamHost && isJamEnabled) {
+            // Crear un servidor temporal solo para obtener la IP
+            val tempServer = LanJamServer(
+                onMessage = { /* No hacer nada, solo nos interesa la IP */ },
+                onClientConnected = { _, _ -> /* No hacer nada */ }
+            )
+            val localIp = tempServer.getLocalIpAddress()
+            jamViewModel.updateLocalIpAddress(localIp)
+        } else        if (!isJamHost && isJamEnabled) {
+            // Si cambiamos a modo cliente, iniciar un escaneo de hosts solo si no hay hosts descubiertos
+            if (jamViewModel.availableHosts.value.isEmpty()) {
+                jamViewModel.scanForHosts()
+            }
+        }
+    }
     
     // Animaciones para el indicador de estado
     val connectionProgress by animateFloatAsState(

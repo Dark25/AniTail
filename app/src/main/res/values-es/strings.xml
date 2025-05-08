@@ -569,9 +569,16 @@
     <string name="jam_server_address">Dirección del servidor</string>
     <string name="jam_connected_devices">Dispositivos conectados</string>
     <string name="jam_host_description">Crea un servidor al que otros dispositivos puedan conectarse</string>
-    <string name="jam_client_description">Conectarse a otro dispositivo ejecutando JAM</string>
-    <string name="jam_scan_network">Escanear red</string>
+    <string name="jam_client_description">Conectarse a otro dispositivo ejecutando JAM</string>    <string name="jam_scan_network">Escanear red</string>
     <string name="jam_music_in_sync">Música sincronizada</string>
-    <string name="jam_settings_subtitle">Conecta y sincroniza tu música con otros dispositivos</string>
+    <string name="jam_settings_subtitle">Conecta y sincroniza tu música con otros dispositivos</string>    <string name="jam_available_hosts">Hosts disponibles</string>
+    <string name="jam_select_host">Selecciona un host para conectar</string>
+    <string name="jam_scanning_network">Buscando hosts en la red...</string>
+    <string name="jam_no_hosts_found">No se encontraron hosts</string>
+    <string name="jam_connect">Conectar</string>
+    <string name="jam_manual_entry">Entrada manual</string>
+    <string name="jam_recent_connections">Conexiones recientes</string>
+    <string name="jam_hide">Ocultar</string>
+    <string name="jam_show">Mostrar</string>
     <string name="clear">Limpiar historial</string>
 </resources>

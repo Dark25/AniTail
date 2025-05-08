@@ -582,4 +582,13 @@
     <string name="jam_scan_network">Scan Network</string>
     <string name="jam_music_in_sync">Music In Sync</string>
     <string name="jam_settings_subtitle">Connect and sync your music with other devices</string>
+    <string name="jam_available_hosts">Available Hosts</string>
+    <string name="jam_select_host">Select a host to connect</string>
+    <string name="jam_scanning_network">Scanning network for hosts…</string>
+    <string name="jam_no_hosts_found">No hosts found</string>
+    <string name="jam_connect">Connect</string>
+    <string name="jam_manual_entry">Manual entry</string>
+    <string name="jam_recent_connections">Recent connections</string>
+    <string name="jam_hide">Hide</string>
+    <string name="jam_show">Show</string>
 </resources>
