@@ -11,9 +11,6 @@ jobs:
   check-version:
     if: "!contains(github.ref, 'refs/tags')"
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
     outputs:
       version_changed: ${{ steps.check_version.outputs.version_changed }}
       new_version: ${{ steps.check_version.outputs.new_version }}
@@ -124,7 +121,7 @@ jobs:
           
       - name: Create Release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           UNIVERSAL_APK=$(find downloaded_artifacts/AniTail -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
