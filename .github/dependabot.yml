@@ -6,7 +6,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     reviewers:
-      - "mostafaalagamy"
+      - "Animetailapp"
     labels:
       - "dependencies"
       - "android"
@@ -16,7 +16,7 @@ updates:
     schedule:
       interval: "monthly"
     reviewers:
-      - "mostafaalagamy"
+      - "Animetailapp"
     labels:
       - "ci"
       - "automated"
