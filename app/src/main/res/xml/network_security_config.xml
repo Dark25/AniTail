@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext traffic for local network addresses (required for LAN JAM) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Local network IP ranges -->
+        <domain includeSubdomains="true">10.0.0.0/8</domain>
+        <domain includeSubdomains="true">172.16.0.0/12</domain>
+        <domain includeSubdomains="true">192.168.0.0/16</domain>
+        <domain includeSubdomains="true">169.254.0.0/16</domain> <!-- Link-local addresses -->
+        <domain includeSubdomains="true">127.0.0.0/8</domain> <!-- Entire localhost subnet -->
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+    
+    <!-- Configuration for all other connections (more secure) -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

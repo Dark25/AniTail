@@ -272,6 +272,33 @@ class MainActivity : ComponentActivity() {
         intent?.let { handlevideoIdIntent(it) }
 
         setContent {
+            // JAM: Observe JamViewModel and update MusicService JAM settings
+            val jamViewModel: com.anitail.music.ui.screens.settings.JamViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val isJamEnabled by jamViewModel.isJamEnabled.collectAsState()
+            val isJamHost by jamViewModel.isJamHost.collectAsState()
+            val hostIp by jamViewModel.hostIp.collectAsState()
+
+            // Keep MusicService JAM settings in sync with UI
+            LaunchedEffect(isJamEnabled, isJamHost, hostIp, playerConnection) {
+                playerConnection?.service?.updateJamSettings(
+                    enabled = isJamEnabled,
+                    isHost = isJamHost,
+                    hostIp = hostIp
+                )
+                
+                // Actualizar periódicamente las conexiones activas si es host
+                if (isJamEnabled && isJamHost) {
+                    while (true) {
+                        playerConnection?.service?.lanJamServer?.clientList?.let { clients ->
+                            jamViewModel.updateActiveConnections(
+                                clients.map { client -> client.ip to client.connectedAt.toLong() }
+                            )
+                        }
+                        delay(5000)  // Actualizar cada 5 segundos
+                    }
+                }
+            }
+
             LaunchedEffect(Unit) {
                 if (System.currentTimeMillis() - Updater.lastCheckTime > 1.days.inWholeMilliseconds) {
                     Updater.getLatestVersionName().onSuccess {
@@ -1209,3 +1236,4 @@ val LocalPlayerAwareWindowInsets =
     compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
+

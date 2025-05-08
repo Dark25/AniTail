@@ -29,6 +29,7 @@ import com.anitail.music.ui.screens.settings.BackupAndRestore
 import com.anitail.music.ui.screens.settings.ContentSettings
 import com.anitail.music.ui.screens.settings.DiscordLoginScreen
 import com.anitail.music.ui.screens.settings.DiscordSettings
+import com.anitail.music.ui.screens.settings.JamSettingsScreen
 import com.anitail.music.ui.screens.settings.PlayerSettings
 import com.anitail.music.ui.screens.settings.PrivacySettings
 import com.anitail.music.ui.screens.settings.SettingsScreen
@@ -269,6 +270,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/backup_restore") {
         BackupAndRestore(navController, scrollBehavior)
+    }
+    composable("settings/jam") {
+        JamSettingsScreen(navController, scrollBehavior)
     }
     composable("settings/discord") {
         DiscordSettings(navController, scrollBehavior)

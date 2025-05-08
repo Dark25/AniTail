@@ -116,6 +116,7 @@ import com.anitail.music.ui.menu.PlayerMenu
 import com.anitail.music.ui.screens.settings.DarkMode
 import com.anitail.music.ui.theme.extractGradientColors
 import com.anitail.music.ui.utils.ShowMediaInfo
+import com.anitail.music.utils.LanJamCommands
 import com.anitail.music.utils.makeTimeString
 import com.anitail.music.utils.rememberEnumPreference
 import com.anitail.music.utils.rememberPreference
@@ -652,6 +653,14 @@ fun BottomSheetPlayer(
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
+
+                                if (playerConnection.service.isJamEnabled && 
+                                    playerConnection.service.isJamHost) {
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.SEEK,
+                                        position = it
+                                    )
+                                }
                             }
                             sliderPosition = null
                         },
@@ -675,19 +684,24 @@ fun BottomSheetPlayer(
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
+                                
+                                if (playerConnection.service.isJamEnabled &&
+                                    playerConnection.service.isJamHost) {
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.SEEK,
+                                        position = it
+                                    )
+                                }
                             }
                             sliderPosition = null
                         },
+                        modifier = Modifier
+                            .padding(horizontal = PlayerHorizontalPadding)
+                            .height(24.dp),
                         colors = SliderDefaults.colors(
                             activeTrackColor = textButtonColor,
                             activeTickColor = textButtonColor,
-                            thumbColor = textButtonColor
-                        ),
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                        squigglesSpec =
-                        SquigglySlider.SquigglesSpec(
-                            amplitude = if (isPlaying) (2.dp).coerceAtLeast(2.dp) else 0.dp,
-                            strokeWidth = 3.dp,
+                            thumbColor = textButtonColor,
                         ),
                     )
                 }
@@ -796,13 +810,33 @@ fun BottomSheetPlayer(
                     Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(playPauseRoundness))
-                        .background(textButtonColor)
-                        .clickable {
+                        .background(textButtonColor)                        .clickable {
                             if (playbackState == STATE_ENDED) {
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
+                                
+                                if (playerConnection.service.isJamEnabled &&
+                                    playerConnection.service.isJamHost) {
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.SEEK,
+                                        position = 0
+                                    )
+                                    playerConnection.service.sendJamCommand(
+                                        LanJamCommands.CommandType.PLAY
+                                    )
+                                }
                             } else {
                                 playerConnection.player.togglePlayPause()
+                                
+                                if (playerConnection.service.isJamEnabled &&
+                                    playerConnection.service.isJamHost) {
+                                    val commandType = if (playerConnection.player.playWhenReady) {
+                                        LanJamCommands.CommandType.PAUSE
+                                    } else {
+                                        LanJamCommands.CommandType.PLAY
+                                    }
+                                    playerConnection.service.sendJamCommand(commandType)
+                                }
                             }
                         },
                 ) {
@@ -936,37 +970,10 @@ fun BottomSheetPlayer(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier =
-                    Modifier
-                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                        .padding(bottom = queueSheetState.collapsedBound),
+                        Modifier
+                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                            .padding(bottom = queueSheetState.collapsedBound),
                 ) {
-                    // Add Close Button at the top-right
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp, end = 16.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                                .clickable {
-                                    playerConnection.service.closePlayer()
-                                    state.collapseSoft()
-                                }
-                                .align(Alignment.TopEnd),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = stringResource(R.string.close),
-                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.weight(1f),

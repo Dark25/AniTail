@@ -5,9 +5,11 @@ import com.anitail.innertube.models.SongItem
 import com.anitail.music.db.entities.Song
 import com.anitail.music.db.entities.SongEntity
 import com.anitail.music.ui.utils.resize
-import java.io.Serializable
+
+import kotlinx.serialization.Serializable
 
 @Immutable
+@Serializable
 data class MediaMetadata(
     val id: String,
     val title: String,
@@ -19,16 +21,18 @@ data class MediaMetadata(
     val setVideoId: String? = null,
     val explicit: Boolean = false,
     val liked: Boolean = false,
-) : Serializable {
+) {
+    @Serializable
     data class Artist(
         val id: String?,
         val name: String,
-    ) : Serializable
+    )
 
+    @Serializable
     data class Album(
         val id: String,
         val title: String,
-    ) : Serializable
+    )
 
     fun toSongEntity() =
         SongEntity(
