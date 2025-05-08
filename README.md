@@ -100,7 +100,7 @@ src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/andro
 (Muzza)
 [Maloy Android](https://github.com/Maloy-Android)
 
-(mostafaalagamyMetrolist)
+(Metrolist)
 [mostafaalagamy](https://github.com/mostafaalagamy/Metrolist)
 </div>
 
