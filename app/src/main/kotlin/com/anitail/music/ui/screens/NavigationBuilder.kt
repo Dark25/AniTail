@@ -34,6 +34,7 @@ import com.anitail.music.ui.screens.settings.PlayerSettings
 import com.anitail.music.ui.screens.settings.PrivacySettings
 import com.anitail.music.ui.screens.settings.SettingsScreen
 import com.anitail.music.ui.screens.settings.StorageSettings
+import com.anitail.music.ui.screens.settings.UpdateSettings
 import com.anitail.music.ui.screens.settings.import_from_spotify.ImportFromSpotifyScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -279,6 +280,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/discord/login") {
         DiscordLoginScreen(navController)
+    }
+    composable("settings/updates") {
+        UpdateSettings(navController, scrollBehavior, latestVersionName)
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)

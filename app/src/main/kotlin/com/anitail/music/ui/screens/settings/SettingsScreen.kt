@@ -2,7 +2,6 @@ package com.anitail.music.ui.screens.settings
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
@@ -35,17 +34,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.anitail.music.BuildConfig
 import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.R
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.PreferenceEntry
-import com.anitail.music.ui.component.ReleaseNotesCard
 import com.anitail.music.ui.utils.backToMain
 import java.util.Calendar
 
@@ -56,7 +54,6 @@ fun SettingsScreen(
     scrollBehavior: TopAppBarScrollBehavior,
     latestVersionName: String,
 ) {
-    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
@@ -170,6 +167,19 @@ fun SettingsScreen(
             icon = { Icon(painterResource(R.drawable.sync), null) },
             onClick = { navController.navigate("settings/jam") }
         )
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.update_settings)) },
+            icon = { 
+                BadgedBox(badge = {
+                    if (latestVersionName != BuildConfig.VERSION_NAME) {
+                        Badge()
+                    }
+                }) {
+                    Icon(painterResource(R.drawable.update), null)
+                }
+            },
+            onClick = { navController.navigate("settings/updates") }
+        )
         if (isAndroid12OrLater) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.default_links)) },
@@ -178,7 +188,7 @@ fun SettingsScreen(
                     try {
                         val intent = Intent(
                             Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
-                            Uri.parse("package:${context.packageName}")
+                            "package:${context.packageName}".toUri()
                         )
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         context.startActivity(intent)
@@ -217,27 +227,6 @@ fun SettingsScreen(
             icon = { Icon(painterResource(R.drawable.info), null) },
             onClick = { navController.navigate("settings/about") }
         )
-        if (latestVersionName != BuildConfig.VERSION_NAME) {
-            PreferenceEntry(
-                title = {
-                    Text(
-                        text = stringResource(R.string.new_version_available),
-                    )
-                },
-                description = latestVersionName,
-                icon = {
-                    BadgedBox(
-                        badge = { Badge() }
-                    ) {
-                        Icon(painterResource(R.drawable.update), null)
-                    }
-                },
-                onClick = {
-                    uriHandler.openUri("https://github.com/Animetailapp/Anitail/releases/latest/download/Anitail.apk")
-                }
-            )
-            ReleaseNotesCard()
-        }
 
     }
 

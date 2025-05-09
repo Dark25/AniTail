@@ -20,7 +20,7 @@ android {
         minSdk = 21
         targetSdk = 36
         versionCode = 7
-        versionName = "1.6.1"
+        versionName = "1.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -206,6 +206,7 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.compose.icons.extended)
+    implementation(libs.work.runtime.ktx)
 
     // OneSignal Push Notifications
     implementation(libs.onesignal)

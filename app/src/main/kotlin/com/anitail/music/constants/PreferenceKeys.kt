@@ -16,11 +16,28 @@ val SlimNavBarKey = booleanPreferencesKey("slimNavBar")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
+val AutoUpdateEnabledKey = booleanPreferencesKey("autoUpdateEnabled")
+val AutoUpdateCheckFrequencyKey = stringPreferencesKey("autoUpdateCheckFrequency")
 
 enum class SliderStyle {
     DEFAULT,
     SQUIGGLY,
     SLIM,
+}
+
+enum class UpdateCheckFrequency {
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    NEVER;
+    
+    fun toMillis(): Long =
+        when (this) {
+            DAILY -> 24 * 60 * 60 * 1000L // 24 hours
+            WEEKLY -> 7 * 24 * 60 * 60 * 1000L // 7 days
+            MONTHLY -> 30L * 24 * 60 * 60 * 1000L // 30 days
+            NEVER -> Long.MAX_VALUE
+        }
 }
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
