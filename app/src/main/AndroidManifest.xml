@@ -178,7 +178,8 @@
                 <action android:name="androidx.media3.exoplayer.downloadService.action.RESTART" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </service>        <receiver
+        </service>
+        <receiver
             android:name="androidx.media3.session.MediaButtonReceiver"
             android:exported="true">
             <intent-filter>
