@@ -32,6 +32,9 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
 
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
       - name: Build universal debug APK
         run: gradlew assembleUniversalDebug
         env:
