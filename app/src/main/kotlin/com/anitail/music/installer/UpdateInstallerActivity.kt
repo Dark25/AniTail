@@ -29,7 +29,7 @@ class UpdateInstallerActivity : Activity() {
             installIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             FileProvider.getUriForFile(
                 this,
-                "${packageName}.provider",
+                "${packageName}.FileProvider",
                 file
             )
         } else {
