@@ -7,10 +7,12 @@ import com.anitail.innertube.YouTube
 import com.anitail.innertube.models.PlaylistItem
 import com.anitail.innertube.models.WatchEndpoint
 import com.anitail.innertube.models.YTItem
+import com.anitail.innertube.models.filterExplicit
 import com.anitail.innertube.pages.ExplorePage
 import com.anitail.innertube.pages.HomePage
 import com.anitail.innertube.utils.completed
 import com.anitail.music.constants.DiscordTokenKey
+import com.anitail.music.constants.HideExplicitKey
 import com.anitail.music.constants.QuickPicks
 import com.anitail.music.constants.QuickPicksKey
 import com.anitail.music.constants.YtmSyncKey
@@ -23,6 +25,7 @@ import com.anitail.music.extensions.toEnum
 import com.anitail.music.models.SimilarRecommendation
 import com.anitail.music.utils.SyncUtils
 import com.anitail.music.utils.dataStore
+import com.anitail.music.utils.get
 import com.anitail.music.utils.reportException
 import com.my.kizzy.rpc.KizzyRPC
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +41,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext val context: Context,
     val database: MusicDatabase,
     val syncUtils: SyncUtils,
 ) : ViewModel() {
@@ -83,6 +86,8 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun load() {
         isLoading.value = true
+
+        val hideExplicit = context.dataStore.get(HideExplicitKey, false)
 
         getQuickPicks()
 
@@ -136,7 +141,7 @@ class HomeViewModel @Inject constructor(
                 }
                 SimilarRecommendation(
                     title = it,
-                    items = items.shuffled().ifEmpty { return@mapNotNull null }
+                    items = items.filterExplicit(hideExplicit).shuffled().ifEmpty { return@mapNotNull null }
                 )
             }
 
@@ -154,6 +159,7 @@ class HomeViewModel @Inject constructor(
                             page.albums.shuffled().take(4) +
                             page.artists.shuffled().take(4) +
                             page.playlists.shuffled().take(4))
+                        .filterExplicit(hideExplicit)
                         .shuffled()
                         .ifEmpty { return@mapNotNull null }
                 )
@@ -177,7 +183,14 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             }
-            homePage.value = HomePageWithBrowseCheck(page, browseContentAvailable)
+            homePage.value = HomePageWithBrowseCheck(
+                page.copy(
+                    sections = page.sections.map { section ->
+                        section.copy(items = section.items.filterExplicit(hideExplicit))
+                    }
+                ),
+                browseContentAvailable
+            )
         }.onFailure {
             reportException(it)
         }

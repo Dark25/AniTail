@@ -198,8 +198,6 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
 
-    implementation(project(":jossredconnect"))
-
     coreLibraryDesugaring(libs.desugaring)
 
     implementation(libs.timber)
