@@ -65,6 +65,7 @@ import com.anitail.music.R
 import com.anitail.music.constants.EnableBackupUploadKey
 import com.anitail.music.db.entities.Song
 import com.anitail.music.ui.component.IconButton
+import com.anitail.music.ui.component.PreferenceEntry
 import com.anitail.music.ui.component.PreferenceGroupTitle
 import com.anitail.music.ui.component.SwitchPreference
 import com.anitail.music.ui.menu.AddToPlaylistDialogOnline
@@ -172,22 +173,6 @@ fun BackupAndRestore(
         }
     }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.backup_restore)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null,
-                )
-            }
-        },
-        scrollBehavior = scrollBehavior
-    )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -207,6 +192,7 @@ fun BackupAndRestore(
         
         // Sección de configuración
         ConfigSection(
+            navController = navController,
             enableBackupUpload = enableBackupUpload,
             onEnableBackupUploadChange = onEnableBackupUploadChange
         )
@@ -271,20 +257,48 @@ fun BackupAndRestore(
         isVisible = isProgressStarted,
         value = progressPercentage,
     )
+
+    TopAppBar(
+        title = { Text(stringResource(R.string.backup_restore)) },
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
+            }
+        },
+    )
 }
 
 @Composable
 private fun ConfigSection(
+    navController : NavController,
     enableBackupUpload: Boolean,
     onEnableBackupUploadChange: (Boolean) -> Unit
 ) {
+    
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PreferenceGroupTitle(
             title = stringResource(R.string.options)
         )
-          SwitchPreference(
+        
+        // Navigate to auto backup settings
+        PreferenceEntry(
+            title = { Text(stringResource(R.string.auto_backup_settings)) },
+            description = stringResource(R.string.auto_backup_settings_desc),
+            icon = { Icon(painterResource(R.drawable.refresh), null) },
+            onClick = {
+                navController.navigate("settings/auto_backup_settings")
+            }
+        )
+        
+        SwitchPreference(
             title = { Text(stringResource(R.string.enable_backup_upload)) },
             description = stringResource(R.string.enable_backup_upload_desc),
             icon = { Icon(painterResource(R.drawable.backup), null) },

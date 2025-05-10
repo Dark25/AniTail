@@ -19,6 +19,13 @@ val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
 val AutoUpdateEnabledKey = booleanPreferencesKey("autoUpdateEnabled")
 val AutoUpdateCheckFrequencyKey = stringPreferencesKey("autoUpdateCheckFrequency")
 
+// Auto backup preferences
+val AutoBackupEnabledKey = booleanPreferencesKey("autoBackupEnabled")
+val AutoBackupFrequencyKey = intPreferencesKey("autoBackupFrequency") 
+val AutoBackupKeepCountKey = intPreferencesKey("autoBackupKeepCount")
+val AutoBackupCustomLocationKey = stringPreferencesKey("autoBackupCustomLocation")
+val AutoBackupUseCustomLocationKey = booleanPreferencesKey("autoBackupUseCustomLocation")
+
 enum class SliderStyle {
     DEFAULT,
     SQUIGGLY,

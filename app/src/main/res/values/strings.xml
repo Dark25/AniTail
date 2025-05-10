@@ -232,6 +232,14 @@
         <item quantity="one">%d time</item>
         <item quantity="other">%d times</item>
     </plurals>
+    <plurals name="backup_count">
+        <item quantity="one">%d backup</item>
+        <item quantity="other">%d backups</item>
+    </plurals>
+    <plurals name="seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
+    </plurals>
 
     <!-- Snackbar -->
     <string name="playlist_imported">Playlist imported</string>
@@ -429,6 +437,22 @@
     <string name="backup_create_success">Backup created successfully</string>
     <string name="backup_create_failed">Couldn\'t create backup</string>
     <string name="restore_failed">Failed to restore backup</string>
+    
+    <!-- Auto backup strings -->
+    <string name="auto_backup">Auto Backup</string>
+    <string name="auto_backup_settings">Auto Backup Settings</string>
+    <string name="auto_backup_settings_desc">Configure automatic backup frequency, location, and retention</string>
+    <string name="backup_frequency">Backup Frequency</string>
+    <string name="backups_to_keep">Number of backups to keep</string>
+    <string name="backup_custom_location">Use custom location</string>
+    <string name="auto_backup_custom_location">Custom backup location</string>
+    <string name="auto_backup_custom_location_desc">Select a custom folder for auto backups</string>
+    <string name="select_folder">Select folder</string>
+    <string name="no_folder_selected">No folder selected</string>
+    <string name="backups_location_info">Default location: Downloads/AniTail/AutoBackup</string>
+    <string name="backup_permission_error">Backup permission error</string>
+    <string name="backup_fallback_to_internal">Custom location unavailable, falling back to internal storage</string>
+    <string name="storage_permissions_required"> Storage permissions required</string>
 
     <string name="discord_integration">Discord Integration</string>
     <string name="discord_information">AniTail uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.\n\nAnitail will only extract your token, and everything else is stored locally.</string>
@@ -484,10 +508,6 @@
     <string name="views">Views</string>
     <string name="likes">Likes</string>
     <string name="dislikes">Dislikes</string>
-    <plurals name="seconds">
-        <item quantity="one">1 second</item>
-        <item quantity="other">%d seconds</item>
-    </plurals>
     <string name="import_online">Import a playlist (m3u) (autosearch)</string>
     <string name="import_csv">Import a playlist (csv) (autosearch)</string>
     <string name="playlist_add_local_to_synced_note">Note: Adding local songs to synced/remote playlists is unsupported. Any other combination is valid</string>

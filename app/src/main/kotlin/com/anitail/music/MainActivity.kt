@@ -136,6 +136,7 @@ import com.anitail.music.playback.MusicService
 import com.anitail.music.playback.MusicService.MusicBinder
 import com.anitail.music.playback.PlayerConnection
 import com.anitail.music.playback.queues.YouTubeQueue
+import com.anitail.music.services.AutoBackupWorker
 import com.anitail.music.ui.component.BottomSheetMenu
 import com.anitail.music.ui.component.BottomSheetPage
 import com.anitail.music.ui.component.IconButton
@@ -176,6 +177,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.net.URLDecoder
 import java.net.URLEncoder
 import javax.inject.Inject
@@ -267,6 +269,15 @@ class MainActivity : ComponentActivity() {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     }
                 }
+        }
+        
+        // Initialize auto backup scheduler
+        lifecycleScope.launch {
+            try {
+                AutoBackupWorker.schedule(this@MainActivity)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to schedule auto backups")
+            }
         }
 
         intent?.let { handlevideoIdIntent(it) }
