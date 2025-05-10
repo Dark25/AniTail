@@ -6,6 +6,7 @@ import android.os.Build
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.datastore.preferences.core.edit
+import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
@@ -49,7 +50,15 @@ import java.net.Proxy
 import java.util.Locale
 
 @HiltAndroidApp
-class App : Application(), ImageLoaderFactory {
+class App : Application(), ImageLoaderFactory, Configuration.Provider {
+
+    @javax.inject.Inject
+    lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {

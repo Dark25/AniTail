@@ -1,5 +1,8 @@
 package com.anitail.music.ui.screens.settings
 
+import android.net.Uri
+import android.os.Environment
+import android.os.Environment.getExternalStoragePublicDirectory
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,6 +48,7 @@ import com.anitail.music.constants.AutoBackupFrequencyKey
 import com.anitail.music.constants.AutoBackupKeepCountKey
 import com.anitail.music.constants.AutoBackupUseCustomLocationKey
 import com.anitail.music.constants.BackupFrequency
+import com.anitail.music.db.InternalDatabase
 import com.anitail.music.services.AutoBackupWorker
 import com.anitail.music.ui.component.BackupCountSlider
 import com.anitail.music.ui.component.IconButton
@@ -54,10 +58,16 @@ import com.anitail.music.ui.component.PreferenceGroupTitle
 import com.anitail.music.ui.component.SwitchPreference
 import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.utils.dataStore
+import com.anitail.music.utils.get
 import com.anitail.music.utils.rememberPreference
+import com.anitail.music.viewmodels.BackupRestoreViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,6 +106,9 @@ fun AutoBackupSettings(
     
     // State for frequency selection dialog
     var showFrequencyDialog by remember { mutableStateOf(false) }
+    
+    // State to track if a manual backup is in progress
+    var isManualBackupInProgress by remember { mutableStateOf(false) }
     
     // File picker for custom location
     val directoryPicker = rememberLauncherForActivityResult(
@@ -256,7 +269,40 @@ fun AutoBackupSettings(
 
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
 
-              PreferenceEntry(
+            // Manual backup button
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.run_backup_now)) },
+                description = stringResource(R.string.run_backup_now_desc),
+                icon = { Icon(painterResource(R.drawable.backup), null) },
+                onClick = {
+                    if (!isManualBackupInProgress) {
+                        isManualBackupInProgress = true
+                        coroutineScope.launch {
+                            // Run the backup manually
+                            val result = runManualBackup(context)
+
+                            // Show toast based on result
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    if (result)
+                                        context.getString(R.string.backup_create_success)
+                                    else
+                                        context.getString(R.string.backup_create_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                isManualBackupInProgress = false
+                            }
+                        }
+                    }
+                },
+                isEnabled = !isManualBackupInProgress
+            )
+
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
+            PreferenceEntry(
                 title = { Text(stringResource(R.string.backups_location_info)) },
                 icon = { Icon(painterResource(R.drawable.info), null) }
             )
@@ -322,5 +368,62 @@ fun AutoBackupSettings(
             }
           }
     }
+    }
+}
+
+// Function to manually run the backup
+private fun runManualBackup(context: android.content.Context): Boolean {
+    return try {
+        // Use direct dependency injection to create BackupRestoreViewModel
+        val db = InternalDatabase.newInstance(context)
+        val viewModel = BackupRestoreViewModel(db)
+        
+        // Check backup settings
+        val useCustomLocation = context.dataStore[AutoBackupUseCustomLocationKey, false]
+        val customLocationUri = context.dataStore[AutoBackupCustomLocationKey, ""]
+        
+        // Create backup file
+        if (useCustomLocation && customLocationUri.isNotEmpty()) {
+            // Use custom location
+            viewModel.backup(context, customLocationUri.toUri())
+        } else {
+            // Use default location: Downloads/AniTail/AutoBackup
+            val backupDir = java.io.File(
+                getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS
+                ),
+                "AniTail/AutoBackup"
+            )
+            
+            if (!backupDir.exists()) {
+                backupDir.mkdirs()
+            }
+            
+            // Generate backup file name with timestamp
+            val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+            val timestamp = LocalDateTime.now().format(formatter)
+            val backupFile = File(backupDir, "AniTail_AutoBackup_$timestamp.backup")
+            
+            // Create the backup
+            viewModel.backup(context, Uri.fromFile(backupFile))
+            
+            // Clean up old backups according to settings
+            val keepCount = context.dataStore[AutoBackupKeepCountKey, 5]
+            val backupFiles = backupDir.listFiles { file ->
+                file.isFile && file.name.endsWith(".backup")
+            }?.sortedByDescending { it.lastModified() } ?: return true
+            
+            // Delete old backups if we have more than the keep count
+            if (backupFiles.size > keepCount) {
+                for (i in keepCount until backupFiles.size) {
+                    backupFiles[i].delete()
+                }
+            }
+        }
+        
+        true
+    } catch (e: Exception) {
+        Timber.e(e, "Error running manual backup")
+        false
     }
 }
