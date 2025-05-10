@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.anitail.innertube.YouTube
 import com.anitail.innertube.utils.parseCookieString
 import com.anitail.music.LocalDatabase
 import com.anitail.music.R
@@ -112,6 +113,12 @@ fun AddToPlaylistDialog(
                             } else {
                                 onDismiss()
                                 database.addSongToPlaylist(playlist, songIds!!)
+
+                                playlist.playlist.browseId?.let { plist ->
+                                    songIds?.forEach {
+                                        YouTube.addToPlaylist(plist, it)
+                                    }
+                                }
                             }
                         }
                     }
