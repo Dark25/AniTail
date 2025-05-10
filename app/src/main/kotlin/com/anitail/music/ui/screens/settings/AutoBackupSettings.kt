@@ -381,7 +381,7 @@ fun AutoBackupSettings(
             }
         }
     }
-}
+//}
 
 // Function to manually run the backup
 private fun runManualBackup(context: android.content.Context): Boolean {
