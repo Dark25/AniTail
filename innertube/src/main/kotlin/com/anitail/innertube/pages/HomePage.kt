@@ -11,6 +11,7 @@ import com.anitail.innertube.models.MusicTwoRowItemRenderer
 import com.anitail.innertube.models.PlaylistItem
 import com.anitail.innertube.models.SongItem
 import com.anitail.innertube.models.YTItem
+import com.anitail.innertube.models.filterExplicit
 
 data class HomePage(
     val sections: List<Section>,
@@ -65,7 +66,7 @@ data class HomePage(
                         val artists = artistRuns.map {
                             Artist(
                                 name = it.text,
-                                id = it.navigationEndpoint?.browseEndpoint?.browseId
+                                id = it.navigationEndpoint?.browseEndpoint?.browseId ?: return null
                             )
                         }.takeIf { it.isNotEmpty() }
                         artists?.let {
@@ -215,6 +216,13 @@ data class HomePage(
             }
         }
     }
+    fun filterExplicit(enabled: Boolean = true) =
+        if (enabled) {
+            copy(sections = sections.map {
+                it.copy(items = it.items.filterExplicit())
+            })
+        } else this
+
     enum class SectionType {
          LIST, GRID
     }
