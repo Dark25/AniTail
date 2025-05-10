@@ -3,6 +3,7 @@ package com.anitail.music.ui.screens.settings
 import android.net.Uri
 import android.os.Environment
 import android.os.Environment.getExternalStoragePublicDirectory
+import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,62 +78,71 @@ fun AutoBackupSettings(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     // Auto backup preferences
     val (autoBackupEnabled, _) = rememberPreference(
-        AutoBackupEnabledKey, 
+        AutoBackupEnabledKey,
         defaultValue = false
     )
-    
+
     val (backupFrequency, _) = rememberPreference(
         AutoBackupFrequencyKey,
         defaultValue = BackupFrequency.DAILY.hours
     )
-    
+
     val (backupCount, _) = rememberPreference(
         AutoBackupKeepCountKey,
         defaultValue = 5
     )
-    
+
     val (useCustomLocation, _) = rememberPreference(
         AutoBackupUseCustomLocationKey,
         defaultValue = false
     )
-    
+
     val (customLocation, _) = rememberPreference(
         AutoBackupCustomLocationKey,
         defaultValue = ""
     )
-    
+
     // State for frequency selection dialog
     var showFrequencyDialog by remember { mutableStateOf(false) }
-    
+
     // State to track if a manual backup is in progress
     var isManualBackupInProgress by remember { mutableStateOf(false) }
-    
+
     // File picker for custom location
     val directoryPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
         onResult = { uri ->
             if (uri != null) {
-                // Get persist permissions for the directory
-                val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or 
-                          android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                context.contentResolver.takePersistableUriPermission(uri, flag)
-                
-                // Save the location
-                coroutineScope.launch {
-                    context.dataStore.edit { preferences ->
-                        preferences[AutoBackupCustomLocationKey] = uri.toString()
+                try {
+                    // Get persist permissions for the directory
+                    val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(uri, flag)
+
+                    // Save the location
+                    coroutineScope.launch {
+                        context.dataStore.edit { preferences ->
+                            preferences[AutoBackupCustomLocationKey] = uri.toString()
+                        }
                     }
+
+                    // Show toast confirmation
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.backup_custom_location),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to get permissions for the selected directory")
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.error_unknown),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-                
-                // Show toast confirmation
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.backup_custom_location),
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         }
     )
@@ -173,201 +183,203 @@ fun AutoBackupSettings(
                     )
                 )
             )
-        
-        PreferenceGroupTitle(
-            title = stringResource(R.string.auto_backup)
-        )
-          // Enable auto backups
-        SwitchPreference(
-            title = { Text(stringResource(R.string.auto_backup)) },
-            description = stringResource(R.string.auto_backup_settings_desc),
-            icon = { Icon(painterResource(R.drawable.backup), null) },
-            checked = autoBackupEnabled,
-            onCheckedChange = { enabled ->
-                coroutineScope.launch {
-                    context.dataStore.edit { preferences ->
-                        preferences[AutoBackupEnabledKey] = enabled
-                    }
-                    
-                    // Schedule or cancel backups based on the setting
-                    AutoBackupWorker.schedule(context)
-                    
-                    // Show toast confirmation
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            context,
-                            if (enabled) 
-                                context.getString(R.string.auto_backup) + " enabled"
-                            else 
-                                context.getString(R.string.auto_backup) + " disabled",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            }
-        )
-        
-        // Frequency selection (only enabled if auto backup is enabled)
-        val currentFrequency = BackupFrequency.fromHours(backupFrequency)
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.backup_frequency)) },
-            description = currentFrequency.getDisplayName(),
-            icon = { Icon(painterResource(R.drawable.sync), null) },
-            onClick = { showFrequencyDialog = true },
-            isEnabled = autoBackupEnabled
-        )
-        
-        // Number of backups to keep
-        if (autoBackupEnabled) {
+
             PreferenceGroupTitle(
-                title = stringResource(R.string.backups_to_keep)
+                title = stringResource(R.string.auto_backup)
             )
-            
-            BackupCountSlider(
-                value = backupCount.toFloat(),
-                onValueChange = { newValue ->
-                    coroutineScope.launch {
-                        context.dataStore.edit { preferences ->
-                            preferences[AutoBackupKeepCountKey] = newValue.toInt()
-                        }
-                    }
-                },
-                valueRange = 1f..20f,
-                steps = 19
-            )
-            
-            // Custom location settings
-            PreferenceGroupTitle(
-                title = stringResource(R.string.backup_custom_location)
-            )
-            
+
+            // Enable auto backups
             SwitchPreference(
-                title = { Text(stringResource(R.string.auto_backup_custom_location)) },
-                description = stringResource(R.string.auto_backup_custom_location_desc),
-                icon = { Icon(painterResource(R.drawable.storage), null) },
-                checked = useCustomLocation,
+                title = { Text(stringResource(R.string.auto_backup)) },
+                description = stringResource(R.string.auto_backup_settings_desc),
+                icon = { Icon(painterResource(R.drawable.backup), null) },
+                checked = autoBackupEnabled,
                 onCheckedChange = { enabled ->
                     coroutineScope.launch {
                         context.dataStore.edit { preferences ->
-                            preferences[AutoBackupUseCustomLocationKey] = enabled
+                            preferences[AutoBackupEnabledKey] = enabled
+                        }
+
+                        // Schedule or cancel backups based on the setting
+                        AutoBackupWorker.schedule(context)
+
+                        // Show toast confirmation
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                if (enabled)
+                                    context.getString(R.string.auto_backup) + " enabled"
+                                else
+                                    context.getString(R.string.auto_backup) + " disabled",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }
             )
-            
-            if (useCustomLocation) {
+
+            // Frequency selection (only enabled if auto backup is enabled)
+            val currentFrequency = BackupFrequency.fromHours(backupFrequency)
+            PreferenceEntry(
+                title = { Text(stringResource(R.string.backup_frequency)) },
+                description = currentFrequency.getDisplayName(),
+                icon = { Icon(painterResource(R.drawable.sync), null) },
+                onClick = { showFrequencyDialog = true },
+                isEnabled = autoBackupEnabled
+            )
+
+            // Number of backups to keep
+            if (autoBackupEnabled) {
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.backups_to_keep)
+                )
+
+                BackupCountSlider(
+                    value = backupCount.toFloat(),
+                    onValueChange = { newValue ->
+                        coroutineScope.launch {
+                            context.dataStore.edit { preferences ->
+                                preferences[AutoBackupKeepCountKey] = newValue.toInt()
+                            }
+                        }
+                    },
+                    valueRange = 1f..20f,
+                    steps = 19
+                )
+
+//                // Custom location settings
+//                PreferenceGroupTitle(
+//                    title = stringResource(R.string.backup_custom_location)
+//                )
+//
+//                SwitchPreference(
+//                    title = { Text(stringResource(R.string.auto_backup_custom_location)) },
+//                    description = stringResource(R.string.auto_backup_custom_location_desc),
+//                    icon = { Icon(painterResource(R.drawable.storage), null) },
+//                    checked = useCustomLocation,
+//                    onCheckedChange = { enabled ->
+//                        coroutineScope.launch {
+//                            context.dataStore.edit { preferences ->
+//                                preferences[AutoBackupUseCustomLocationKey] = enabled
+//                            }
+//                        }
+//                    }
+//                )
+//
+//                if (useCustomLocation) {
+//                    PreferenceEntry(
+//                        title = { Text(stringResource(R.string.select_folder)) },
+//                        description = if (customLocation.isEmpty())
+//                            stringResource(R.string.no_folder_selected)
+//                        else
+//                            customLocation.toUri().path ?: customLocation,
+//                        icon = { Icon(painterResource(R.drawable.storage), null) },
+//                        onClick = { directoryPicker.launch(null) }
+//                    )
+                }
+
+//                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+//
+//                // Manual backup button
+//                PreferenceEntry(
+//                    title = { Text(stringResource(R.string.run_backup_now)) },
+//                    description = stringResource(R.string.run_backup_now_desc),
+//                    icon = { Icon(painterResource(R.drawable.backup), null) },
+//                    onClick = {
+//                        if (!isManualBackupInProgress) {
+//                            isManualBackupInProgress = true
+//                            coroutineScope.launch {
+//                                // Run the backup manually
+//                                val result = runManualBackup(context)
+//
+//                                // Show toast based on result
+//                                withContext(Dispatchers.Main) {
+//                                    Toast.makeText(
+//                                        context,
+//                                        if (result)
+//                                            context.getString(R.string.backup_create_success)
+//                                        else
+//                                            context.getString(R.string.backup_create_failed),
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//
+//                                    isManualBackupInProgress = false
+//                                }
+//                            }
+//                        }
+//                    },
+//                    isEnabled = !isManualBackupInProgress
+//                )
+
+                HorizontalDivider(Modifier.padding(vertical = 16.dp))
+
                 PreferenceEntry(
-                    title = { Text(stringResource(R.string.select_folder)) },
-                    description = if (customLocation.isEmpty()) 
-                        stringResource(R.string.no_folder_selected) 
-                    else
-                        customLocation.toUri().path ?: customLocation,
-                    icon = { Icon(painterResource(R.drawable.storage), null) },
-                    onClick = { directoryPicker.launch(null) }
+                    title = { Text(stringResource(R.string.backups_location_info)) },
+                    icon = { Icon(painterResource(R.drawable.info), null) }
                 )
             }
+        }
 
-            HorizontalDivider(Modifier.padding(vertical = 16.dp))
-
-            // Manual backup button
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.run_backup_now)) },
-                description = stringResource(R.string.run_backup_now_desc),
-                icon = { Icon(painterResource(R.drawable.backup), null) },
-                onClick = {
-                    if (!isManualBackupInProgress) {
-                        isManualBackupInProgress = true
-                        coroutineScope.launch {
-                            // Run the backup manually
-                            val result = runManualBackup(context)
-
-                            // Show toast based on result
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(
-                                    context,
-                                    if (result)
-                                        context.getString(R.string.backup_create_success)
-                                    else
-                                        context.getString(R.string.backup_create_failed),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-
-                                isManualBackupInProgress = false
-                            }
-                        }
-                    }
-                },
-                isEnabled = !isManualBackupInProgress
+        // Frequency selection dialog
+        if (showFrequencyDialog) {
+            val options = listOf(
+                BackupFrequency.THREE_HOURS.getDisplayName(),
+                BackupFrequency.SIX_HOURS.getDisplayName(),
+                BackupFrequency.DAILY.getDisplayName(),
+                BackupFrequency.WEEKLY.getDisplayName(),
             )
 
-            HorizontalDivider(Modifier.padding(vertical = 16.dp))
+            // Get current frequency index
+            val currentIndex = when (backupFrequency) {
+                BackupFrequency.THREE_HOURS.hours -> 0
+                BackupFrequency.SIX_HOURS.hours -> 1
+                BackupFrequency.DAILY.hours -> 2
+                BackupFrequency.WEEKLY.hours -> 3
+                else -> 2 // Default to daily
+            }
 
-            PreferenceEntry(
-                title = { Text(stringResource(R.string.backups_location_info)) },
-                icon = { Icon(painterResource(R.drawable.info), null) }
-            )
-        }
-    }
-    
-    // Frequency selection dialog
-    if (showFrequencyDialog) {
-        val options = listOf(
-            BackupFrequency.THREE_HOURS.getDisplayName(),
-            BackupFrequency.SIX_HOURS.getDisplayName(),
-            BackupFrequency.DAILY.getDisplayName(),
-            BackupFrequency.WEEKLY.getDisplayName(),
-        )
-        
-        // Get current frequency index
-        val currentIndex = when (backupFrequency) {
-            BackupFrequency.THREE_HOURS.hours -> 0
-            BackupFrequency.SIX_HOURS.hours -> 1
-            BackupFrequency.DAILY.hours -> 2
-            BackupFrequency.WEEKLY.hours -> 3
-            else -> 2 // Default to daily
-        }
-          ListDialog(onDismiss = { showFrequencyDialog = false }) {
-            options.forEachIndexed { index, option ->
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                val newFrequency = when (index) {
-                                    0 -> BackupFrequency.THREE_HOURS
-                                    1 -> BackupFrequency.SIX_HOURS
-                                    2 -> BackupFrequency.DAILY
-                                    3 -> BackupFrequency.WEEKLY
-                                    else -> BackupFrequency.DAILY
-                                }
-                                
-                                coroutineScope.launch {
-                                    context.dataStore.edit { preferences ->
-                                        preferences[AutoBackupFrequencyKey] = newFrequency.hours
+            ListDialog(onDismiss = { showFrequencyDialog = false }) {
+                options.forEachIndexed { index, option ->
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val newFrequency = when (index) {
+                                        0 -> BackupFrequency.THREE_HOURS
+                                        1 -> BackupFrequency.SIX_HOURS
+                                        2 -> BackupFrequency.DAILY
+                                        3 -> BackupFrequency.WEEKLY
+                                        else -> BackupFrequency.DAILY
                                     }
-                                    
-                                    // Update the scheduled backup task with the new frequency
-                                    AutoBackupWorker.schedule(context)
-                                }
-                                showFrequencyDialog = false
-                            }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                    ) {
-                        RadioButton(
-                            selected = index == currentIndex,
-                            onClick = null
-                        )
-                        Text(
-                            text = option,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
-                    }
 
+                                    coroutineScope.launch {
+                                        context.dataStore.edit { preferences ->
+                                            preferences[AutoBackupFrequencyKey] = newFrequency.hours
+                                        }
+
+                                        // Update the scheduled backup task with the new frequency
+                                        AutoBackupWorker.schedule(context)
+                                    }
+                                    showFrequencyDialog = false
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        ) {
+                            RadioButton(
+                                selected = index == currentIndex,
+                                onClick = null
+                            )
+                            Text(
+                                text = option,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                    }
                 }
             }
-          }
-    }
+        }
     }
 }
 
@@ -377,53 +389,93 @@ private fun runManualBackup(context: android.content.Context): Boolean {
         // Use direct dependency injection to create BackupRestoreViewModel
         val db = InternalDatabase.newInstance(context)
         val viewModel = BackupRestoreViewModel(db)
-        
+
         // Check backup settings
         val useCustomLocation = context.dataStore[AutoBackupUseCustomLocationKey, false]
         val customLocationUri = context.dataStore[AutoBackupCustomLocationKey, ""]
-        
+
         // Create backup file
         if (useCustomLocation && customLocationUri.isNotEmpty()) {
-            // Use custom location
-            viewModel.backup(context, customLocationUri.toUri())
+            try {
+                // Use custom location
+                val directoryUri = customLocationUri.toUri()
+
+                // Generate backup filename with timestamp
+                val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+                val timestamp = LocalDateTime.now().format(formatter)
+                val backupFileName = "AniTail_AutoBackup_$timestamp.backup"
+
+                // Create a document URI for the new file
+                val documentUri = DocumentsContract.createDocument(
+                    context.contentResolver,
+                    directoryUri,
+                    "application/octet-stream",
+                    backupFileName
+                )
+
+                if (documentUri == null) {
+                    Timber.e("Failed to create backup file in custom location")
+                    // Fallback to default location
+                    return createBackupToDefaultLocation(context, viewModel)
+                }
+
+                // Create the backup
+                viewModel.backup(context, documentUri)
+
+                // Success
+                return true
+
+            } catch (e: Exception) {
+                Timber.e(e, "Error with custom backup location: ${e.message}")
+                // Fallback to default location
+                return createBackupToDefaultLocation(context, viewModel)
+            }
         } else {
             // Use default location: Downloads/AniTail/AutoBackup
-            val backupDir = java.io.File(
-                getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS
-                ),
-                "AniTail/AutoBackup"
-            )
-            
-            if (!backupDir.exists()) {
-                backupDir.mkdirs()
-            }
-            
-            // Generate backup file name with timestamp
-            val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
-            val timestamp = LocalDateTime.now().format(formatter)
-            val backupFile = File(backupDir, "AniTail_AutoBackup_$timestamp.backup")
-            
-            // Create the backup
-            viewModel.backup(context, Uri.fromFile(backupFile))
-            
-            // Clean up old backups according to settings
-            val keepCount = context.dataStore[AutoBackupKeepCountKey, 5]
-            val backupFiles = backupDir.listFiles { file ->
-                file.isFile && file.name.endsWith(".backup")
-            }?.sortedByDescending { it.lastModified() } ?: return true
-            
-            // Delete old backups if we have more than the keep count
-            if (backupFiles.size > keepCount) {
-                for (i in keepCount until backupFiles.size) {
-                    backupFiles[i].delete()
-                }
-            }
+            return createBackupToDefaultLocation(context, viewModel)
         }
-        
-        true
     } catch (e: Exception) {
         Timber.e(e, "Error running manual backup")
         false
+    }
+}
+
+// Helper function to create backup in the default location
+private fun createBackupToDefaultLocation(context: android.content.Context, viewModel: BackupRestoreViewModel): Boolean {
+    try {
+        val backupDir = File(
+            getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "AniTail/AutoBackup"
+        )
+
+        if (!backupDir.exists()) {
+            backupDir.mkdirs()
+        }
+
+        // Generate backup file name with timestamp
+        val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+        val timestamp = LocalDateTime.now().format(formatter)
+        val backupFile = File(backupDir, "AniTail_AutoBackup_$timestamp.backup")
+
+        // Create the backup
+        viewModel.backup(context, Uri.fromFile(backupFile))
+
+        // Clean up old backups according to settings
+        val keepCount = context.dataStore.get(AutoBackupKeepCountKey, 5)
+        val backupFiles = backupDir.listFiles { file ->
+            file.isFile && file.name.endsWith(".backup")
+        }?.sortedByDescending { it.lastModified() } ?: return true
+
+        // Delete old backups if we have more than the keep count
+        if (backupFiles.size > keepCount) {
+            for (i in keepCount until backupFiles.size) {
+                backupFiles[i].delete()
+            }
+        }
+
+        return true
+    } catch (e: Exception) {
+        Timber.e(e, "Failed to create backup to default location")
+        return false
     }
 }
