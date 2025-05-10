@@ -589,4 +589,30 @@
     <string name="jam_recent_connections">Recent connections</string>
     <string name="jam_hide">Hide</string>
     <string name="jam_show">Show</string>
+    
+    <!-- Auto Update -->
+    <string name="update_settings">Update settings</string>
+    <string name="auto_updates">Automatic Updates</string>
+    <string name="auto_update_enabled">Enable automatic updates</string>
+    <string name="auto_update_enabled_description">Automatically check for and download new updates</string>
+    <string name="update_check_frequency">Update check frequency</string>
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
+    <string name="monthly">Monthly</string>
+    <string name="never">Never</string>
+    <string name="check_for_updates_now">Check for updates now</string>
+    <string name="current_version">Current version: %s</string>
+    <string name="new_version_available_toast">New version %s available!</string>
+    <string name="new_version_available_description">Version %s is available for download</string>
+    <string name="downloading_update">Downloading update…</string>
+    <string name="app_up_to_date">App is up to date</string>
+    <string name="update_check_failed">Failed to check for updates</string>
+    <string name="update_available">Update Available</string>
+    <string name="update_channel_name">App Updates</string>
+    <string name="update_channel_description">Notifications about new app updates</string>
+    <string name="download_update">Download update</string>
+    <string name="update_error">Error occurred during update</string>
+    <string name="update_download_failed">Failed to download update</string>
+    <string name="update_notification_title">AniTail Update Available</string>
+    <string name="update_notification_description">Downloading the latest version of AniTail</string>
 </resources>

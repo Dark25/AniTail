@@ -27,7 +27,7 @@ operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
         data.first()[key]
     }
 
-fun <T> DataStore<Preferences>.get(
+ operator fun <T> DataStore<Preferences>.get(
     key: Preferences.Key<T>,
     defaultValue: T,
 ): T =

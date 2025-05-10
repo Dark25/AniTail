@@ -573,7 +573,7 @@
     <string name="jam_music_in_sync">Música sincronizada</string>
     <string name="jam_settings_subtitle">Conecta y sincroniza tu música con otros dispositivos</string>    <string name="jam_available_hosts">Hosts disponibles</string>
     <string name="jam_select_host">Selecciona un host para conectar</string>
-    <string name="jam_scanning_network">Buscando hosts en la red...</string>
+    <string name="jam_scanning_network">Buscando hosts en la red…</string>
     <string name="jam_no_hosts_found">No se encontraron hosts</string>
     <string name="jam_connect">Conectar</string>
     <string name="jam_manual_entry">Entrada manual</string>
@@ -581,4 +581,31 @@
     <string name="jam_hide">Ocultar</string>
     <string name="jam_show">Mostrar</string>
     <string name="clear">Limpiar historial</string>
+
+    <!-- Auto Update -->
+    <!-- Actualización automática -->
+    <string name="update_settings">Ajustes de actualizaciones</string>
+    <string name="auto_updates">Actualizaciones automáticas</string>
+    <string name="auto_update_enabled">Habilitar actualizaciones automáticas</string>
+    <string name="auto_update_enabled_description">Buscar y descargar nuevas actualizaciones automáticamente</string>
+    <string name="update_check_frequency">Frecuencia de comprobación de actualizaciones</string>
+    <string name="daily">Diariamente</string>
+    <string name="weekly">Semanalmente</string>
+    <string name="monthly">Mensualmente</string>
+    <string name="never">Nunca</string>
+    <string name="check_for_updates_now">Buscar actualizaciones ahora</string>
+    <string name="current_version">Versión actual: %s</string>
+    <string name="new_version_available_toast">¡Nueva versión %s disponible!</string>
+    <string name="new_version_available_description">La versión %s está disponible para descargar</string>
+    <string name="downloading_update">Descargando actualización…</string>
+    <string name="app_up_to_date">La aplicación está actualizada</string>
+    <string name="update_check_failed">Error al buscar actualizaciones</string>
+    <string name="update_available">Actualización disponible</string>
+    <string name="update_channel_name">Actualizaciones de la aplicación</string>
+    <string name="update_channel_description">Notificaciones sobre nuevas actualizaciones de la aplicación</string>
+    <string name="download_update">Descargar actualización</string>
+    <string name="update_error">Error durante la actualización</string>
+    <string name="update_download_failed">Error al descargar la actualización</string>
+    <string name="update_notification_title">Actualización de AniTail disponible</string>
+    <string name="update_notification_description">Descargando la última versión de AniTail</string>
 </resources>

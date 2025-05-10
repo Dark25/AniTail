@@ -204,6 +204,7 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.compose.icons.extended)
+    implementation(libs.work.runtime.ktx)
 
     // OneSignal Push Notifications
     implementation(libs.onesignal)

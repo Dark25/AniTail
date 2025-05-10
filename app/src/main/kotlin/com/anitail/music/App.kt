@@ -31,6 +31,7 @@ import com.anitail.music.constants.UseLoginForBrowse
 import com.anitail.music.constants.VisitorDataKey
 import com.anitail.music.extensions.toEnum
 import com.anitail.music.extensions.toInetSocketAddress
+import com.anitail.music.services.UpdateCheckWorker
 import com.anitail.music.utils.dataStore
 import com.anitail.music.utils.get
 import com.anitail.music.utils.reportException
@@ -55,7 +56,6 @@ class App : Application(), ImageLoaderFactory {
         super.onCreate()
         instance = this
         Timber.plant(Timber.DebugTree())
-
         // OneSignal initialization
         // TODO: Replace with your real OneSignal App ID
         val oneSignalAppId = "8f09b52f-d61a-469e-9d7d-203ebf6b9e1b"
@@ -69,6 +69,9 @@ class App : Application(), ImageLoaderFactory {
         } catch (e: Exception) {
             Timber.e(e, "OneSignal initialization failed")
         }
+        
+        // Initialize automatic update checks
+        UpdateCheckWorker.schedule(this)
 
         val locale = Locale.getDefault()
         val languageTag = locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*
