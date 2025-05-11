@@ -547,8 +547,6 @@
     <string name="upload_error">Error al subir la copia de seguridad. Intente nuevamente.</string>
     <string name="enable_backup_upload">Habilitar subida de copia de seguridad</string>
     <string name="enable_backup_upload_desc">Subir automáticamente tu copia de seguridad a un almacenamiento temporal en la nube para compartirla</string>
-    <string name="run_backup_now">Ejecutar copia de seguridad ahora</string>
-    <string name="run_backup_now_desc">Crear una copia de seguridad inmediatamente sin esperar al tiempo programado</string>
     <string name="avatar_source">Elegir avatar</string>
     <string name="avatar_source_youtube">YouTube</string>
     <string name="avatar_source_discord">Discord</string>
@@ -584,7 +582,6 @@
     <string name="jam_show">Mostrar</string>
     <string name="clear">Limpiar historial</string>
 
-    <!-- Auto Update -->
     <!-- Actualización automática -->
     <string name="update_settings">Ajustes de actualizaciones</string>
     <string name="auto_updates">Actualizaciones automáticas</string>
@@ -610,4 +607,29 @@
     <string name="update_download_failed">Error al descargar la actualización</string>
     <string name="update_notification_title">Actualización de AniTail disponible</string>
     <string name="update_notification_description">Descargando la última versión de AniTail</string>
+
+    <!-- Cadenas de respaldo automático -->
+    <string name="auto_backup">Respaldo automático</string>
+    <string name="auto_backup_settings">Configuración de respaldo automático</string>
+    <string name="auto_backup_settings_desc">Configura la frecuencia, ubicación y retención de los respaldos automáticos</string>
+    <string name="backup_frequency">Frecuencia de respaldo</string>
+    <string name="backups_to_keep">Cantidad de respaldos a conservar</string>
+    <string name="backup_custom_location">Usar ubicación personalizada</string>
+    <string name="auto_backup_custom_location">Ubicación personalizada del respaldo</string>
+    <string name="auto_backup_custom_location_desc">Selecciona una carpeta personalizada para los respaldos automáticos</string>
+    <string name="select_folder">Seleccionar carpeta</string>
+    <string name="no_folder_selected">Ninguna carpeta seleccionada</string>
+    <string name="backups_location_info">Ubicación predeterminada: Descargas/AniTail/AutoBackup</string>
+    <string name="backup_permission_error">Error de permisos de respaldo</string>
+    <string name="backup_fallback_to_internal">Ubicación personalizada no disponible, usando almacenamiento interno</string>
+    <string name="storage_permissions_required">Se requieren permisos de almacenamiento</string>
+    <string name="enabled">Activado</string>
+    <string name="disabled">Desactivado</string>
+    <string name="create_backup_now">Crear respaldo ahora</string>
+    <string name="backup_scheduled">Respaldo programado; se iniciará en unos segundos</string>
+    <string name="backup_failed">El respaldo ha fallado</string>
+    <string name="backup_diagnostics">Diagnóstico de respaldo</string>
+    <string name="run_backup_now">Ejecutar copia de seguridad ahora</string>
+    <string name="run_backup_now_desc">Crear una copia de seguridad inmediatamente sin esperar al tiempo programado</string>
+
 </resources>

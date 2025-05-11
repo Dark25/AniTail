@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.graphics.drawable.BitmapDrawable
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -20,6 +19,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
@@ -277,10 +277,10 @@ class MainActivity : ComponentActivity() {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     }
                 }
-        }          // Only validate backup permissions when needed, don't reschedule 
+        }
+
         lifecycleScope.launch {
             try {
-                // Check storage permissions but don't schedule backup on every app open
                 checkAndRequestStoragePermissions()
             } catch (e: Exception) {
                 Timber.e(e, "Failed to check backup permissions")
@@ -303,8 +303,7 @@ class MainActivity : ComponentActivity() {
                     isHost = isJamHost,
                     hostIp = hostIp
                 )
-                
-                // Actualizar periódicamente las conexiones activas si es host
+
                 if (isJamEnabled && isJamHost) {
                     while (true) {
                         playerConnection?.service?.lanJamServer?.clientList?.let { clients ->
@@ -312,7 +311,7 @@ class MainActivity : ComponentActivity() {
                                 clients.map { client -> client.ip to client.connectedAt.toLong() }
                             )
                         }
-                        delay(5000)  // Actualizar cada 5 segundos
+                        delay(5000)
                     }
                 }
             }
@@ -1246,6 +1245,7 @@ class MainActivity : ComponentActivity() {
         const val ACTION_LIBRARY = "com.anitail.music.action.LIBRARY"
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     private val storagePermissionCallback = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -1284,6 +1284,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     private fun checkAndRequestStoragePermissions(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Android 11+ requires MANAGE_EXTERNAL_STORAGE permission
@@ -1292,7 +1293,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 try {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                    intent.data = Uri.parse("package:$packageName")
+                    intent.data = "package:$packageName".toUri()
                     managedStoragePermissionCallback.launch(intent)
                 } catch (e: Exception) {
                     Timber.e(e, "Unable to request MANAGE_EXTERNAL_STORAGE permission")
