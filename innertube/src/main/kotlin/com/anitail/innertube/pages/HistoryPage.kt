@@ -5,6 +5,7 @@ import com.anitail.innertube.models.Artist
 import com.anitail.innertube.models.MusicResponsiveListItemRenderer
 import com.anitail.innertube.models.MusicShelfRenderer
 import com.anitail.innertube.models.SongItem
+import com.anitail.innertube.models.getItems
 import com.anitail.innertube.models.oddElements
 import com.anitail.innertube.utils.parseTime
 
@@ -20,10 +21,8 @@ data class HistoryPage(
         fun fromMusicShelfRenderer(renderer: MusicShelfRenderer): HistorySection {
             return HistorySection(
                 title = renderer.title?.runs?.firstOrNull()?.text!!,
-                songs = renderer.contents?.mapNotNull {
-                    it.musicResponsiveListItemRenderer?.let { renderer ->
-                        fromMusicResponsiveListItemRenderer(renderer)
-                    }
+                songs = renderer.contents?.getItems()?.mapNotNull {
+                    fromMusicResponsiveListItemRenderer(it)
                 }!!
             )
         }
