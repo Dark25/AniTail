@@ -642,5 +642,11 @@
     <string name="backup_scheduled">Backup scheduled and will start in a few seconds</string>
     <string name="backup_failed">Backup failed</string>
     <string name="backup_diagnostics">Backup diagnostics</string>
+    <string name="diagnostic_info">Diagnostic information</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="loading">Loading info…</string>
+    <string name="no_diagnostic_data">No diagnostic data available</string>
+    <string name="ok">OK</string>
 
 </resources>

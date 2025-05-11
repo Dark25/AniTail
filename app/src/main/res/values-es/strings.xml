@@ -631,5 +631,11 @@
     <string name="backup_diagnostics">Diagnóstico de respaldo</string>
     <string name="run_backup_now">Ejecutar copia de seguridad ahora</string>
     <string name="run_backup_now_desc">Crear una copia de seguridad inmediatamente sin esperar al tiempo programado</string>
+    <string name="diagnostic_info">Información de diagnóstico</string>
+    <string name="collapse">Contraer</string>
+    <string name="expand">Expandir</string>
+    <string name="loading">Cargando información…</string>
+    <string name="no_diagnostic_data">No hay datos de diagnóstico disponibles</string>
+    <string name="ok">Aceptar</string>
 
 </resources>
