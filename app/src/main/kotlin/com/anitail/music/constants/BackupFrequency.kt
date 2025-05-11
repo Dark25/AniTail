@@ -3,6 +3,7 @@ package com.anitail.music.constants
 import java.util.concurrent.TimeUnit
 
 enum class BackupFrequency(val hours: Int) {
+    ONE_HOUR(1),
     THREE_HOURS(3),
     SIX_HOURS(6),
     DAILY(24),
@@ -12,6 +13,7 @@ enum class BackupFrequency(val hours: Int) {
     
     fun getDisplayName(): String {
         return when (this) {
+            ONE_HOUR -> "1 hour"
             THREE_HOURS -> "3 hours"
             SIX_HOURS -> "6 hours" 
             DAILY -> "Daily"
@@ -22,6 +24,7 @@ enum class BackupFrequency(val hours: Int) {
     companion object {
         fun fromHours(hours: Int): BackupFrequency {
             return when (hours) {
+                1 -> ONE_HOUR
                 3 -> THREE_HOURS
                 6 -> SIX_HOURS
                 24 -> DAILY
