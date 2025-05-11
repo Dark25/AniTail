@@ -60,7 +60,7 @@ class AutoBackupWorker @AssistedInject constructor(
             params: WorkerParameters
         ): AutoBackupWorker
     }
-    
+
     companion object {
         const val AUTO_BACKUP_WORK_NAME = "auto_backup_work"
         const val BACKUP_FOLDER_NAME = "AniTail/AutoBackup"
@@ -68,7 +68,7 @@ class AutoBackupWorker @AssistedInject constructor(
         private const val BACKUP_NOTIFICATION_ID = 2001
         private const val FILE_PROVIDER_AUTHORITY = "com.anitail.music.fileprovider"
 
-        // Check if storage permissions are granted 
+        // Check if storage permissions are granted
         private fun hasStoragePermission(context: Context): Boolean {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Environment.isExternalStorageManager()
@@ -104,21 +104,21 @@ class AutoBackupWorker @AssistedInject constructor(
                 Timber.d("Auto backups are disabled, cancelling scheduled work")
                 return false
             }
-            
+
             // Check for storage permissions
             if (!hasStoragePermission(context)) {
                 Timber.w("Storage permissions not granted, cannot schedule auto backup")
                 return false
             }
-            
+
             // Get frequency from preferences (default to daily)
-            val frequencyHours = context.dataStore.get(AutoBackupFrequencyKey, BackupFrequency.DAILY.hours)
+            val frequencyHours = context.dataStore[AutoBackupFrequencyKey, BackupFrequency.DAILY.hours]
             val backupFrequency = BackupFrequency.fromHours(frequencyHours)
 
             // Ensure backup directory exists for default location
-            val useCustomLocation = context.dataStore.get(AutoBackupUseCustomLocationKey, false)
+            val useCustomLocation = context.dataStore[AutoBackupUseCustomLocationKey, false]
             var backupDir: File? = null
-            
+
             if (!useCustomLocation) {
                 try {
                     backupDir = File(
@@ -132,17 +132,18 @@ class AutoBackupWorker @AssistedInject constructor(
                     Timber.e(e, "Failed to create backup directory")
                     return false
                 }
-            }            // Check if we should run an immediate backup based on when the last backup was made
+            }
+              // Check if we should run an immediate backup based on when the last backup was made
             var shouldRunImmediateBackup = false
             var lastBackupTime: Long = 0
             var initialDelayMinutes: Long = 0
-            
+
             // Check for existing backups and get the timestamp of the most recent one
             if (backupDir != null && backupDir.exists()) {
                 val backupFiles = backupDir.listFiles { file ->
                     file.isFile && file.name.endsWith(".backup")
                 }?.sortedByDescending { it.lastModified() }
-                
+
                 if (backupFiles.isNullOrEmpty()) {
                     // No backups found, we should run an immediate backup
                     Timber.d("No existing backup files found, should run immediate backup")
@@ -151,17 +152,17 @@ class AutoBackupWorker @AssistedInject constructor(
                     // Found backups, check when the last one was made
                     val lastBackupFile = backupFiles.first()
                     lastBackupTime = lastBackupFile.lastModified()
-                    
+
                     val currentTime = System.currentTimeMillis()
                     val elapsedMillis = currentTime - lastBackupTime
                     val elapsedHours = elapsedMillis / (1000 * 60 * 60)
-                    
+
                     Timber.d("Last backup was $elapsedHours hours ago (${java.util.Date(lastBackupTime)})")
-                    
+
                     // Calculate when the next backup should run based on the frequency setting
                     val backupIntervalMillis = backupFrequency.hours * 60 * 60 * 1000L
                     val nextScheduledBackupTime = lastBackupTime + backupIntervalMillis
-                    
+
                     if (nextScheduledBackupTime <= currentTime) {
                         // Next scheduled backup is in the past, run immediate backup
                         Timber.d("Next scheduled backup time has passed, should run immediate backup")
@@ -170,7 +171,7 @@ class AutoBackupWorker @AssistedInject constructor(
                         // Calculate initial delay for next backup in minutes
                         val delayMillis = nextScheduledBackupTime - currentTime
                         initialDelayMinutes = delayMillis / (60 * 1000)
-                        
+
                         Timber.d("Next backup scheduled for ${java.util.Date(nextScheduledBackupTime)}, in $initialDelayMinutes minutes")
                         Timber.d("Last backup is recent enough, no need for immediate backup")
                     }
@@ -189,18 +190,18 @@ class AutoBackupWorker @AssistedInject constructor(
                 .setRequiresDeviceIdle(false)
                 .setRequiresCharging(false)
                 .build()
-                
+
             // Create work request with calculated initial delay
             val backupWorkRequestBuilder = PeriodicWorkRequestBuilder<AutoBackupWorker>(
                 backupFrequency.hours.toLong(), TimeUnit.HOURS
             ).setConstraints(constraints)
-            
+
             // Apply calculated initial delay if available
             if (initialDelayMinutes > 0 && !shouldRunImmediateBackup) {
                 backupWorkRequestBuilder.setInitialDelay(initialDelayMinutes, TimeUnit.MINUTES)
                 Timber.d("Setting initial delay of $initialDelayMinutes minutes for periodic backup")
             }
-            
+
             val backupWorkRequest = backupWorkRequestBuilder.build()
 
             try {
@@ -209,20 +210,20 @@ class AutoBackupWorker @AssistedInject constructor(
                     ExistingPeriodicWorkPolicy.REPLACE, // Replace existing work to ensure new settings are applied
                     backupWorkRequest
                 )
-                
+
                 // Log detailed scheduling information
                 if (initialDelayMinutes > 0 && !shouldRunImmediateBackup) {
                     Timber.d("Scheduled auto backups every ${backupFrequency.getDisplayName()} (${backupFrequency.hours} hours), first backup in $initialDelayMinutes minutes")
                 } else {
                     Timber.d("Scheduled auto backups every ${backupFrequency.getDisplayName()} (${backupFrequency.hours} hours)")
                   }
-                
+
                 // If needed, schedule an immediate backup
                 if (shouldRunImmediateBackup) {
                     Timber.d("Also scheduling an immediate backup")
                     scheduleImmediateBackup(context)
                 }
-                
+
                 return true
             } catch (e: Exception) {
                 Timber.e(e, "Failed to schedule periodic backups: ${e.message}")
@@ -238,56 +239,56 @@ class AutoBackupWorker @AssistedInject constructor(
                 .setRequiresDeviceIdle(false)
                 .setRequiresCharging(false)
                 .build()
-                
-            val oneTimeWorkRequest = androidx.work.OneTimeWorkRequestBuilder<AutoBackupWorker>()
+                  val oneTimeWorkRequest = androidx.work.OneTimeWorkRequestBuilder<AutoBackupWorker>()
                 .setConstraints(constraints)
                 // Add a small delay to avoid system ignoring the request
                 .setInitialDelay(30, TimeUnit.SECONDS)
                 .addTag("immediate_backup")
                 .build()
-                
+
             WorkManager.getInstance(context).enqueue(oneTimeWorkRequest)
             Timber.d("Scheduled immediate one-time backup (will run in 30 seconds)")
+            Timber.d("Work request ID for immediate backup: ${oneTimeWorkRequest.id}")
         }
-        
+
         /**
          * Diagnose potential issues with auto backup
          * This can be called from settings to help troubleshoot backup issues
          */
         fun diagnoseBackupIssues(context: Context): String {
             val sb = StringBuilder()
-            
+
             // Check if backups are enabled
             val enabled = context.dataStore[AutoBackupEnabledKey, false]
             sb.append("Auto backup enabled: $enabled\n")
-            
+
             if (!enabled) {
                 return sb.append("Auto backup is disabled. Enable it in settings.").toString()
             }
-            
+
             // Check storage permissions
             val hasPermission = hasStoragePermission(context)
             sb.append("Storage permissions granted: $hasPermission\n")
-            
+
             if (!hasPermission) {
                 sb.append("Storage permissions required for backup to work.\n")
             }
-            
+
             // Check backup settings
             val frequency = context.dataStore[AutoBackupFrequencyKey, BackupFrequency.DAILY.hours]
             val backupFrequency = BackupFrequency.fromHours(frequency)
             sb.append("Backup frequency: ${backupFrequency.getDisplayName()}\n")
-            
+
             val keepCount = context.dataStore[AutoBackupKeepCountKey, 5]
             sb.append("Backups to keep: $keepCount\n")
-            
+
             val useCustomLocation = context.dataStore[AutoBackupUseCustomLocationKey, false]
             sb.append("Use custom location: $useCustomLocation\n")
-            
+
             if (useCustomLocation) {
                 val customLocation = context.dataStore[AutoBackupCustomLocationKey, ""]
                 sb.append("Custom location: $customLocation\n")
-                
+
                 if (customLocation.isEmpty()) {
                     sb.append("ERROR: Custom location enabled but no location selected\n")
                 } else {
@@ -317,7 +318,7 @@ class AutoBackupWorker @AssistedInject constructor(
                 sb.append("Default backup directory: ${backupDir.absolutePath}\n")
                 sb.append("Directory exists: ${backupDir.exists()}\n")
                 sb.append("Directory is writable: ${backupDir.canWrite()}\n")
-                
+
                 if (backupDir.exists()) {
                     val files = backupDir.listFiles()?.filter { it.name.endsWith(".backup") } ?: emptyList()
                     sb.append("Existing backup files: ${files.size}\n")
@@ -327,17 +328,17 @@ class AutoBackupWorker @AssistedInject constructor(
                             val lastBackupTime = lastBackup.lastModified()
                             val date = java.util.Date(lastBackupTime)
                             sb.append("Last backup: ${date}\n")
-                            
+
                             // Calculate time until next backup
                             val currentTime = System.currentTimeMillis()
                             val backupIntervalMillis = backupFrequency.hours * 60 * 60 * 1000L
                             val nextScheduledBackupTime = lastBackupTime + backupIntervalMillis
-                            
+
                             if (nextScheduledBackupTime > currentTime) {
                                 val timeUntilNextBackup = nextScheduledBackupTime - currentTime
                                 val hoursUntil = timeUntilNextBackup / (1000 * 60 * 60)
                                 val minutesUntil = (timeUntilNextBackup % (1000 * 60 * 60)) / (1000 * 60)
-                                
+
                                 sb.append("Next backup scheduled for: ${java.util.Date(nextScheduledBackupTime)}\n")
                                 sb.append("Time until next backup: ${hoursUntil}h ${minutesUntil}m\n")
                             } else {
@@ -350,7 +351,7 @@ class AutoBackupWorker @AssistedInject constructor(
               // Check work manager status
             val workManager = WorkManager.getInstance(context)
             sb.append("WorkManager initialized: ${true}\n")
-            
+
             // Get status of scheduled work
             try {
                 val workInfoLiveData = workManager.getWorkInfosForUniqueWorkLiveData(AUTO_BACKUP_WORK_NAME)
@@ -358,7 +359,7 @@ class AutoBackupWorker @AssistedInject constructor(
                 if (workInfos != null && workInfos.isNotEmpty()) {
                     val workInfo = workInfos.firstOrNull()
                     sb.append("Scheduled work status: ${workInfo?.state}\n")
-                    
+
                     // If we have a running work, get its progress
                     when (workInfo?.state) {
                         androidx.work.WorkInfo.State.RUNNING -> {
@@ -380,7 +381,7 @@ class AutoBackupWorker @AssistedInject constructor(
                             sb.append("Work is in state: ${workInfo?.state}\n")
                         }
                     }
-                    
+
                     // Get scheduled time if available
                     val triggerTime = workInfo?.nextScheduleTimeMillis
                     if (triggerTime != null && triggerTime > 0) {
@@ -393,26 +394,25 @@ class AutoBackupWorker @AssistedInject constructor(
             } catch (e: Exception) {
                 sb.append("Error checking work status: ${e.message}\n")
             }
-            
+
             return sb.toString()
         }
     }
-    
+
     override suspend fun doWork(): Result {
         try {
             // Create notification channel
             createNotificationChannel()
 
             Timber.d("Starting auto backup... Time: ${java.util.Date()}")
-            
+
             // Check if auto backup is enabled in settings
             val enabled = context.dataStore[AutoBackupEnabledKey, false]
             if (!enabled) {
                 Timber.w("Auto backup is disabled in settings, cancelling work")
                 return Result.success() // Return success to avoid retries
             }
-            
-            // Check storage permissions first
+              // Check storage permissions first
             if (!hasStoragePermission(context)) {
                 Timber.e("Storage permissions not granted, cannot perform backup")
                 showNotification(
@@ -421,11 +421,53 @@ class AutoBackupWorker @AssistedInject constructor(
                 )
                 return Result.failure()
             }
-            
-            // Check if auto backup should use custom location
+
+            // Check if there's a recent backup to prevent duplicate backups
+            val backupDir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                BACKUP_FOLDER_NAME
+            )
+            if (backupDir.exists()) {
+                val backupFiles = backupDir.listFiles { file ->
+                    file.isFile && file.name.endsWith(".backup")
+                }?.sortedByDescending { it.lastModified() }
+
+                if (backupFiles?.isNotEmpty() == true) {
+                    val lastBackupTime = backupFiles.first().lastModified()
+                    val currentTime = System.currentTimeMillis()
+                    val elapsedMillis = currentTime - lastBackupTime
+                    val elapsedMinutes = elapsedMillis / (1000 * 60)
+
+                    // Skip if a backup was made less than 5 minutes ago
+                    if (elapsedMinutes < 5) {
+                        Timber.d("Skipping backup as another was created just ${elapsedMinutes} minutes ago")
+                        return Result.success()
+                    }
+                }
+            }
+              // Check if auto backup should use custom location
             val useCustomLocation = context.dataStore[AutoBackupUseCustomLocationKey, false]
             val customLocationUri = context.dataStore[AutoBackupCustomLocationKey, ""]
-            
+
+            // For custom location, add additional check if we need to verify recent backups
+            // Note: This is more complex and less reliable than checking local files
+            if (useCustomLocation && customLocationUri.isNotEmpty()) {
+                val tag = "immediate_backup"
+                val workManager = WorkManager.getInstance(context)
+                val workInfoList = workManager.getWorkInfosByTag(tag).get()
+
+                // If we have recently scheduled work with the immediate_backup tag that completed successfully
+                val recentWork = workInfoList.find {
+                    it.state == androidx.work.WorkInfo.State.SUCCEEDED &&
+                    System.currentTimeMillis() - it.outputData.getLong("timestamp", 0) < 5 * 60 * 1000 // 5 minutes
+                }
+
+                if (recentWork != null) {
+                    Timber.d("Skipping backup as another succeeded with custom location less than 5 minutes ago")
+                    return Result.success()
+                }
+            }
+
             // Execute backup based on location settings
             return if (useCustomLocation && customLocationUri.isNotEmpty()) {
                 try {
@@ -465,7 +507,7 @@ class AutoBackupWorker @AssistedInject constructor(
             notificationManager.createNotificationChannel(channel)
         }
     }
-    
+
     private suspend fun createBackupToInternalStorage(): Result = withContext(Dispatchers.IO) {
         try {
             // Create backup directory: Downloads/AniTail/AutoBackup
@@ -495,7 +537,7 @@ class AutoBackupWorker @AssistedInject constructor(
             val formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
             val timestamp = LocalDateTime.now().format(formatter)
             val backupFile = File(backupDir, "AniTail_AutoBackup_$timestamp.backup")
-            
+
             // Create the backup file
             createBackup(Uri.fromFile(backupFile))
 
@@ -510,16 +552,20 @@ class AutoBackupWorker @AssistedInject constructor(
             }
 
             // Clean up old backups
-            cleanupOldBackups(backupDir)
-
-            // Show success notification
+            cleanupOldBackups(backupDir)            // Show success notification
             showNotification(
                 title = context.getString(R.string.backup_create_success),
                 message = backupFile.name
             )
 
             Timber.d("Auto backup completed successfully")
-            return@withContext Result.success()
+
+            // Store timestamp for tracking recent backups
+            val outputData = androidx.work.Data.Builder()
+                .putLong("timestamp", System.currentTimeMillis())
+                .build()
+
+            return@withContext Result.success(outputData)
         } catch (e: Exception) {
             Timber.e(e, "Failed to create backup to internal storage: ${e.message}")
             showNotification(
@@ -575,31 +621,32 @@ class AutoBackupWorker @AssistedInject constructor(
             }
 
             // Create the backup file at the custom location
-            createBackup(documentUri)
-
-            // Show success notification
+            createBackup(documentUri)            // Show success notification
             showNotification(
                 title = context.getString(R.string.backup_create_success),
                 message = context.getString(R.string.backup_custom_location)
             )
 
-            return@withContext Result.success()
+            // Store timestamp for tracking recent backups
+            val outputData = androidx.work.Data.Builder()
+                .putLong("timestamp", System.currentTimeMillis())
+                .build()
+
+            return@withContext Result.success(outputData)
         } catch (e: Exception) {
             Timber.e(e, "Failed to create backup to custom location: ${e.message}")
             return@withContext Result.failure()
         }
     }
     private fun createBackup(uri: Uri) {
-        // Use the BackupRestoreViewModel's backup method, but don't show Toast
-        // since we're in a background thread without a Looper
         val viewModel = BackupRestoreViewModel(database)
         viewModel.backup(context, uri, showToast = false)
     }
 
-    private suspend fun cleanupOldBackups(backupDir: File) {
+    private fun cleanupOldBackups(backupDir: File) {
         try {
             // Get the maximum number of backups to keep
-            val keepCount = context.dataStore.get(AutoBackupKeepCountKey, 5)
+            val keepCount = context.dataStore[AutoBackupKeepCountKey, 5]
 
             // List all backup files, sorted by last modified time (newest first)
             val backupFiles = backupDir.listFiles { file ->
@@ -624,7 +671,7 @@ class AutoBackupWorker @AssistedInject constructor(
         val notification = NotificationCompat.Builder(context, BACKUP_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(message)
-            .setSmallIcon(R.drawable.backup)
+            .setSmallIcon(R.drawable.ic_ani)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .build()
