@@ -267,6 +267,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(LocaleManager.applySavedLocale(newBase))
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnusedBoxWithConstraintsScope")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -297,8 +298,6 @@ class MainActivity : ComponentActivity() {
                 Timber.e(e, "Failed to check backup permissions")
             }
         }
-
-        intent?.let { handlevideoIdIntent(it) }
 
         setContent {
             // JAM: Observe JamViewModel and update MusicService JAM settings
