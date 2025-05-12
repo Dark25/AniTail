@@ -332,7 +332,6 @@ fun LibraryPlaylistsScreen(
                         ) {
                             PlaylistGridItem(
                                 playlist = cachePlaylist,
-                                fillMaxWidth = true,
                                 autoPlaylist = true,
                                 modifier =
                                 Modifier
