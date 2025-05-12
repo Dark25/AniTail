@@ -133,7 +133,7 @@ class UpdateCheckWorker(
 
         // Build notification
         val notification = NotificationCompat.Builder(context, UPDATE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.update)
+            .setSmallIcon(R.drawable.ic_ani)
             .setContentTitle(context.getString(R.string.update_available))
             .setContentText(context.getString(R.string.new_version_available_description, newVersion))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

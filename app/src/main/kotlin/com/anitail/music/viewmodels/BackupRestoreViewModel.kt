@@ -32,7 +32,7 @@ import kotlin.system.exitProcess
 class BackupRestoreViewModel @Inject constructor(
     val database: MusicDatabase,
 ) : ViewModel() {
-    fun backup(context: Context, uri: Uri) {
+    fun backup(context: Context, uri: Uri, showToast: Boolean = true) {
         runCatching {
             context.applicationContext.contentResolver.openOutputStream(uri)?.use {
                 it.buffered().zipOutputStream().use { outputStream ->
@@ -51,10 +51,15 @@ class BackupRestoreViewModel @Inject constructor(
                 }
             }
         }.onSuccess {
-            Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
+            if (showToast) {
+                // Only show the toast if requested (not from background worker)
+                Toast.makeText(context, R.string.backup_create_success, Toast.LENGTH_SHORT).show()
+            }
         }.onFailure {
             reportException(it)
-            Toast.makeText(context, R.string.backup_create_failed, Toast.LENGTH_SHORT).show()
+            if (showToast) {
+                Toast.makeText(context, R.string.backup_create_failed, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

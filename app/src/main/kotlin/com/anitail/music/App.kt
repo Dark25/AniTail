@@ -5,7 +5,9 @@ import android.content.Context
 import android.os.Build
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
+import androidx.annotation.RequiresApi
 import androidx.datastore.preferences.core.edit
+import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
@@ -31,10 +33,13 @@ import com.anitail.music.constants.UseLoginForBrowse
 import com.anitail.music.constants.VisitorDataKey
 import com.anitail.music.extensions.toEnum
 import com.anitail.music.extensions.toInetSocketAddress
+import com.anitail.music.services.AutoBackupWorker
 import com.anitail.music.services.UpdateCheckWorker
 import com.anitail.music.utils.dataStore
 import com.anitail.music.utils.get
 import com.anitail.music.utils.reportException
+import com.onesignal.OneSignal
+import com.onesignal.debug.LogLevel
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -49,8 +54,17 @@ import java.net.Proxy
 import java.util.Locale
 
 @HiltAndroidApp
-class App : Application(), ImageLoaderFactory {
+class App : Application(), ImageLoaderFactory, Configuration.Provider {
 
+    @javax.inject.Inject
+    lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
+
+    @RequiresApi(Build.VERSION_CODES.M)
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
@@ -61,17 +75,22 @@ class App : Application(), ImageLoaderFactory {
         val oneSignalAppId = "8f09b52f-d61a-469e-9d7d-203ebf6b9e1b"
         try {
             // Enable verbose logging for debugging (remove in production)
-            com.onesignal.OneSignal.Debug.logLevel = com.onesignal.debug.LogLevel.VERBOSE
-            com.onesignal.OneSignal.initWithContext(this, oneSignalAppId)
+          OneSignal.Debug.logLevel = LogLevel.VERBOSE
+           OneSignal.initWithContext(this, oneSignalAppId)
             GlobalScope.launch(Dispatchers.IO) {
-                com.onesignal.OneSignal.Notifications.requestPermission(true)
+                OneSignal.Notifications.requestPermission(true)
             }
         } catch (e: Exception) {
             Timber.e(e, "OneSignal initialization failed")
-        }
-        
-        // Initialize automatic update checks
+        }        // Initialize automatic update checks
         UpdateCheckWorker.schedule(this)
+        
+        // Initialize automatic backup (only schedule, don't run immediately)
+        try {
+            AutoBackupWorker.schedulePeriodicOnly(this)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to schedule auto backups")
+        }
 
         val locale = Locale.getDefault()
         val languageTag = locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*

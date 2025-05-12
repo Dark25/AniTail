@@ -1,18 +1,25 @@
 package com.anitail.music
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.IBinder
+import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
@@ -95,6 +102,7 @@ import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.util.Consumer
 import androidx.core.view.WindowCompat
@@ -136,6 +144,7 @@ import com.anitail.music.playback.MusicService
 import com.anitail.music.playback.MusicService.MusicBinder
 import com.anitail.music.playback.PlayerConnection
 import com.anitail.music.playback.queues.YouTubeQueue
+import com.anitail.music.services.AutoBackupWorker
 import com.anitail.music.ui.component.BottomSheetMenu
 import com.anitail.music.ui.component.BottomSheetPage
 import com.anitail.music.ui.component.IconButton
@@ -176,6 +185,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.net.URLDecoder
 import java.net.URLEncoder
 import javax.inject.Inject
@@ -257,6 +267,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(LocaleManager.applySavedLocale(newBase))
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnusedBoxWithConstraintsScope")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -280,6 +291,14 @@ class MainActivity : ComponentActivity() {
                 }
         }
 
+        lifecycleScope.launch {
+            try {
+                checkAndRequestStoragePermissions()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to check backup permissions")
+            }
+        }
+
         setContent {
             // JAM: Observe JamViewModel and update MusicService JAM settings
             val jamViewModel: com.anitail.music.ui.screens.settings.JamViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -294,8 +313,7 @@ class MainActivity : ComponentActivity() {
                     isHost = isJamHost,
                     hostIp = hostIp
                 )
-                
-                // Actualizar periódicamente las conexiones activas si es host
+
                 if (isJamEnabled && isJamHost) {
                     while (true) {
                         playerConnection?.service?.lanJamServer?.clientList?.let { clients ->
@@ -303,7 +321,7 @@ class MainActivity : ComponentActivity() {
                                 clients.map { client -> client.ip to client.connectedAt.toLong() }
                             )
                         }
-                        delay(5000)  // Actualizar cada 5 segundos
+                        delay(5000)
                     }
                 }
             }
@@ -1221,6 +1239,78 @@ class MainActivity : ComponentActivity() {
         const val ACTION_SEARCH = "com.anitail.music.action.SEARCH"
         const val ACTION_EXPLORE = "com.anitail.music.action.EXPLORE"
         const val ACTION_LIBRARY = "com.anitail.music.action.LIBRARY"
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private val storagePermissionCallback = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            Timber.d("Storage permissions granted")
+            lifecycleScope.launch {
+                AutoBackupWorker.schedule(this@MainActivity)
+            }
+        } else {
+            Timber.w("Storage permissions denied")
+            // Show a toast explaining the need for storage permissions
+            Toast.makeText(
+                this,
+                getString(R.string.storage_permissions_required),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private val managedStoragePermissionCallback = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+            Timber.d("Managed storage permission granted")
+            lifecycleScope.launch {
+                AutoBackupWorker.schedule(this@MainActivity)
+            }
+        } else {
+            Timber.w("Managed storage permission denied")
+            Toast.makeText(
+                this,
+                getString(R.string.storage_permissions_required),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun checkAndRequestStoragePermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ requires MANAGE_EXTERNAL_STORAGE permission
+            if (Environment.isExternalStorageManager()) {
+                true
+            } else {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.data = "package:$packageName".toUri()
+                    managedStoragePermissionCallback.launch(intent)
+                } catch (e: Exception) {
+                    Timber.e(e, "Unable to request MANAGE_EXTERNAL_STORAGE permission")
+                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    managedStoragePermissionCallback.launch(intent)
+                }
+                false
+            }
+        } else {
+            // Android 10 or lower use traditional runtime permissions
+            val permissions = arrayOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            if (permissions.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }) {
+                true
+            } else {
+                storagePermissionCallback.launch(permissions)
+                false
+            }
+        }
     }
 }
 
