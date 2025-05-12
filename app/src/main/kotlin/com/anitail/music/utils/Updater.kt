@@ -97,14 +97,20 @@ object Updater {
     }
     
      fun downloadUpdate(context: Context, downloadUrl: String): Long {
-        // Check nombre de la ultima version
 
-        val fileName = "AniTail_update.apk"
+         val fileName = "AniTail_update.apk"
+         val dirPath = "AniTail/apk"
+         val file = java.io.File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirPath)
+
+        if (!file.exists()) {
+            file.mkdirs()
+        }
+        
         val request = DownloadManager.Request(downloadUrl.toUri())
             .setTitle(context.getString(R.string.update_notification_title))
             .setDescription(context.getString(R.string.update_notification_description))
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "$dirPath/$fileName")
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
         
@@ -130,11 +136,10 @@ object Updater {
         )
         return downloadID
     }
-    
-    private fun installUpdate(context: Context, fileName: String) {
+      private fun installUpdate(context: Context, fileName: String) {
         // Launch the installer activity to handle the APK installation prompt
         val intent = Intent(context, Class.forName("com.anitail.music.installer.UpdateInstallerActivity"))
-        intent.putExtra("extra_file_name", fileName)
+        intent.putExtra("extra_file_name", "AniTail/apk/$fileName")
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
