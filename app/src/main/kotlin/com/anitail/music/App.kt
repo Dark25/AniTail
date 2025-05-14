@@ -178,7 +178,6 @@ class App : Application(), ImageLoaderFactory, Configuration.Provider {
                 }
         }
     }
-
     override fun newImageLoader(): ImageLoader {
         val cacheSize = dataStore[MaxImageCacheSizeKey]
 
@@ -189,6 +188,10 @@ class App : Application(), ImageLoaderFactory, Configuration.Provider {
                 .respectCacheHeaders(false)
                 .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
                 .diskCachePolicy(CachePolicy.DISABLED)
+                .components {
+                    // Add the GIF decoder
+                    add(coil.decode.GifDecoder.Factory())
+                }
                 .build()
         }
 
@@ -196,6 +199,10 @@ class App : Application(), ImageLoaderFactory, Configuration.Provider {
         .crossfade(true)
         .respectCacheHeaders(false)
         .allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+        .components {
+            // Add the GIF decoder
+            add(coil.decode.GifDecoder.Factory())
+        }
         .diskCache(
             DiskCache.Builder()
                 .directory(cacheDir.resolve("coil"))
