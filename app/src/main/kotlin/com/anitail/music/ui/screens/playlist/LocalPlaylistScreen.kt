@@ -9,6 +9,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
@@ -76,6 +78,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -149,7 +152,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
 
-@SuppressLint("RememberReturnType")
+@SuppressLint("RememberReturnType", "UnusedBoxWithConstraintsScope", "FrequentlyChangingValue")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LocalPlaylistScreen(
@@ -259,10 +262,7 @@ fun LocalPlaylistScreen(
             PlaylistEditDialog(
                 playlistEntity = playlistEntity,
                 onDismiss = { showEditDialog = false },
-                onDone = { name, backgroundImageUrl ->
-                    // Log the backgroundImageUrl for debugging
-                    android.util.Log.d("AnitailDebug", "Setting background image URL: $backgroundImageUrl")
-                    
+                onDone = { name: String, backgroundImageUrl: String? ->
                     database.query {
                         update(
                             playlistEntity.copy(
@@ -279,6 +279,7 @@ fun LocalPlaylistScreen(
             )
         }
     }
+
 
     var showRemoveDownloadDialog by remember {
         mutableStateOf(false)
@@ -413,53 +414,70 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        // Display background image if set - only at the top part of the screen with z-index to ensure it's below content
-        playlist?.playlist?.backgroundImageUrl?.let { imageUrl ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(260.dp) // Fixed height for header area
-                    .align(Alignment.TopCenter)
-                    .zIndex(0f) // Ensure the background is below other content
-            ) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(radius = 1.dp), // Add blur effect for better aesthetics
-                    alpha = 0.8f,
-                    error = painterResource(R.drawable.image_24px) // Show placeholder if image fails to load
-                )
-                // Gradient overlay to make content more readable
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.1f), // More transparency at top
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.7f), // Mid gradient
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.95f) // Almost solid at bottom
-                                ),
-                                startY = 0f,
-                                endY = 250f
-                            )
-                        )
-                )
-            }
-        }
-
-        // Main content with z-index to ensure it's above the background image
-        LazyColumn(
-            state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
-            modifier = Modifier
-                .zIndex(1f) // Ensure content is above the background image
-                .fillMaxSize()
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val scrollOffsetPx = with(LocalDensity.current) { 
+                    lazyListState.firstVisibleItemScrollOffset.toDp() 
+                }
+                val firstVisibleIndex = lazyListState.firstVisibleItemIndex
+
+                val backgroundOffset = if (firstVisibleIndex == 0) {
+                    -scrollOffsetPx
+                } else {
+                    (-260).dp
+                }
+
+                playlist?.playlist?.backgroundImageUrl?.let { imageUrl ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp)
+                            .offset(y = backgroundOffset)
+                            .zIndex(0f)
+                    ) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(radius = 1.dp),
+                            alpha = 0.8f,
+                            error = painterResource(R.drawable.image_24px)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.1f),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                                        ),
+                                        startY = 0f,
+                                        endY = 260f
+                                    )
+                                )
+                        )
+                    }
+                }
+            }
+
+            LazyColumn(
+                state = lazyListState,
+                contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(1f)
+            ) {
             playlist?.let { playlist ->
+                
                 if (playlist.songCount == 0 && playlist.playlist.remoteSongCount == 0) {
                     item {
                         EmptyPlaceholder(
@@ -810,6 +828,7 @@ fun LocalPlaylistScreen(
                 }
             }
         }
+        }
 
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
@@ -969,7 +988,7 @@ fun LocalPlaylistHeader(
     }
 
     val liked = playlist.playlist.bookmarkedAt != null
-    val editable: Boolean = playlist.playlist.isEditable == true
+    val editable: Boolean = playlist.playlist.isEditable
 
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
