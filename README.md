@@ -69,7 +69,7 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 
 
 <img
-src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
+src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="70%" />
 </div>
 
 <div align="center">
