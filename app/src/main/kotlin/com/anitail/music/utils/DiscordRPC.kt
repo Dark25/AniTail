@@ -21,7 +21,7 @@ class DiscordRPC(
             details = song.song.title,
             state = song.song.artistName ?: song.artists.joinToString { it.name },
             largeImage = song.song.thumbnailUrl?.let { RpcImage.ExternalImage(it) },
-            smallImage = RpcImage.DiscordImage("emojis/1359946403522285699.webp?quality=lossless"
+            smallImage = RpcImage.DiscordImage("emojis/1372344240465645711.webp?quality=lossless"
             ),
             largeText = song.album?.title,
             smallText = song.artists.firstOrNull()?.name,
