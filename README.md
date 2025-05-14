@@ -60,16 +60,16 @@ align="center">](https://belberi.com/anitail/?fbclid=PAY2xjawJP5dlleHRuA2FlbQIxM
 <div align="center">
 <h1>Screenshots</h1>
 
-  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img1.jpg" width="20%" />
-  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img2.jpg" width="20%" />
-  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img3.jpg" width="20%" />
-  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img4.jpg" width="20%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img1.jpg" width="43%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img2.jpg" width="43%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img3.jpg" width="43%" />
+  <img src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/screenshots/img4.jpg" width="43%" />
 
 
 
 
 <img
-src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="91%" />
+src="https://github.com/Animetailapp/AniTail/blob/master/fastlane/metadata/android/en-US/images/featureGraphic.png" width="70%" />
 </div>
 
 <div align="center">
