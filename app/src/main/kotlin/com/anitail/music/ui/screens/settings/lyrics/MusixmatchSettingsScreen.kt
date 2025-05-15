@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,14 +37,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.navigation.NavController
+import com.anitail.music.R
 import com.anitail.music.lyrics.MusixmatchLyricsProvider
+import com.anitail.music.ui.component.IconButton
+import com.anitail.music.ui.utils.backToMain
+import com.anitail.music.utils.dataStore
 import com.anitail.music.utils.rememberPreference
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +59,6 @@ fun MusixmatchSettingsScreen(navController: NavController) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
-
     // Preferencias
     val email by rememberPreference(
         key = stringPreferencesKey("musixmatch_email"),
@@ -71,6 +75,11 @@ fun MusixmatchSettingsScreen(navController: NavController) {
         defaultValue = false
     )
     
+    val tokenTimestampStr by rememberPreference(
+        key = stringPreferencesKey("musixmatch_token_timestamp"),
+        defaultValue = "0"
+    )
+    
     val preferredLanguage by rememberPreference(
         key = stringPreferencesKey("musixmatch_preferred_language"),
         defaultValue = "es"
@@ -84,23 +93,32 @@ fun MusixmatchSettingsScreen(navController: NavController) {
     val maxResultsStr by rememberPreference(
         key = stringPreferencesKey("musixmatch_results_max"),
         defaultValue = "3"
-    )
-
-    // Estados locales
+    )    // Estados locales
     var emailState by remember { mutableStateOf(email) }
     var passwordState by remember { mutableStateOf(password) }
     var preferredLanguageState by remember { mutableStateOf(preferredLanguage) }
     var showTranslationsState by remember { mutableStateOf(showTranslations) }
     var maxResultsFloat by remember { mutableFloatStateOf(maxResultsStr.toFloatOrNull() ?: 3f) }
     var isTestingLogin by remember { mutableStateOf(false) }
-    
-    // Cargar los valores iniciales
+    var lastLoginTime by remember { mutableStateOf<String?>(null) }    // Cargar los valores iniciales y datos de autenticación guardados
     LaunchedEffect(Unit) {
+        // Cargar datos de UI
         emailState = email
         passwordState = password
         preferredLanguageState = preferredLanguage
         showTranslationsState = showTranslations
         maxResultsFloat = maxResultsStr.toFloatOrNull() ?: 3f
+        
+        // Cargar datos de autenticación guardados
+        MusixmatchLyricsProvider.loadSavedAuthData(navController.context)
+        
+        // Obtener información de la sesión
+        val timestamp = tokenTimestampStr.toLongOrNull()
+        if (timestamp != null && timestamp > 0) {
+            val date = java.util.Date(timestamp)
+            val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+            lastLoginTime = dateFormat.format(date)
+        }
     }
 
     Scaffold(
@@ -113,11 +131,16 @@ fun MusixmatchSettingsScreen(navController: NavController) {
                     )
                 },
                 navigationIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Buscar"
-                    )
-                },
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null,
+                        )
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -145,15 +168,90 @@ fun MusixmatchSettingsScreen(navController: NavController) {
                     )
                     
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = if (isAuthenticated) "Autenticado" else "No autenticado",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isAuthenticated) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.error
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {                        Column {
+                            Text(
+                                text = if (isAuthenticated) "Autenticado" else "No autenticado",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isAuthenticated) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.error
+                            )
+                            
+                            if (isAuthenticated && lastLoginTime != null) {
+                                Text(
+                                    text = "Última sesión: $lastLoginTime",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        
+                        if (isAuthenticated) {
+                            Row {
+                                TextButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            // Intenta verificar que las credenciales siguen siendo válidas
+                                            isTestingLogin = true
+                                            MusixmatchLyricsProvider.loadSavedAuthData(navController.context)
+                                            val result =                                            MusixmatchLyricsProvider.login(navController.context)
+                                                .onSuccess { success ->
+                                                    snackbarHostState.showSnackbar(
+                                                        if (success) "Sesión renovada exitosamente" else "Sesión expirada"
+                                                    )
+                                                    
+                                                    // Actualizar la UI con la nueva información de tiempo
+                                                    if (success) {
+                                                        val timestamp = navController.context.dataStore.data.first()[
+                                                            stringPreferencesKey("musixmatch_token_timestamp")
+                                                        ]?.toLongOrNull()
+                                                        
+                                                        if (timestamp != null) {
+                                                            val date = java.util.Date(timestamp)
+                                                            val dateFormat = java.text.SimpleDateFormat(
+                                                                "dd/MM/yyyy HH:mm", 
+                                                                java.util.Locale.getDefault()
+                                                            )
+                                                            lastLoginTime = dateFormat.format(date)
+                                                        }
+                                                    }
+                                                }
+                                                .onFailure {
+                                                    snackbarHostState.showSnackbar("Error: ${it.localizedMessage}")
+                                                }
+                                            isTestingLogin = false
+                                        }
+                                    },
+                                    enabled = !isTestingLogin
+                                ) {
+                                    Text("Renovar")
+                                }
+                                
+                                TextButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            // Cerrar sesión
+                                            isTestingLogin = true
+                                            MusixmatchLyricsProvider.logout(navController.context)
+                                            snackbarHostState.showSnackbar("Sesión cerrada")
+                                            
+                                            // Actualizar la UI
+                                            lastLoginTime = null
+                                            isTestingLogin = false
+                                        }
+                                    },
+                                    enabled = !isTestingLogin
+                                ) {
+                                    Text("Cerrar sesión", color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
                 }
             }
             

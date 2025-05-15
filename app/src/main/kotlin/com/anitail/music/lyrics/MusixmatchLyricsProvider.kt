@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.anitail.music.App
+import com.anitail.music.constants.EnableMusixmatchKey
 import com.anitail.music.utils.dataStore
 import com.anitail.music.utils.get
 import com.anitail.music.utils.reportException
@@ -24,8 +25,8 @@ import timber.log.Timber
 object MusixmatchLyricsProvider : LyricsProvider {
     override val name: String = "Musixmatch"
 
-    private val ENABLED = booleanPreferencesKey("musixmatch_lyrics_provider_enabled")
-    
+    override fun isEnabled(context: Context): Boolean = context.dataStore[EnableMusixmatchKey] ?: true
+
     // Nuevas claves de preferencias para Musixmatch
     private val MUSIXMATCH_EMAIL = stringPreferencesKey("musixmatch_email")
     private val MUSIXMATCH_PASSWORD = stringPreferencesKey("musixmatch_password")
@@ -33,6 +34,9 @@ object MusixmatchLyricsProvider : LyricsProvider {
     private val MUSIXMATCH_PREFERRED_LANGUAGE = stringPreferencesKey("musixmatch_preferred_language")
     private val MUSIXMATCH_SHOW_TRANSLATIONS = booleanPreferencesKey("musixmatch_show_translations")
     private val MUSIXMATCH_RESULTS_MAX = stringPreferencesKey("musixmatch_results_max")
+    private val MUSIXMATCH_USER_TOKEN = stringPreferencesKey("musixmatch_user_token")
+    private val MUSIXMATCH_COOKIE = stringPreferencesKey("musixmatch_cookie")
+    private val MUSIXMATCH_TOKEN_TIMESTAMP = stringPreferencesKey("musixmatch_token_timestamp")
     
     private var lastTokenFetchTimestamp = 0L
     private var userToken: String? = null
@@ -46,10 +50,27 @@ object MusixmatchLyricsProvider : LyricsProvider {
 
     private val lyricsProviders by lazy {
         LyricsProviders(App.instance, json)
-    }
-    
-    override fun isEnabled(context: Context): Boolean {
-        return context.dataStore[ENABLED] ?: true
+    }    /**
+     * Carga los datos de autenticación guardados en DataStore
+     */
+    suspend fun loadSavedAuthData(context: Context) {
+        try {
+            val savedToken = context.dataStore.data.first()[MUSIXMATCH_USER_TOKEN]
+            val savedCookie = context.dataStore.data.first()[MUSIXMATCH_COOKIE]
+            val savedTimestamp = context.dataStore.data.first()[MUSIXMATCH_TOKEN_TIMESTAMP]?.toLongOrNull() ?: 0L
+            val isAuthenticated = context.dataStore.data.first()[MUSIXMATCH_AUTHENTICATED] ?: false
+            
+            if (!savedToken.isNullOrEmpty() && !savedCookie.isNullOrEmpty() && isAuthenticated) {
+                userToken = savedToken
+                lyricsProviders.musixmatchUserToken = savedToken
+                lyricsProviders.musixmatchCookie = savedCookie
+                lastTokenFetchTimestamp = savedTimestamp
+                isUserAuthenticated = isAuthenticated
+                Timber.d("Musixmatch credenciales cargadas desde DataStore")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error al cargar los datos de autenticación de Musixmatch")
+        }
     }
     
     /**
@@ -96,8 +117,7 @@ object MusixmatchLyricsProvider : LyricsProvider {
             preferences[MUSIXMATCH_RESULTS_MAX] = max.toString()
         }
     }
-    
-    /**
+      /**
      * Inicia sesión con la cuenta de Musixmatch
      */
     suspend fun login(context: Context): Result<Boolean> = runCatching {
@@ -106,11 +126,11 @@ object MusixmatchLyricsProvider : LyricsProvider {
         
         if (email == null || password == null) {
             return@runCatching false
-        }
-          // Obtener el token de usuario si aún no lo tenemos
+        }          // Obtener el token de usuario si aún no lo tenemos
         if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
             // Intentar obtener el token, manejar posibles errores
-            try {                val tokenResponse = lyricsProviders.getMusixmatchUserToken()
+            try {
+                val tokenResponse = lyricsProviders.getMusixmatchUserToken()
                 val tokenResponseText = tokenResponse.bodyAsText()
                 Timber.d("Musixmatch token received: $tokenResponseText")
                 
@@ -126,6 +146,13 @@ object MusixmatchLyricsProvider : LyricsProvider {
                 
                 lyricsProviders.musixmatchUserToken = userToken
                 lastTokenFetchTimestamp = System.currentTimeMillis()
+                
+                // Guardar el nuevo token en DataStore
+                context.dataStore.edit { preferences ->
+                    preferences[MUSIXMATCH_USER_TOKEN] = userToken!!
+                    preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+                }
+                
                 Timber.d("Musixmatch token refreshed: $userToken")
             } catch (e: Exception) {
                 Timber.e(e, "Error al obtener el token de Musixmatch")
@@ -146,13 +173,53 @@ object MusixmatchLyricsProvider : LyricsProvider {
             credential.message.body.getOrNull(0)?.credential?.account != null
         }
         
-        // Actualiza el estado de autenticación
+        // Obtener la cookie de la respuesta
+        val cookie = lyricsProviders.musixmatchCookie
+        
+        // Actualiza el estado de autenticación y guarda token + cookie en DataStore
         context.dataStore.edit { preferences ->
             preferences[MUSIXMATCH_AUTHENTICATED] = isSuccess
+            if (isSuccess) {
+                userToken?.let { preferences[MUSIXMATCH_USER_TOKEN] = it }
+                cookie?.let { preferences[MUSIXMATCH_COOKIE] = it }
+                preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+            }
         }
         
         isUserAuthenticated = isSuccess
         return@runCatching isSuccess
+    }
+      /**
+     * Obtiene la información sobre la última renovación de la sesión
+     */
+    suspend fun getSessionInfo(context: Context): Pair<Boolean, Long?> {
+        val isAuthenticated = context.dataStore.data.first()[MUSIXMATCH_AUTHENTICATED] ?: false
+        val timestamp = context.dataStore.data.first()[MUSIXMATCH_TOKEN_TIMESTAMP]?.toLongOrNull()
+        return Pair(isAuthenticated, timestamp)
+    }
+    
+    /**
+     * Cierra la sesión y limpia los datos de autenticación almacenados
+     */
+    suspend fun logout(context: Context) {
+        // Limpiar las variables en memoria
+        userToken = null
+        isUserAuthenticated = false
+        lastTokenFetchTimestamp = 0L
+        
+        // Limpiar los datos en el cliente de Musixmatch
+        lyricsProviders.musixmatchUserToken = null
+        lyricsProviders.musixmatchCookie = null
+        
+        // Eliminar los datos de autenticación del DataStore pero mantener las credenciales
+        context.dataStore.edit { preferences ->
+            preferences[MUSIXMATCH_AUTHENTICATED] = false
+            preferences.remove(MUSIXMATCH_USER_TOKEN)
+            preferences.remove(MUSIXMATCH_COOKIE)
+            preferences.remove(MUSIXMATCH_TOKEN_TIMESTAMP)
+        }
+        
+        Timber.d("Sesión de Musixmatch cerrada y datos limpiados")
     }
     
     /**
@@ -164,13 +231,37 @@ object MusixmatchLyricsProvider : LyricsProvider {
             return true
         }
         
-        // Comprueba si las credenciales están almacenadas
-        val email = context.dataStore.data.first()[MUSIXMATCH_EMAIL]
-        val password = context.dataStore.data.first()[MUSIXMATCH_PASSWORD]
+        // Comprueba si los datos de autenticación están guardados
+        val savedToken = context.dataStore.data.first()[MUSIXMATCH_USER_TOKEN]
+        val savedCookie = context.dataStore.data.first()[MUSIXMATCH_COOKIE]
         val authenticated = context.dataStore.data.first()[MUSIXMATCH_AUTHENTICATED] ?: false
         
-        // Si no tenemos credenciales o no estaba autenticado, devuelve false
-        if (email == null || password == null || !authenticated) {
+        // Si tenemos token y cookie guardados y estaba autenticado, cargamos esos datos
+        if (!savedToken.isNullOrEmpty() && !savedCookie.isNullOrEmpty() && authenticated) {
+            userToken = savedToken
+            lyricsProviders.musixmatchUserToken = savedToken
+            lyricsProviders.musixmatchCookie = savedCookie
+            isUserAuthenticated = true
+            
+            // Obtener el timestamp del token
+            val savedTimestamp = context.dataStore.data.first()[MUSIXMATCH_TOKEN_TIMESTAMP]?.toLongOrNull() ?: 0L
+            lastTokenFetchTimestamp = savedTimestamp
+            
+            // Verificar si el token ha expirado (más de 6 horas)
+            if (System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
+                Timber.d("Token expirado, intentando renovarlo")
+                return login(context).getOrDefault(false)
+            }
+            
+            return true
+        }
+        
+        // Si no hay datos guardados, comprueba si hay credenciales para intentar login
+        val email = context.dataStore.data.first()[MUSIXMATCH_EMAIL]
+        val password = context.dataStore.data.first()[MUSIXMATCH_PASSWORD]
+        
+        // Si no tenemos credenciales, devuelve false
+        if (email == null || password == null) {
             return false
         }
         
@@ -194,13 +285,21 @@ object MusixmatchLyricsProvider : LyricsProvider {
         if (!showTranslations) {
             return null
         }
-        
-        return try {
+          return try {
             val translationResponse = lyricsProviders.getMusixmatchTranslateLyrics(
                 trackId = trackId,
                 userToken = userToken ?: return null,
                 language = preferredLanguage
             )
+            
+            // Guardar la cookie actualizada si existe
+            lyricsProviders.musixmatchCookie?.let { cookie ->
+                context.dataStore.edit { preferences ->
+                    preferences[MUSIXMATCH_COOKIE] = cookie
+                    preferences[MUSIXMATCH_AUTHENTICATED] = true
+                }
+                isUserAuthenticated = true
+            }
             
             // Extraer la traducción de la respuesta
             val translation = translationResponse.body<MusixmatchTranslationLyricsResponse>()
@@ -223,15 +322,26 @@ object MusixmatchLyricsProvider : LyricsProvider {
     
     /**
      * Obtiene múltiples resultados de búsqueda para que el usuario pueda elegir
-     */
-    suspend fun getMultipleSearchResults(context: Context, title: String, artist: String): Result<List<SearchMusixmatchResponse.Message.Body.Track.TrackX>> = runCatching {
+     */    suspend fun getMultipleSearchResults(context: Context, title: String, artist: String): Result<List<SearchMusixmatchResponse.Message.Body.Track.TrackX>> = runCatching {
         withContext(Dispatchers.IO) {
+            // Si no tenemos token o cookie, intentar cargar los datos guardados
+            if (userToken == null && !isUserAuthenticated) {
+                loadSavedAuthData(context)
+            }
+            
             // Refrescar el token si han pasado más de 6 horas desde la última obtención o es nulo
             if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
                 val tokenResponse = lyricsProviders.getMusixmatchUserToken()
                 userToken = MusixmatchLyricsParser.getToken(tokenResponse)
                 lyricsProviders.musixmatchUserToken = userToken
                 lastTokenFetchTimestamp = System.currentTimeMillis()
+                
+                // Guardar el token actualizado
+                context.dataStore.edit { preferences ->
+                    preferences[MUSIXMATCH_USER_TOKEN] = userToken!!
+                    preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+                }
+                
                 Timber.d("Musixmatch token refreshed: $userToken")
             }
 
@@ -270,7 +380,6 @@ object MusixmatchLyricsProvider : LyricsProvider {
             results
         }
     }
-
     override suspend fun getLyrics(
         id: String,
         title: String,
@@ -279,12 +388,24 @@ object MusixmatchLyricsProvider : LyricsProvider {
     ): Result<String> = runCatching {
         withContext(Dispatchers.IO) {
             try {
+                // Si no tenemos token o cookie, intentar cargar los datos guardados
+                if (userToken == null && !isUserAuthenticated) {
+                    loadSavedAuthData(App.instance)
+                }
+                
                 // Refrescar el token si han pasado más de 6 horas desde la última obtención o es nulo
                 if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
                     val tokenResponse = lyricsProviders.getMusixmatchUserToken()
                     userToken = MusixmatchLyricsParser.getToken(tokenResponse)
                     lyricsProviders.musixmatchUserToken = userToken
                     lastTokenFetchTimestamp = System.currentTimeMillis()
+                    
+                    // Guardar el token actualizado
+                    App.instance.dataStore.edit { preferences ->
+                        preferences[MUSIXMATCH_USER_TOKEN] = userToken!!
+                        preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+                    }
+                    
                     Timber.d("Musixmatch token refreshed: $userToken")
                 }
 
@@ -297,10 +418,18 @@ object MusixmatchLyricsProvider : LyricsProvider {
                 // Extraer el ID de la pista de la respuesta de búsqueda
                 val trackId = MusixmatchLyricsParser.getFirstTrackId(searchResponse)
                 
-                if (trackId != null) {
-                    // Obtener letras para el track específico
+                if (trackId != null) {                    // Obtener letras para el track específico
                     val lyricsResponse = lyricsProviders.getMusixmatchLyrics(trackId, userToken!!)
                     val lyrics = MusixmatchLyricsParser.parseLyrics(lyricsResponse)
+                    
+                    // Guardar la cookie actualizada si existe
+                    lyricsProviders.musixmatchCookie?.let { cookie ->
+                        App.instance.dataStore.edit { preferences ->
+                            preferences[MUSIXMATCH_COOKIE] = cookie
+                            preferences[MUSIXMATCH_AUTHENTICATED] = true
+                        }
+                        isUserAuthenticated = true
+                    }
                     
                     if (lyrics.isNotBlank()) {
                         // Si hay traducción disponible y el usuario la ha habilitado, añadirla

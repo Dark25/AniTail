@@ -33,23 +33,36 @@ constructor(
             }.distinctUntilChanged()
             .map {
                 lyricsProviders =
-                    if (it == PreferredLyricsProvider.LRCLIB) {
-                        listOf(
-                            LrcLibLyricsProvider,
-                            KuGouLyricsProvider,
-                            MusixmatchLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
-                    } else {
-                        listOf(
-                            KuGouLyricsProvider,
-                            LrcLibLyricsProvider,
-                            MusixmatchLyricsProvider,
-                            YouTubeSubtitleLyricsProvider,
-                            YouTubeLyricsProvider
-                        )
+                    when (it) {
+                        PreferredLyricsProvider.LRCLIB -> {
+                            listOf(
+                                LrcLibLyricsProvider,
+                                KuGouLyricsProvider,
+                                MusixmatchLyricsProvider,
+                                YouTubeSubtitleLyricsProvider,
+                                YouTubeLyricsProvider
+                            )
+                        }
+                        PreferredLyricsProvider.KUGOU -> {
+                            listOf(
+                                KuGouLyricsProvider,
+                                LrcLibLyricsProvider,
+                                MusixmatchLyricsProvider,
+                                YouTubeSubtitleLyricsProvider,
+                                YouTubeLyricsProvider
+                            )
+                        }
+                        PreferredLyricsProvider.MUSIXMATCH -> {
+                            listOf(
+                                MusixmatchLyricsProvider,
+                                KuGouLyricsProvider,
+                                LrcLibLyricsProvider,
+                                YouTubeSubtitleLyricsProvider,
+                                YouTubeLyricsProvider
+                            )
+                        }
                     }
+
             }
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
 

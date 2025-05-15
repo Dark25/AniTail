@@ -658,4 +658,8 @@
     <string name="image_url_hint">Enter the URL of an image (JPG, PNG, etc.). Make sure the URL starts with http:// or https://</string>
     <string name="set_background_image">Set background image</string>
     <string name="remove_background_image">Remove background image</string>
+
+    <!-- MusicMatch -->
+    <string name="enable_musixmatch">Enable Musixmatch lyrics provider</string>
+
 </resources>

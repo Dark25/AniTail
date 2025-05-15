@@ -29,6 +29,7 @@ import com.anitail.music.constants.ContentLanguageKey
 import com.anitail.music.constants.CountryCodeToName
 import com.anitail.music.constants.EnableKugouKey
 import com.anitail.music.constants.EnableLrcLibKey
+import com.anitail.music.constants.EnableMusixmatchKey
 import com.anitail.music.constants.HideExplicitKey
 import com.anitail.music.constants.LanguageCodeToName
 import com.anitail.music.constants.PreferredLyricsProvider
@@ -71,6 +72,7 @@ fun ContentSettings(
     val (proxyType, onProxyTypeChange) = rememberEnumPreference(key = ProxyTypeKey, defaultValue = Proxy.Type.HTTP)
     val (proxyUrl, onProxyUrlChange) = rememberPreference(key = ProxyUrlKey, defaultValue = "host:port")
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
+    val (enableMusixmatch, onEnableMusixmatchChange) = rememberPreference(key = EnableMusixmatchKey, defaultValue = true)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
@@ -199,6 +201,12 @@ fun ContentSettings(
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = enableKugou,
             onCheckedChange = onEnableKugouChange,
+        )
+        SwitchPreference(
+            title = { Text(stringResource(R.string.enable_musixmatch)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enableMusixmatch,
+            onCheckedChange = onEnableMusixmatchChange,
         )
 
 

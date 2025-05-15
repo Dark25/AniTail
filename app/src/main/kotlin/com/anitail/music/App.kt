@@ -83,7 +83,19 @@ class App : Application(), ImageLoaderFactory, Configuration.Provider {
             }
         } catch (e: Exception) {
             Timber.e(e, "OneSignal initialization failed")
-        }        // Initialize automatic update checks
+        }
+        
+        // Inicializar datos de autenticación de Musixmatch
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                com.anitail.music.lyrics.MusixmatchLyricsProvider.loadSavedAuthData(this@App)
+                Timber.d("Musixmatch authentication data loaded")
+            } catch (e: Exception) {
+                Timber.e(e, "Error loading Musixmatch authentication data")
+            }
+        }
+        
+        // Initialize automatic update checks
         UpdateCheckWorker.schedule(this)
         
         // Initialize automatic backup (only schedule, don't run immediately)
