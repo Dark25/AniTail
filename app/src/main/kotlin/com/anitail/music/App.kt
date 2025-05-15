@@ -84,12 +84,15 @@ class App : Application(), ImageLoaderFactory, Configuration.Provider {
         } catch (e: Exception) {
             Timber.e(e, "OneSignal initialization failed")
         }
-        
-        // Inicializar datos de autenticación de Musixmatch
+          // Inicializar datos de autenticación de Musixmatch con una política de reintentos
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                com.anitail.music.lyrics.MusixmatchLyricsProvider.loadSavedAuthData(this@App)
-                Timber.d("Musixmatch authentication data loaded")
+                val success = com.anitail.music.lyrics.MusixmatchLyricsProvider.loadSavedAuthData(this@App)
+                if (success) {
+                    Timber.d("Musixmatch authentication data loaded successfully")
+                } else {
+                    Timber.w("Musixmatch authentication data could not be loaded completely. Will retry on demand.")
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Error loading Musixmatch authentication data")
             }

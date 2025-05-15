@@ -37,10 +37,17 @@ object MusixmatchLyricsProvider : LyricsProvider {
     private val MUSIXMATCH_USER_TOKEN = stringPreferencesKey("musixmatch_user_token")
     private val MUSIXMATCH_COOKIE = stringPreferencesKey("musixmatch_cookie")
     private val MUSIXMATCH_TOKEN_TIMESTAMP = stringPreferencesKey("musixmatch_token_timestamp")
-    
     private var lastTokenFetchTimestamp = 0L
     private var userToken: String? = null
     private var isUserAuthenticated = false
+    
+    // Track if we've attempted initial loading
+    @Volatile
+    private var hasAttemptedInitialLoad = false
+    
+    // Track captcha requests to implement rate limiting
+    private var lastCaptchaTimestamp = 0L
+    private var captchaErrorCount = 0
     
     private val json = Json {
         ignoreUnknownKeys = true
@@ -50,11 +57,17 @@ object MusixmatchLyricsProvider : LyricsProvider {
 
     private val lyricsProviders by lazy {
         LyricsProviders(App.instance, json)
-    }    /**
+    }
+    
+    /**
      * Carga los datos de autenticación guardados en DataStore
+     * Returns true if authentication was successfully restored from saved data
      */
-    suspend fun loadSavedAuthData(context: Context) {
+    suspend fun loadSavedAuthData(context: Context): Boolean {
         try {
+            // Track that we've attempted to load saved data
+            hasAttemptedInitialLoad = true
+            
             val savedToken = context.dataStore.data.first()[MUSIXMATCH_USER_TOKEN]
             val savedCookie = context.dataStore.data.first()[MUSIXMATCH_COOKIE]
             val savedTimestamp = context.dataStore.data.first()[MUSIXMATCH_TOKEN_TIMESTAMP]?.toLongOrNull() ?: 0L
@@ -65,11 +78,135 @@ object MusixmatchLyricsProvider : LyricsProvider {
                 lyricsProviders.musixmatchUserToken = savedToken
                 lyricsProviders.musixmatchCookie = savedCookie
                 lastTokenFetchTimestamp = savedTimestamp
-                isUserAuthenticated = isAuthenticated
-                Timber.d("Musixmatch credenciales cargadas desde DataStore")
+                isUserAuthenticated = true
+                Timber.d("Musixmatch credentials loaded from DataStore")
+                
+                // If the token is expired, try to refresh it immediately
+                if (System.currentTimeMillis() - lastTokenFetchTimestamp > 5 * 60 * 60 * 1000) { // 5 hours instead of 6 to preemptively refresh
+                    Timber.d("Musixmatch token expired, refreshing")
+                    // Try to refresh the token but don't fail if it doesn't work
+                    try {
+                        refreshToken(context)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to refresh Musixmatch token during initialization, will retry later")
+                        // We'll still return true since we have a token, even if expired
+                    }
+                }
+                
+                return true
+            } else {
+                // Check if we have email/password credentials to try authentication
+                val email = context.dataStore.data.first()[MUSIXMATCH_EMAIL]
+                val password = context.dataStore.data.first()[MUSIXMATCH_PASSWORD]
+                
+                if (!email.isNullOrEmpty() && !password.isNullOrEmpty()) {
+                    Timber.d("Attempting Musixmatch login with saved credentials")
+                    return login(context).getOrDefault(false)
+                }
             }
+            
+            return false
         } catch (e: Exception) {
-            Timber.e(e, "Error al cargar los datos de autenticación de Musixmatch")
+            Timber.e(e, "Error loading Musixmatch authentication data")
+            return false
+        }
+    }
+    
+    /**
+     * Ensures authentication has been attempted at least once
+     * Call this before any operation that requires auth
+     */
+    private suspend fun ensureInitialized(context: Context): Boolean {
+        if (!hasAttemptedInitialLoad) {
+            return loadSavedAuthData(context)
+        }
+        return isUserAuthenticated
+    }
+      /**
+     * Refreshes the token if needed
+     */
+    private suspend fun refreshToken(context: Context): Boolean {
+        // Check if we've recently encountered CAPTCHA errors and if we should rate limit our requests
+        if (checkCaptchaRateLimit()) {
+            Timber.w("Musixmatch token refresh skipped due to recent CAPTCHA challenges")
+            return false
+        }
+        
+        try {
+            val tokenResponse = lyricsProviders.getMusixmatchUserToken()
+            
+            // Check for CAPTCHA challenge in the response
+            val responseText = tokenResponse.bodyAsText()
+            if (responseText.contains("\"hint\":\"captcha\"")) {
+                Timber.w("Musixmatch is requesting CAPTCHA verification")
+                handleCaptchaDetected()
+                return false
+            }
+            
+            val newToken = MusixmatchLyricsParser.getToken(tokenResponse)
+            
+            if (newToken.isEmpty()) {
+                Timber.e("Failed to extract Musixmatch token from response")
+                return false
+            }
+            
+            userToken = newToken
+            lyricsProviders.musixmatchUserToken = newToken
+            lastTokenFetchTimestamp = System.currentTimeMillis()
+            
+            // Save to DataStore
+            context.dataStore.edit { preferences ->
+                preferences[MUSIXMATCH_USER_TOKEN] = newToken
+                preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+            }
+            
+            // Reset CAPTCHA counter on successful token refresh
+            resetCaptchaCounter()
+            
+            Timber.d("Musixmatch token refreshed: $newToken")
+            return true
+        } catch (e: Exception) {
+            // Check if this is a CAPTCHA or parsing error
+            if (e.message?.contains("Expected start of the object '{', but had '['") == true || 
+                e.stackTraceToString().contains("hint\":\"captcha")) {
+                Timber.w("CAPTCHA challenge detected from error: ${e.message}")
+                handleCaptchaDetected()
+            } else {
+                Timber.e(e, "Error refreshing Musixmatch token")
+            }
+            return false
+        }
+    }
+    
+    /**
+     * Tracks CAPTCHA detection and implements rate limiting
+     */
+    private fun handleCaptchaDetected() {
+        captchaErrorCount++
+        lastCaptchaTimestamp = System.currentTimeMillis()
+    }
+    
+    /**
+     * Reset CAPTCHA counter when we successfully get responses
+     */
+    private fun resetCaptchaCounter() {
+        captchaErrorCount = 0
+    }
+    
+    /**
+     * Check if we should rate limit requests due to CAPTCHA challenges
+     * Returns true if we should skip the request
+     */
+    private fun checkCaptchaRateLimit(): Boolean {
+        val now = System.currentTimeMillis()
+        
+        // If we've had multiple CAPTCHA errors, implement exponential backoff
+        return when {
+            captchaErrorCount == 0 -> false
+            captchaErrorCount == 1 -> now - lastCaptchaTimestamp < 10_000 // 10 seconds after first CAPTCHA
+            captchaErrorCount == 2 -> now - lastCaptchaTimestamp < 60_000 // 1 minute after second CAPTCHA
+            captchaErrorCount == 3 -> now - lastCaptchaTimestamp < 300_000 // 5 minutes after third CAPTCHA
+            else -> now - lastCaptchaTimestamp < 1800_000 // 30 minutes after more than 3 CAPTCHAs
         }
     }
     
@@ -116,49 +253,28 @@ object MusixmatchLyricsProvider : LyricsProvider {
         context.dataStore.edit { preferences ->
             preferences[MUSIXMATCH_RESULTS_MAX] = max.toString()
         }
-    }
-      /**
+    }      /**
      * Inicia sesión con la cuenta de Musixmatch
-     */
-    suspend fun login(context: Context): Result<Boolean> = runCatching {
+     */    suspend fun login(context: Context): Result<Boolean> = runCatching {
         val email = context.dataStore.data.first()[MUSIXMATCH_EMAIL]
         val password = context.dataStore.data.first()[MUSIXMATCH_PASSWORD]
         
         if (email == null || password == null) {
             return@runCatching false
-        }          // Obtener el token de usuario si aún no lo tenemos
-        if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
-            // Intentar obtener el token, manejar posibles errores
-            try {
-                val tokenResponse = lyricsProviders.getMusixmatchUserToken()
-                val tokenResponseText = tokenResponse.bodyAsText()
-                Timber.d("Musixmatch token received: $tokenResponseText")
-                
-                // Extraer el token
-                userToken = MusixmatchLyricsParser.getToken(tokenResponse)
-                Timber.d("Token extraído: $userToken")
-                
-                // Verificar que el token no esté vacío
-                if (userToken.isNullOrEmpty()) {
-                    Timber.e("No se pudo extraer el token de Musixmatch de la respuesta. Respuesta completa: $tokenResponseText")
-                    return@runCatching false
-                }
-                
-                lyricsProviders.musixmatchUserToken = userToken
-                lastTokenFetchTimestamp = System.currentTimeMillis()
-                
-                // Guardar el nuevo token en DataStore
-                context.dataStore.edit { preferences ->
-                    preferences[MUSIXMATCH_USER_TOKEN] = userToken!!
-                    preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
-                }
-                
-                Timber.d("Musixmatch token refreshed: $userToken")
-            } catch (e: Exception) {
-                Timber.e(e, "Error al obtener el token de Musixmatch")
+        }
+        
+        // Always ensure we're initialized and have a token
+        hasAttemptedInitialLoad = true
+        
+        // Refresh token if needed or missing
+        if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 5 * 60 * 60 * 1000) {
+            if (!refreshToken(context)) {
+                Timber.e("Could not refresh token before login, aborting login attempt")
                 return@runCatching false
             }
-        }// Intenta iniciar sesión con las credenciales
+        }
+        
+        // Intenta iniciar sesión con las credenciales
         val response = lyricsProviders.postMusixmatchPostCredentials(email, password, userToken!!)
         val credential = response.body<MusixmatchCredential>()
         Timber.d("Musixmatch login response: $credential")
@@ -187,15 +303,8 @@ object MusixmatchLyricsProvider : LyricsProvider {
         }
         
         isUserAuthenticated = isSuccess
+        Timber.d("Musixmatch login ${if (isSuccess) "successful" else "failed"}")
         return@runCatching isSuccess
-    }
-      /**
-     * Obtiene la información sobre la última renovación de la sesión
-     */
-    suspend fun getSessionInfo(context: Context): Pair<Boolean, Long?> {
-        val isAuthenticated = context.dataStore.data.first()[MUSIXMATCH_AUTHENTICATED] ?: false
-        val timestamp = context.dataStore.data.first()[MUSIXMATCH_TOKEN_TIMESTAMP]?.toLongOrNull()
-        return Pair(isAuthenticated, timestamp)
     }
     
     /**
@@ -221,14 +330,23 @@ object MusixmatchLyricsProvider : LyricsProvider {
         
         Timber.d("Sesión de Musixmatch cerrada y datos limpiados")
     }
-    
-    /**
+      /**
      * Verifica si el usuario está autenticado
-     */
-    private suspend fun checkAuthentication(context: Context): Boolean {
+     */    private suspend fun checkAuthentication(context: Context): Boolean {
         // Si ya sabemos que está autenticado, no es necesario comprobar
         if (isUserAuthenticated) {
+            // Even if authenticated, check token expiration and refresh if needed
+            if (System.currentTimeMillis() - lastTokenFetchTimestamp > 5 * 60 * 60 * 1000) { // 5 hours for preemptive refresh
+                Timber.d("Token expirado, intentando renovarlo en segundo plano")
+                refreshToken(context)
+                // Continue with existing token even if refresh fails - we'll try again next time
+            }
             return true
+        }
+        
+        // Ensure we've tried to load credentials at least once
+        if (!hasAttemptedInitialLoad) {
+            return loadSavedAuthData(context)
         }
         
         // Comprueba si los datos de autenticación están guardados
@@ -248,7 +366,7 @@ object MusixmatchLyricsProvider : LyricsProvider {
             lastTokenFetchTimestamp = savedTimestamp
             
             // Verificar si el token ha expirado (más de 6 horas)
-            if (System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
+            if (System.currentTimeMillis() - lastTokenFetchTimestamp > 5 * 60 * 60 * 1000) {
                 Timber.d("Token expirado, intentando renovarlo")
                 return login(context).getOrDefault(false)
             }
@@ -267,14 +385,15 @@ object MusixmatchLyricsProvider : LyricsProvider {
         
         // Intenta autenticarse con las credenciales almacenadas
         return login(context).getOrDefault(false)
-    }
-
-    /**
+    }    /**
      * Obtiene la traducción de las letras en el idioma preferido
      */
     private suspend fun getTranslation(context: Context, trackId: String): String? {
+        // Check authentication and initialize if needed
         if (!isUserAuthenticated) {
+            ensureInitialized(context)
             if (!checkAuthentication(context)) {
+                Timber.d("No se pudo autenticar para obtener traducción")
                 return null
             }
         }
@@ -285,7 +404,16 @@ object MusixmatchLyricsProvider : LyricsProvider {
         if (!showTranslations) {
             return null
         }
-          return try {
+        
+        return try {
+            // Make sure we have a token
+            if (userToken == null) {
+                if (!refreshToken(context)) {
+                    Timber.e("No token available for translation request")
+                    return null
+                }
+            }
+            
             val translationResponse = lyricsProviders.getMusixmatchTranslateLyrics(
                 trackId = trackId,
                 userToken = userToken ?: return null,
@@ -324,25 +452,30 @@ object MusixmatchLyricsProvider : LyricsProvider {
      * Obtiene múltiples resultados de búsqueda para que el usuario pueda elegir
      */    suspend fun getMultipleSearchResults(context: Context, title: String, artist: String): Result<List<SearchMusixmatchResponse.Message.Body.Track.TrackX>> = runCatching {
         withContext(Dispatchers.IO) {
-            // Si no tenemos token o cookie, intentar cargar los datos guardados
-            if (userToken == null && !isUserAuthenticated) {
-                loadSavedAuthData(context)
+            // Always ensure we're properly initialized - this handles app restarts
+            ensureInitialized(context)
+            
+            // Check authentication - this handles cases where tokens were loaded but authentication status is needed
+            if (!isUserAuthenticated) {
+                if (!checkAuthentication(context)) {
+                    throw IllegalStateException("No se pudo autenticar con Musixmatch. Se requiere iniciar sesión.")
+                }
             }
             
-            // Refrescar el token si han pasado más de 6 horas desde la última obtención o es nulo
-            if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
-                val tokenResponse = lyricsProviders.getMusixmatchUserToken()
-                userToken = MusixmatchLyricsParser.getToken(tokenResponse)
-                lyricsProviders.musixmatchUserToken = userToken
-                lastTokenFetchTimestamp = System.currentTimeMillis()
-                
-                // Guardar el token actualizado
-                context.dataStore.edit { preferences ->
-                    preferences[MUSIXMATCH_USER_TOKEN] = userToken!!
-                    preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+            // Refrescar el token si han pasado más de 5 horas desde la última obtención o es nulo
+            if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 5 * 60 * 60 * 1000) {
+                if (!refreshToken(context)) {
+                    // If refresh fails but we still have an old token, continue with it
+                    if (userToken == null) {
+                        throw IllegalStateException("No se pudo obtener o refrescar el token de Musixmatch")
+                    }
+                    // Otherwise we'll continue with the existing token
+                    Timber.w("Token refresh failed, continuing with existing token")
                 }
-                
-                Timber.d("Musixmatch token refreshed: $userToken")
+            }            // Check if we've encountered too many CAPTCHA errors
+            if (checkCaptchaRateLimit()) {
+                Timber.w("Skipping Musixmatch search due to CAPTCHA rate limiting")
+                throw IllegalStateException("Musixmatch no está disponible temporalmente debido a protección contra bots. Por favor, inténtelo de nuevo más tarde.")
             }
 
             // Buscar la canción utilizando el título y artista
@@ -350,6 +483,14 @@ object MusixmatchLyricsProvider : LyricsProvider {
                 q = "$artist $title",
                 userToken = userToken ?: throw IllegalStateException("No se pudo obtener el token de Musixmatch")
             )
+            
+            // Check for CAPTCHA in the response
+            val responseText = searchResponse.bodyAsText()
+            if (responseText.contains("\"hint\":\"captcha\"")) {
+                Timber.w("Musixmatch is requesting CAPTCHA verification during search")
+                handleCaptchaDetected()
+                throw IllegalStateException("Musixmatch requiere verificación CAPTCHA. Por favor, inténtelo de nuevo más tarde.")
+            }
 
             // Aquí extraeríamos la lista de resultados múltiples
             // Nota: Esto es un ejemplo, la estructura real dependerá de la respuesta de la API
@@ -357,6 +498,9 @@ object MusixmatchLyricsProvider : LyricsProvider {
             
             try {
                 val jsonResponse = searchResponse.body<SearchMusixmatchResponse>()
+                
+                // Reset CAPTCHA counter on successful parsing
+                resetCaptchaCounter()
                 
                 // Procesamos los resultados basados en la estructura definida en SearchMusixmatchResponse
                 val trackList = jsonResponse.message.body.track_list
@@ -388,25 +532,30 @@ object MusixmatchLyricsProvider : LyricsProvider {
     ): Result<String> = runCatching {
         withContext(Dispatchers.IO) {
             try {
-                // Si no tenemos token o cookie, intentar cargar los datos guardados
-                if (userToken == null && !isUserAuthenticated) {
-                    loadSavedAuthData(App.instance)
+                // Always ensure we're properly initialized - this handles app restarts
+                ensureInitialized(App.instance)
+                
+                // Check authentication - this handles cases where tokens were loaded but authentication status is needed
+                if (!isUserAuthenticated) {
+                    if (!checkAuthentication(App.instance)) {
+                        throw IllegalStateException("No se pudo autenticar con Musixmatch. Se requiere iniciar sesión.")
+                    }
                 }
                 
-                // Refrescar el token si han pasado más de 6 horas desde la última obtención o es nulo
-                if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 6 * 60 * 60 * 1000) {
-                    val tokenResponse = lyricsProviders.getMusixmatchUserToken()
-                    userToken = MusixmatchLyricsParser.getToken(tokenResponse)
-                    lyricsProviders.musixmatchUserToken = userToken
-                    lastTokenFetchTimestamp = System.currentTimeMillis()
-                    
-                    // Guardar el token actualizado
-                    App.instance.dataStore.edit { preferences ->
-                        preferences[MUSIXMATCH_USER_TOKEN] = userToken!!
-                        preferences[MUSIXMATCH_TOKEN_TIMESTAMP] = lastTokenFetchTimestamp.toString()
+                // Refrescar el token si han pasado más de 5 horas desde la última obtención o es nulo
+                if (userToken == null || System.currentTimeMillis() - lastTokenFetchTimestamp > 5 * 60 * 60 * 1000) {
+                    if (!refreshToken(App.instance)) {
+                        // If refresh fails but we still have an old token, continue with it
+                        if (userToken == null) {
+                            throw IllegalStateException("No se pudo obtener o refrescar el token de Musixmatch")
+                        }
+                        // Otherwise we'll continue with the existing token
+                        Timber.w("Token refresh failed, continuing with existing token")
                     }
-                    
-                    Timber.d("Musixmatch token refreshed: $userToken")
+                }                // Check if we've encountered too many CAPTCHA errors recently
+                if (checkCaptchaRateLimit()) {
+                    Timber.w("Skipping Musixmatch lyrics request due to CAPTCHA rate limiting")
+                    throw IllegalStateException("Musixmatch no está disponible temporalmente debido a protección contra bots. Por favor, inténtelo de nuevo más tarde.")
                 }
 
                 // Buscar la canción utilizando el título y artista
@@ -415,8 +564,19 @@ object MusixmatchLyricsProvider : LyricsProvider {
                     userToken = userToken ?: throw IllegalStateException("No se pudo obtener el token de Musixmatch")
                 )
 
+                // Check for CAPTCHA in response before trying to parse
+                val responseText = searchResponse.bodyAsText()
+                if (responseText.contains("\"hint\":\"captcha\"")) {
+                    Timber.w("Musixmatch is requesting CAPTCHA verification during lyrics search")
+                    handleCaptchaDetected()
+                    throw IllegalStateException("Musixmatch requiere verificación CAPTCHA. Por favor, inténtelo de nuevo más tarde.")
+                }
+
                 // Extraer el ID de la pista de la respuesta de búsqueda
                 val trackId = MusixmatchLyricsParser.getFirstTrackId(searchResponse)
+                
+                // Reset CAPTCHA counter on successful search
+                resetCaptchaCounter()
                 
                 if (trackId != null) {                    // Obtener letras para el track específico
                     val lyricsResponse = lyricsProviders.getMusixmatchLyrics(trackId, userToken!!)
@@ -501,16 +661,22 @@ object MusixmatchLyricsProvider : LyricsProvider {
                 }
                 
                 throw Exception("No se encontraron letras en Musixmatch")
-                
-            } catch (e: Exception) {
-                Timber.e(e, "Error al obtener letras de Musixmatch")
-                reportException(e)
-                throw e
+                  } catch (e: Exception) {
+                // Check if this is a CAPTCHA or JSON parsing error related to CAPTCHA
+                if (e.message?.contains("Expected start of the object '{', but had '['") == true || 
+                    e.stackTraceToString().contains("hint\":\"captcha")) {
+                    Timber.w("CAPTCHA challenge detected in lyrics request: ${e.message}")
+                    handleCaptchaDetected()
+                    throw IllegalStateException("No se pudieron obtener letras de Musixmatch. El servicio requiere verificación CAPTCHA. Por favor, inténtelo más tarde.", e)
+                } else {
+                    Timber.e(e, "Error al obtener letras de Musixmatch")
+                    reportException(e)
+                    throw e
+                }
             }
         }
     }
-    
-    // Implementación para retornar múltiples resultados cuando hay ambigüedad
+      // Implementación para retornar múltiples resultados cuando hay ambigüedad
     override suspend fun getAllLyrics(
         id: String,
         title: String,
@@ -519,6 +685,15 @@ object MusixmatchLyricsProvider : LyricsProvider {
         callback: (String) -> Unit,
     ) {
         try {
+            // Ensure we're authenticated before making any requests
+            ensureInitialized(App.instance)
+            if (!isUserAuthenticated && !checkAuthentication(App.instance)) {
+                Timber.e("No se pudo autenticar con Musixmatch para obtener múltiples resultados")
+                // Try with standard method as fallback
+                getLyrics(id, title, artist, duration).onSuccess(callback)
+                return
+            }
+            
             // Intenta obtener múltiples resultados
             val results = getMultipleSearchResults(App.instance, title, artist).getOrNull()
             
@@ -532,6 +707,13 @@ object MusixmatchLyricsProvider : LyricsProvider {
                     val trackId = track.track_id.toString()
                     
                     try {
+                        // Make sure we have a valid token
+                        if (userToken == null) {
+                            if (!refreshToken(App.instance)) {
+                                continue // Skip this track if we can't refresh token
+                            }
+                        }
+                        
                         // Obtiene las letras para este track
                         val lyricsResponse = lyricsProviders.getMusixmatchLyrics(trackId, userToken!!)
                         val lyrics = MusixmatchLyricsParser.parseLyrics(lyricsResponse)
