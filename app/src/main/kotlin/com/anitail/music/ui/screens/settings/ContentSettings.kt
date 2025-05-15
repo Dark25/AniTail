@@ -43,6 +43,7 @@ import com.anitail.music.constants.TopSize
 import com.anitail.music.ui.component.EditTextPreference
 import com.anitail.music.ui.component.IconButton
 import com.anitail.music.ui.component.ListPreference
+import com.anitail.music.ui.component.PreferenceEntry
 import com.anitail.music.ui.component.PreferenceGroupTitle
 import com.anitail.music.ui.component.SwitchPreference
 import com.anitail.music.ui.utils.backToMain
@@ -199,11 +200,24 @@ fun ContentSettings(
             checked = enableKugou,
             onCheckedChange = onEnableKugouChange,
         )
+
+
+        // Añadir entrada para la configuración de Musixmatch
+        PreferenceEntry(
+            title = { Text("Configuración de Musixmatch") },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            onClick = { navController.navigate("settings/lyrics/musixmatch") }
+        )
+
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             selectedValue = preferredProvider,
-            values = listOf(PreferredLyricsProvider.KUGOU, PreferredLyricsProvider.LRCLIB),
+            values = listOf(
+                PreferredLyricsProvider.KUGOU, 
+                PreferredLyricsProvider.LRCLIB,
+                PreferredLyricsProvider.MUSIXMATCH
+            ),
             valueText = {
                 it.name.toLowerCase(androidx.compose.ui.text.intl.Locale.current)
                     .capitalize(androidx.compose.ui.text.intl.Locale.current)

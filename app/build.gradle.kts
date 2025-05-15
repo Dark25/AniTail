@@ -188,12 +188,12 @@ dependencies {
 
     implementation(libs.hilt)
     implementation(libs.jsoup)
-    kapt(libs.hilt.compiler)
-
+    kapt(libs.hilt.compiler)    
     implementation(projects.innertube)
     implementation(projects.kugou)
     implementation(projects.lrclib)
     implementation(projects.kizzy)
+    implementation(projects.lyricsProviders)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)

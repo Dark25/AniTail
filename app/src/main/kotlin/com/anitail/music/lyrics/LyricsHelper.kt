@@ -18,11 +18,11 @@ class LyricsHelper
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
-) {
-    private var lyricsProviders =
+) {    private var lyricsProviders =
         listOf(
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
+            MusixmatchLyricsProvider,
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider
         )
@@ -37,6 +37,7 @@ constructor(
                         listOf(
                             LrcLibLyricsProvider,
                             KuGouLyricsProvider,
+                            MusixmatchLyricsProvider,
                             YouTubeSubtitleLyricsProvider,
                             YouTubeLyricsProvider
                         )
@@ -44,6 +45,7 @@ constructor(
                         listOf(
                             KuGouLyricsProvider,
                             LrcLibLyricsProvider,
+                            MusixmatchLyricsProvider,
                             YouTubeSubtitleLyricsProvider,
                             YouTubeLyricsProvider
                         )

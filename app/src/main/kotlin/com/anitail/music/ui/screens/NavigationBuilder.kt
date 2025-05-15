@@ -37,6 +37,7 @@ import com.anitail.music.ui.screens.settings.SettingsScreen
 import com.anitail.music.ui.screens.settings.StorageSettings
 import com.anitail.music.ui.screens.settings.UpdateSettings
 import com.anitail.music.ui.screens.settings.import_from_spotify.ImportFromSpotifyScreen
+import com.anitail.music.ui.screens.settings.lyrics.MusixmatchSettingsScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -290,6 +291,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/about") {
         AboutScreen(navController, scrollBehavior)
+    }
+    composable("settings/lyrics/musixmatch") {
+        MusixmatchSettingsScreen(navController)
     }
     composable("login") {
         LoginScreen(navController)

@@ -70,6 +70,7 @@ class App : Application(), ImageLoaderFactory, Configuration.Provider {
         super.onCreate()
         instance = this
         Timber.plant(Timber.DebugTree())
+        
         // OneSignal initialization
         // TODO: Replace with your real OneSignal App ID
         val oneSignalAppId = "8f09b52f-d61a-469e-9d7d-203ebf6b9e1b"
