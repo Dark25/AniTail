@@ -26,7 +26,8 @@ data class PlaylistEntity(
     val remoteSongCount: Int? = null,
     val playEndpointParams: String? = null,
     val shuffleEndpointParams: String? = null,
-    val radioEndpointParams: String? = null
+    val radioEndpointParams: String? = null,
+    val backgroundImageUrl: String? = null
 ) {
     companion object {
         const val LIKED_PLAYLIST_ID = "LP_LIKED"

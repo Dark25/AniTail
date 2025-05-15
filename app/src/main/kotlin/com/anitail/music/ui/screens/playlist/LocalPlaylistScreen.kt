@@ -3,10 +3,13 @@ package com.anitail.music.ui.screens.playlist
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +17,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
@@ -23,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -45,6 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -62,13 +69,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -83,6 +93,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastSumBy
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewModelScope
@@ -107,6 +118,7 @@ import com.anitail.music.constants.PlaylistSongSortType
 import com.anitail.music.constants.PlaylistSongSortTypeKey
 import com.anitail.music.constants.ThumbnailCornerRadius
 import com.anitail.music.db.entities.Playlist
+import com.anitail.music.db.entities.PlaylistEntity
 import com.anitail.music.db.entities.PlaylistSong
 import com.anitail.music.db.entities.PlaylistSongMap
 import com.anitail.music.extensions.move
@@ -134,12 +146,13 @@ import com.anitail.music.utils.rememberPreference
 import com.anitail.music.viewmodels.LocalPlaylistViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
 
-@SuppressLint("RememberReturnType")
+@SuppressLint("RememberReturnType", "UnusedBoxWithConstraintsScope", "FrequentlyChangingValue")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LocalPlaylistScreen(
@@ -246,24 +259,15 @@ fun LocalPlaylistScreen(
 
     if (showEditDialog) {
         playlist?.playlist?.let { playlistEntity ->
-            TextFieldDialog(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.edit),
-                        contentDescription = null
-                    )
-                },
-                title = { Text(text = stringResource(R.string.edit_playlist)) },
+            PlaylistEditDialog(
+                playlistEntity = playlistEntity,
                 onDismiss = { showEditDialog = false },
-                initialTextFieldValue = TextFieldValue(
-                    playlistEntity.name,
-                    TextRange(playlistEntity.name.length)
-                ),
-                onDone = { name ->
+                onDone = { name: String, backgroundImageUrl: String? ->
                     database.query {
                         update(
                             playlistEntity.copy(
                                 name = name,
+                                backgroundImageUrl = backgroundImageUrl,
                                 lastUpdateTime = LocalDateTime.now()
                             )
                         )
@@ -275,6 +279,7 @@ fun LocalPlaylistScreen(
             )
         }
     }
+
 
     var showRemoveDownloadDialog by remember {
         mutableStateOf(false)
@@ -409,11 +414,70 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        LazyColumn(
-            state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val scrollOffsetPx = with(LocalDensity.current) { 
+                    lazyListState.firstVisibleItemScrollOffset.toDp() 
+                }
+                val firstVisibleIndex = lazyListState.firstVisibleItemIndex
+
+                val backgroundOffset = if (firstVisibleIndex == 0) {
+                    -scrollOffsetPx
+                } else {
+                    (-260).dp
+                }
+
+                playlist?.playlist?.backgroundImageUrl?.let { imageUrl ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp)
+                            .offset(y = backgroundOffset)
+                            .zIndex(0f)
+                    ) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(radius = 1.dp),
+                            alpha = 0.8f,
+                            error = painterResource(R.drawable.image_24px)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.1f),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                                        ),
+                                        startY = 0f,
+                                        endY = 260f
+                                    )
+                                )
+                        )
+                    }
+                }
+            }
+
+            LazyColumn(
+                state = lazyListState,
+                contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(1f)
+            ) {
             playlist?.let { playlist ->
+                
                 if (playlist.songCount == 0 && playlist.playlist.remoteSongCount == 0) {
                     item {
                         EmptyPlaceholder(
@@ -764,8 +828,13 @@ fun LocalPlaylistScreen(
                 }
             }
         }
+        }
 
         TopAppBar(
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent, // Make the TopAppBar transparent
+                scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+            ),
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
@@ -919,7 +988,7 @@ fun LocalPlaylistHeader(
     }
 
     val liked = playlist.playlist.bookmarkedAt != null
-    val editable: Boolean = playlist.playlist.isEditable == true
+    val editable: Boolean = playlist.playlist.isEditable
 
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
@@ -1237,3 +1306,140 @@ fun LocalPlaylistHeader(
         }
     }
 }
+
+@Composable
+fun PlaylistEditDialog(
+    playlistEntity: PlaylistEntity,
+    onDismiss: () -> Unit,
+    onDone: (name: String, backgroundImageUrl: String?) -> Unit
+) {
+    var name by remember { mutableStateOf(TextFieldValue(playlistEntity.name, TextRange(playlistEntity.name.length))) }
+    var backgroundImageUrl by remember { mutableStateOf(playlistEntity.backgroundImageUrl) }
+    var showImageUrlDialog by remember { mutableStateOf(false) }
+
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        delay(300)
+        focusRequester.requestFocus()
+    }
+
+    DefaultDialog(
+        onDismiss = onDismiss,
+        icon = {
+            Icon(
+                painter = painterResource(R.drawable.edit),
+                contentDescription = null
+            )
+        },
+        title = { Text(text = stringResource(R.string.edit_playlist)) },
+        buttons = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(android.R.string.cancel))
+            }
+
+            TextButton(
+                enabled = name.text.isNotEmpty(),
+                onClick = {
+                    onDismiss()
+                    onDone(name.text, backgroundImageUrl)
+                },
+            ) {
+                Text(text = stringResource(android.R.string.ok))
+            }
+        },
+        content = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = { Text(text = stringResource(R.string.playlist_name)) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.background_image),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { showImageUrlDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (backgroundImageUrl != null) {
+                            AsyncImage(
+                                model = backgroundImageUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                                error = painterResource(R.drawable.image_24px),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                                    .clickable { backgroundImageUrl = null },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.close),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.image_24px),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.tap_to_set_background),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+
+    if (showImageUrlDialog) {
+        TextFieldDialog(
+            title = { Text(text = stringResource(R.string.enter_image_url)) },
+            initialTextFieldValue = TextFieldValue(backgroundImageUrl ?: ""),
+            placeholder = { Text(text = stringResource(R.string.image_url)) },
+            onDismiss = { showImageUrlDialog = false },
+            onDone = { url ->
+                backgroundImageUrl = url.takeIf { it.isNotBlank() }
+                showImageUrlDialog = false
+            }
+        )
+    }
+}
+
+
+

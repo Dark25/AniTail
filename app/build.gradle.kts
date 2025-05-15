@@ -166,12 +166,12 @@ dependencies {
 
     implementation(libs.viewmodel)
     implementation(libs.viewmodel.compose)
-
     implementation(libs.material3)
     implementation(libs.palette)
     implementation(libs.materialKolor)
 
     implementation(libs.coil)
+    implementation(libs.coil.gif)
 
     implementation(libs.shimmer)
 

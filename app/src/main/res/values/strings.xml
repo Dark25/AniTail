@@ -649,4 +649,13 @@
     <string name="no_diagnostic_data">No diagnostic data available</string>
     <string name="ok">OK</string>
 
+    <!-- Custom Background Image -->
+    <string name="tap_to_set_background">Tap to set background image</string>
+    <string name="enter_image_url">Enter image URL</string>
+    <string name="image_url">Image URL</string>
+    <string name="error_loading_image">Error loading image</string>
+    <string name="background_image">Background Image</string>
+    <string name="image_url_hint">Enter the URL of an image (JPG, PNG, etc.). Make sure the URL starts with http:// or https://</string>
+    <string name="set_background_image">Set background image</string>
+    <string name="remove_background_image">Remove background image</string>
 </resources>
