@@ -2,7 +2,7 @@
 androidGradlePlugin = "8.11.0-alpha10"
 annotation = "1.9.1" 
 error_prone_core = "2.38.0"
-json = "20250107"
+json = "20250517"
 jsoup = "1.20.1"
 kotlin = "2.1.21"
 compose = "1.9.0-alpha02"
