@@ -30,7 +30,6 @@ import com.anitail.music.LocalPlayerAwareWindowInsets
 import com.anitail.music.R
 import com.anitail.music.constants.DisableScreenshotKey
 import com.anitail.music.constants.PauseListenHistoryKey
-import com.anitail.music.constants.PauseRemoteListenHistoryKey
 import com.anitail.music.constants.PauseSearchHistoryKey
 import com.anitail.music.ui.component.DefaultDialog
 import com.anitail.music.ui.component.IconButton
@@ -53,10 +52,6 @@ fun PrivacySettings(
     )
     val (pauseSearchHistory, onPauseSearchHistoryChange) = rememberPreference(
         key = PauseSearchHistoryKey,
-        defaultValue = false
-    )
-    val (pauseRemoteListenHistory, onPauseRemoteListenHistoryChange) = rememberPreference(
-        key = PauseRemoteListenHistoryKey,
         defaultValue = false
     )
     val (disableScreenshot, onDisableScreenshotChange) = rememberPreference(
@@ -156,13 +151,6 @@ fun PrivacySettings(
             icon = { Icon(painterResource(R.drawable.history), null) },
             checked = pauseListenHistory,
             onCheckedChange = onPauseListenHistoryChange,
-        )
-        SwitchPreference(
-            title = { Text(stringResource(R.string.pause_remote_listen_history)) },
-            icon = { Icon(painterResource(R.drawable.history), null) },
-            checked = pauseRemoteListenHistory,
-            onCheckedChange = onPauseRemoteListenHistoryChange,
-            isEnabled = !pauseListenHistory
         )
         PreferenceEntry(
             title = { Text(stringResource(R.string.clear_listen_history)) },
