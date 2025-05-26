@@ -23,7 +23,7 @@ annotation = { module = "androidx.annotation:annotation", version.ref = "annotat
 error_prone_core = { module = "com.google.errorprone:error_prone_core", version.ref = "error_prone_core" }
 guava = { group = "com.google.guava", name = "guava", version = "33.4.8-android" }
 coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version = "1.10.2" }
-concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version = "1.3.0-alpha01" }
+concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version = "1.3.0-beta01" }
 
 gradle = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
 activity = { group = "androidx.activity", name = "activity-compose", version = "1.11.0-rc01" }
