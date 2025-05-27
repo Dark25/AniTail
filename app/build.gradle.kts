@@ -205,7 +205,7 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.compose.icons.extended)
     implementation(libs.work.runtime.ktx)
-    implementation("androidx.hilt:hilt-work:1.2.0")
+    implementation("androidx.hilt:hilt-work:1.3.0-alpha01")
     // OneSignal Push Notifications
     implementation(libs.onesignal)
 }
