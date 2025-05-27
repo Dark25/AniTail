@@ -1,9 +1,12 @@
 package com.anitail.music.ui.screens.settings
 
 import android.annotation.SuppressLint
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.JsResult
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebStorage
 import android.webkit.WebView
@@ -39,62 +42,112 @@ import kotlinx.coroutines.launch
 fun DiscordLoginScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     var discordToken by rememberPreference(DiscordTokenKey, "")
-
     var webView: WebView? = null
 
     AndroidView(
-        modifier =
-        Modifier
+        modifier = Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
             .fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
-                layoutParams =
-                    ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
 
-                webViewClient =
-                    object : WebViewClient() {
-                        override fun shouldOverrideUrlLoading(
-                            webView: WebView,
-                            request: WebResourceRequest,
-                        ): Boolean {
-                            stopLoading()
-                            if (request.url.toString().endsWith("/app")) {
-                                loadUrl(
-                                    "javascript:Android.onRetrieveToken((webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken!==void 0).exports.default.getToken());",
-                                )
-                            }
-                            return false
-                        }
-                    }
-                settings.apply {
-                    javaScriptEnabled = true
-                    domStorageEnabled = true
-                    setSupportZoom(true)
-                    builtInZoomControls = true
+                WebView.setWebContentsDebuggingEnabled(true)
+
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.setSupportZoom(true)
+                settings.builtInZoomControls = true
+
+                CookieManager.getInstance().apply {
+                    removeAllCookies(null)
+                    flush()
                 }
-                val cookieManager = CookieManager.getInstance()
-                cookieManager.removeAllCookies(null)
-                cookieManager.flush()
 
                 WebStorage.getInstance().deleteAllData()
+
                 addJavascriptInterface(object {
                     @JavascriptInterface
                     fun onRetrieveToken(token: String) {
-                        discordToken = token
-                        scope.launch(Dispatchers.Main) {
-                            navController.navigateUp()
+                        Log.d("DiscordWebView", "Token: $token")
+                        if (token != "null" && token != "error") {
+                            discordToken = token
+                            scope.launch(Dispatchers.Main) {
+                                webView?.loadUrl("about:blank")
+                                navController.navigateUp()
+                            }
                         }
                     }
                 }, "Android")
 
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView, url: String) {
+                        if (url.contains("/channels/@me") || url.contains("/app")) {
+                            view.evaluateJavascript(
+                                """
+                                (function() {
+                                    try {
+                                        var token = localStorage.getItem("token");
+                                        if (token) {
+                                            Android.onRetrieveToken(token.slice(1, -1));
+                                        } else {
+                                            // fallback إلى alert (منطق kizzy)
+                                            var i = document.createElement('iframe');
+                                            document.body.appendChild(i);
+                                            setTimeout(function() {
+                                                try {
+                                                    var alt = i.contentWindow.localStorage.token;
+                                                    if (alt) {
+                                                        alert(alt.slice(1, -1));
+                                                    } else {
+                                                        alert("null");
+                                                    }
+                                                } catch (e) {
+                                                    alert("error");
+                                                }
+                                            }, 1000);
+                                        }
+                                    } catch (e) {
+                                        alert("error");
+                                    }
+                                })();
+                                """.trimIndent(), null
+                            )
+                        }
+                    }
+
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView,
+                        request: WebResourceRequest
+                    ): Boolean = false
+                }
+
+                webChromeClient = object : WebChromeClient() {
+                    override fun onJsAlert(
+                        view: WebView,
+                        url: String,
+                        message: String,
+                        result: JsResult
+                    ): Boolean {
+                        if (message != "null" && message != "error") {
+                            discordToken = message
+                            scope.launch(Dispatchers.Main) {
+                                view.loadUrl("about:blank")
+                                navController.navigateUp()
+                            }
+                        }
+                        result.confirm()
+                        return true
+                    }
+                }
+
                 webView = this
                 loadUrl("https://discord.com/login")
             }
-        },
+        }
     )
 
     TopAppBar(
@@ -102,11 +155,11 @@ fun DiscordLoginScreen(navController: NavController) {
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
+                onLongClick = navController::backToMain
             ) {
                 Icon(
                     painterResource(R.drawable.arrow_back),
-                    contentDescription = null,
+                    contentDescription = null
                 )
             }
         }
