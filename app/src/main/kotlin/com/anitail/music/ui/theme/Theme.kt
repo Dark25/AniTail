@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
 import com.anitail.music.ui.screens.settings.DarkMode
 import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamicColorScheme
+import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
 import java.util.Calendar
 
@@ -48,27 +48,42 @@ fun AnitailTheme(
         }
     }
 
-    val colorScheme = remember(useDarkTheme, pureBlack, themeColor) {
-        if (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (useDarkTheme) dynamicDarkColorScheme(context).pureBlack(pureBlack)
-            else dynamicLightColorScheme(context)
+    // Determine if system dynamic colors should be used (Android S+ and default theme color)
+    val useSystemDynamicColor = (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+
+    // Select the appropriate color scheme generation method
+    val baseColorScheme = if (useSystemDynamicColor) {
+        // Use standard Material 3 dynamic color functions for system wallpaper colors
+        if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    } else {
+        // Use materialKolor only when a specific seed color is provided
+        rememberDynamicColorScheme(
+            seedColor = themeColor, // themeColor is guaranteed non-default here
+            isDark = useDarkTheme,
+            style = PaletteStyle.TonalSpot // Keep existing style
+        )
+    }
+
+    // Apply pureBlack modification if needed, similar to original logic
+    val colorScheme = remember(baseColorScheme, pureBlack, useDarkTheme) {
+        if (useDarkTheme && pureBlack) {
+            baseColorScheme.pureBlack(true)
         } else {
-            dynamicColorScheme(
-                primary = themeColor,
-                isDark = useDarkTheme,
-                isAmoled = useDarkTheme && pureBlack,
-                style = PaletteStyle.TonalSpot
-            )
+            baseColorScheme
         }
     }
 
+    // Use the defined M3 Expressive Typography
+    // TODO: Define M3 Expressive Shapes instance if needed
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = MaterialTheme.typography,
+        typography = AppTypography, // Use the defined AppTypography
+        // shapes = MaterialTheme.shapes, // Placeholder - Needs update (Shapes not used in original)
         content = content
     )
 }
 
+// Keep helper functions as they are likely still needed
 fun Bitmap.extractThemeColor(): Color {
     val colorsToPopulation = Palette.from(this)
         .maximumColorCount(64)
@@ -105,3 +120,4 @@ val ColorSaver = object : Saver<Color, Int> {
     override fun restore(value: Int): Color = Color(value)
     override fun SaverScope.save(value: Color): Int = value.toArgb()
 }
+
