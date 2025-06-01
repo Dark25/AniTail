@@ -216,6 +216,7 @@ data class HomePage(
             }
         }
     }
+
     fun filterExplicit(enabled: Boolean = true) =
         if (enabled) {
             copy(sections = sections.map {
