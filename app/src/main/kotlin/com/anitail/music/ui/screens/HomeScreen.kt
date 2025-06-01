@@ -41,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -169,6 +170,18 @@ fun HomeScreen(
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
     }
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { lazylistState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                val len = lazylistState.layoutInfo.totalItemsCount
+                if (lastVisibleIndex != null && lastVisibleIndex >= len - 3) {
+                    viewModel.loadMoreYouTubeItems(homePage?.originalPage?.continuation)
+                }
+            }
+    }
+
+
 
     val localGridItem: @Composable (LocalItem) -> Unit = {
         when (it) {
@@ -798,7 +811,7 @@ fun HomeScreen(
                     }
                 }
             }
-            if (isLoading) {
+            if (isLoading || homePage?.originalPage?.continuation != null) {
                 item {
                     ShimmerHost(
                         modifier = Modifier.animateItem()
