@@ -181,7 +181,7 @@ object ComposeToImage {
     ) {
         val logoSize = (cardSize * 0.05f).toInt()
 
-        val rawLogo = context.getDrawable(R.drawable.ic_anitail)?.toBitmap(logoSize, logoSize)
+        val rawLogo = context.getDrawable(R.drawable.ic_ani)?.toBitmap(logoSize, logoSize)
         val logo = rawLogo?.let { source ->
             val colored = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
             val canvasLogo = Canvas(colored)
