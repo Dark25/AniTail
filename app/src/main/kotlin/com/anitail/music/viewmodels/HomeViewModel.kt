@@ -260,7 +260,7 @@ class HomeViewModel @Inject constructor(
             previousHomePage.value = homePage.value
         }
         viewModelScope.launch(Dispatchers.IO) {
-            val nextSections = YouTube.home(params = chip.endpoint?.params).getOrNull() ?: return@launch
+            val nextSections = YouTube.home(params = chip?.endpoint?.params).getOrNull() ?: return@launch
             homePage.value = HomePageWithBrowseCheck(
                 nextSections.copy(chips = homePage.value?.originalPage?.chips),
                 homePage.value?.browseContentAvailable ?: emptyMap(),
