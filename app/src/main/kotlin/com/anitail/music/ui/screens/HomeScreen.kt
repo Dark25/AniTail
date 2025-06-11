@@ -1,11 +1,11 @@
 package com.anitail.music.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -142,6 +141,7 @@ fun HomeScreen(
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
+    val selectedChip by viewModel.selectedChip.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -181,7 +181,12 @@ fun HomeScreen(
             }
     }
 
-
+    if (selectedChip != null) {
+        BackHandler {
+            // if a chip is selected, go back to the normal homepage first
+            viewModel.toggleChip(selectedChip)
+        }
+    }
 
     val localGridItem: @Composable (LocalItem) -> Unit = {
         when (it) {
@@ -366,40 +371,14 @@ fun HomeScreen(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
         ) {
             item {
-                Row(
-                    modifier = Modifier
-                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                        .fillMaxWidth()
-                        .animateItem()
-                ) {
-                    ChipsRow(
-                        chips = listOfNotNull(
-                            Pair("history", stringResource(R.string.history)),
-                            Pair("stats", stringResource(R.string.stats)),
-                            Pair("liked", stringResource(R.string.liked)),
-                            Pair("downloads", stringResource(R.string.offline)),
-                            Pair("cache", stringResource(R.string.cached_playlist)),
-                            if (isLoggedIn) Pair(
-                                "account",
-                                stringResource(R.string.account)
-                            ) else null
-                        ),
-                        currentValue = "",
-                        onValueUpdate = { value ->
-                            when (value) {
-                                "history" -> navController.navigate("history")
-                                "stats" -> navController.navigate("stats")
-                                "liked" -> navController.navigate("auto_playlist/liked")
-                                "downloads" -> navController.navigate("auto_playlist/downloaded")
-                                "cache" -> navController.navigate("cache_playlist/cached")
-                                "account" -> if (isLoggedIn) navController.navigate("account")
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                }
+                ChipsRow(
+                    chips = homePage?.originalPage?.chips?.mapNotNull { it to it.title } ?: emptyList(),
+                    currentValue = selectedChip,
+                    onValueUpdate = {
+                        viewModel.toggleChip(it)
+                    }
+                )
             }
-
             quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                 item {
                     NavigationTitle(
@@ -811,7 +790,8 @@ fun HomeScreen(
                     }
                 }
             }
-            if (isLoading || homePage?.originalPage?.continuation != null) {
+
+            if (isLoading || (homePage?.originalPage?.continuation != null && homePage?.originalPage?.sections?.isNotEmpty() == true)) {
                 item {
                     ShimmerHost(
                         modifier = Modifier.animateItem()
