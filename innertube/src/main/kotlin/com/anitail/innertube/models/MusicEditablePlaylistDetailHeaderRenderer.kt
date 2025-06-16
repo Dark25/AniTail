@@ -1,9 +1,5 @@
-package com.metrolist.innertube.models
+package com.anitail.innertube.models
 
-import com.anitail.innertube.models.Menu
-import com.anitail.innertube.models.MusicResponsiveHeaderRenderer
-import com.anitail.innertube.models.Runs
-import com.anitail.innertube.models.ThumbnailRenderer
 import kotlinx.serialization.Serializable
 
 @Serializable

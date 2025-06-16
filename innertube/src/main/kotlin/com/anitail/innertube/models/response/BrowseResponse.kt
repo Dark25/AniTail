@@ -4,6 +4,8 @@ import com.anitail.innertube.models.Button
 import com.anitail.innertube.models.Continuation
 import com.anitail.innertube.models.GridRenderer
 import com.anitail.innertube.models.Menu
+import com.anitail.innertube.models.MusicDetailHeaderRenderer
+import com.anitail.innertube.models.MusicEditablePlaylistDetailHeaderRenderer
 import com.anitail.innertube.models.MusicShelfRenderer
 import com.anitail.innertube.models.ResponseContext
 import com.anitail.innertube.models.Runs
@@ -11,8 +13,6 @@ import com.anitail.innertube.models.SectionListRenderer
 import com.anitail.innertube.models.SubscriptionButton
 import com.anitail.innertube.models.Tabs
 import com.anitail.innertube.models.ThumbnailRenderer
-import com.metrolist.innertube.models.MusicDetailHeaderRenderer
-import com.metrolist.innertube.models.MusicEditablePlaylistDetailHeaderRenderer
 import kotlinx.serialization.Serializable
 
 @Serializable

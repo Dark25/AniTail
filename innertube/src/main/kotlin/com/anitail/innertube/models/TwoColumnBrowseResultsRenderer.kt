@@ -1,9 +1,5 @@
-package com.metrolist.innertube.models
+package com.anitail.innertube.models
 
-import com.anitail.innertube.models.Continuation
-import com.anitail.innertube.models.MusicPlaylistShelfRenderer
-import com.anitail.innertube.models.MusicShelfRenderer
-import com.anitail.innertube.models.Tabs
 import kotlinx.serialization.Serializable
 
 @Serializable

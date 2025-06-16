@@ -1,6 +1,5 @@
 package com.anitail.innertube.models
 
-import com.metrolist.innertube.models.MusicEditablePlaylistDetailHeaderRenderer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
