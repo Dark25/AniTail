@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -80,6 +82,10 @@ import com.anitail.music.ui.component.NavigationTitle
 import com.anitail.music.ui.component.SongListItem
 import com.anitail.music.ui.component.YouTubeGridItem
 import com.anitail.music.ui.component.YouTubeListItem
+import com.anitail.music.ui.component.shimmer.ButtonPlaceholder
+import com.anitail.music.ui.component.shimmer.ListItemPlaceHolder
+import com.anitail.music.ui.component.shimmer.ShimmerHost
+import com.anitail.music.ui.component.shimmer.TextPlaceholder
 import com.anitail.music.ui.menu.SongMenu
 import com.anitail.music.ui.menu.YouTubeAlbumMenu
 import com.anitail.music.ui.menu.YouTubeArtistMenu
@@ -89,6 +95,7 @@ import com.anitail.music.ui.utils.backToMain
 import com.anitail.music.ui.utils.fadingEdge
 import com.anitail.music.ui.utils.resize
 import com.anitail.music.viewmodels.ArtistViewModel
+import com.valentinilk.shimmer.shimmer
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -215,7 +222,6 @@ fun ArtistScreen(
                     }
                 }
             }
-        }
 
             if (librarySongs.isNotEmpty()) {
                 item {
@@ -288,7 +294,7 @@ fun ArtistScreen(
                 }
             }
 
-            artistPage?.sections?.fastForEach { section ->
+            artistPage.sections?.fastForEach { section ->
                 if (section.items.isNotEmpty()) {
                     item {
                         NavigationTitle(
@@ -391,48 +397,95 @@ fun ArtistScreen(
                                                                 ),
                                                             )
 
-                                                is AlbumItem -> navController.navigate("album/${item.id}")
-                                                is ArtistItem -> navController.navigate("artist/${item.id}")
-                                                is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                                            }
-                                        },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            menuState.show {
-                                                when (item) {
-                                                    is SongItem ->
-                                                        YouTubeSongMenu(
-                                                            song = item,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss,
-                                                        )
+                                                        is AlbumItem -> navController.navigate("album/${item.id}")
+                                                        is ArtistItem -> navController.navigate("artist/${item.id}")
+                                                        is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        when (item) {
+                                                            is SongItem ->
+                                                                YouTubeSongMenu(
+                                                                    song = item,
+                                                                    navController = navController,
+                                                                    onDismiss = menuState::dismiss,
+                                                                )
 
-                                                    is AlbumItem ->
-                                                        YouTubeAlbumMenu(
-                                                            albumItem = item,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss,
-                                                        )
+                                                            is AlbumItem ->
+                                                                YouTubeAlbumMenu(
+                                                                    albumItem = item,
+                                                                    navController = navController,
+                                                                    onDismiss = menuState::dismiss,
+                                                                )
 
-                                                    is ArtistItem ->
-                                                        YouTubeArtistMenu(
-                                                            artist = item,
-                                                            onDismiss = menuState::dismiss,
-                                                        )
+                                                            is ArtistItem ->
+                                                                YouTubeArtistMenu(
+                                                                    artist = item,
+                                                                    onDismiss = menuState::dismiss,
+                                                                )
 
-                                                    is PlaylistItem ->
-                                                        YouTubePlaylistMenu(
-                                                            playlist = item,
-                                                            coroutineScope = coroutineScope,
-                                                            onDismiss = menuState::dismiss,
-                                                        )
-                                                }
-                                            }
-                                        },
-                                    )
-                                    .animateItem(),
-                            )
+                                                            is PlaylistItem ->
+                                                                YouTubePlaylistMenu(
+                                                                    playlist = item,
+                                                                    coroutineScope = coroutineScope,
+                                                                    onDismiss = menuState::dismiss,
+                                                                )
+                                                        }
+                                                    }
+                                                },
+                                            )
+                                            .animateItem(),
+                                )
+                            }
                         }
+                    }
+                }
+            }
+        } else {
+            item(key = "shimmer") {
+                ShimmerHost {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(4f / 3),
+                    ) {
+                        Spacer(
+                            modifier =
+                                Modifier
+                                    .shimmer()
+                                    .background(MaterialTheme.colorScheme.onSurface)
+                                    .fadingEdge(
+                                        top =
+                                            WindowInsets.systemBars
+                                                .asPaddingValues()
+                                                .calculateTopPadding() + AppBarHeight,
+                                        bottom = 108.dp,
+                                    ),
+                        )
+                        TextPlaceholder(
+                            height = 56.dp,
+                            modifier =
+                                Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(horizontal = 48.dp),
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                    ) {
+                        ButtonPlaceholder(Modifier.weight(1f))
+
+                        Spacer(Modifier.width(12.dp))
+
+                        ButtonPlaceholder(Modifier.weight(1f))
+                    }
+
+                    repeat(6) {
+                        ListItemPlaceHolder()
                     }
                 }
             }
