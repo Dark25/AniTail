@@ -1167,16 +1167,17 @@ interface DatabaseDao {
     @Update
     fun update(map: PlaylistSongMap)
 
+    @Transaction
     fun update(
         artist: ArtistEntity,
-        artistPage: ArtistPage,
+        artistPage: ArtistPage
     ) {
         update(
             artist.copy(
                 name = artistPage.artist.title,
-                thumbnailUrl = artistPage.artist.thumbnail.resize(544, 544),
-                lastUpdateTime = LocalDateTime.now(),
-            ),
+                thumbnailUrl = artistPage.artist.thumbnail?.resize(544, 544),
+                lastUpdateTime = LocalDateTime.now()
+            )
         )
     }
 

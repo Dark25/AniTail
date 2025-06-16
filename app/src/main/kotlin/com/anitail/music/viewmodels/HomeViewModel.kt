@@ -57,10 +57,11 @@ class HomeViewModel @Inject constructor(
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
     val accountPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
-    val homePage = MutableStateFlow<HomePageWithBrowseCheck?>(null)
+    val homePage = MutableStateFlow<HomePage?>(null)
     val selectedChip = MutableStateFlow<HomePage.Chip?>(null)
-    private val previousHomePage = MutableStateFlow<HomePageWithBrowseCheck?>(null)
+    private val previousHomePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
+
     val recentActivity = MutableStateFlow<List<YTItem>?>(null)
     val recentPlaylistsDb = MutableStateFlow<List<Playlist>?>(null)
 
@@ -73,11 +74,6 @@ class HomeViewModel @Inject constructor(
 
     // Discord avatar URL state
     val discordAvatarUrl = MutableStateFlow<String?>(null)
-
-    data class HomePageWithBrowseCheck(
-        val originalPage: HomePage,
-        val browseContentAvailable: Map<String, Boolean>
-    )
 
     private suspend fun getQuickPicks(){
         when (quickPicksEnum.first()) {
@@ -170,28 +166,10 @@ class HomeViewModel @Inject constructor(
         similarRecommendations.value = (artistRecommendations + songRecommendations).shuffled()
 
         YouTube.home().onSuccess { page ->
-            val browseContentAvailable = mutableMapOf<String, Boolean>()
-            page.sections.forEach { section ->
-                section.endpoint?.browseId?.let { browseId ->
-                    if (browseId in listOf("FEmusic_moods_and_genres", "FEmusic_charts")) {
-                        browseContentAvailable[browseId] = true
-                    } else {
-                        YouTube.browse(browseId, params = null).onSuccess { browsePage ->
-                            browseContentAvailable[browseId] = browsePage.items.isNotEmpty()
-                        }.onFailure {
-                            browseContentAvailable[browseId] = false
-                            reportException(it)
-                        }
-                    }
+            homePage.value = page.copy(
+                sections = page.sections.map { section ->
+                    section.copy(items = section.items.filterExplicit(hideExplicit))
                 }
-            }
-            homePage.value = HomePageWithBrowseCheck(
-                page.copy(
-                    sections = page.sections.map { section ->
-                        section.copy(items = section.items.filterExplicit(hideExplicit))
-                    }
-                ),
-                browseContentAvailable
             )
         }.onFailure {
             reportException(it)
@@ -204,7 +182,7 @@ class HomeViewModel @Inject constructor(
         }
 
         allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
-                homePage.value?.originalPage?.sections?.flatMap { it.items }.orEmpty()
+                homePage.value?.sections?.flatMap { it.items }.orEmpty()
 
         isLoading.value = false
     }
@@ -232,20 +210,15 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            val page = homePage.value?.originalPage
-            homePage.value = HomePageWithBrowseCheck(
-                nextSections.copy(
-                    chips = homePage.value?.originalPage?.chips,
-                    sections = (page?.sections.orEmpty() + nextSections.sections).map { section ->
-                        section.copy(items = section.items.filterExplicit(hideExplicit))
-                    }
-                ),
-                homePage.value?.browseContentAvailable ?: emptyMap()
+            homePage.value = nextSections.copy(
+                chips = homePage.value?.chips,
+                sections = (homePage.value?.sections.orEmpty() + nextSections.sections).map { section ->
+                    section.copy(items = section.items.filterExplicit(hideExplicit))
+                }
             )
             _isLoadingMore.value = false
         }
     }
-
 
     fun toggleChip(chip: HomePage.Chip?) {
         if (chip == null || chip == selectedChip.value && previousHomePage.value != null) {
@@ -260,10 +233,14 @@ class HomeViewModel @Inject constructor(
             previousHomePage.value = homePage.value
         }
         viewModelScope.launch(Dispatchers.IO) {
+            val hideExplicit = context.dataStore.get(HideExplicitKey, false)
             val nextSections = YouTube.home(params = chip?.endpoint?.params).getOrNull() ?: return@launch
-            homePage.value = HomePageWithBrowseCheck(
-                nextSections.copy(chips = homePage.value?.originalPage?.chips),
-                homePage.value?.browseContentAvailable ?: emptyMap(),
+
+            homePage.value = nextSections.copy(
+                chips = homePage.value?.chips,
+                sections = nextSections.sections.map { section ->
+                    section.copy(items = section.items.filterExplicit(hideExplicit))
+                }
             )
             selectedChip.value = chip
         }

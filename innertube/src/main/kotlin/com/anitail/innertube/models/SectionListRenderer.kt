@@ -1,6 +1,6 @@
 package com.anitail.innertube.models
 
-import com.anitail.innertube.models.response.BrowseResponse
+import com.metrolist.innertube.models.MusicEditablePlaylistDetailHeaderRenderer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
@@ -45,8 +45,8 @@ data class SectionListRenderer(
         val musicCardShelfRenderer: MusicCardShelfRenderer?,
         val musicPlaylistShelfRenderer: MusicPlaylistShelfRenderer?,
         val musicDescriptionShelfRenderer: MusicDescriptionShelfRenderer?,
-        val musicResponsiveHeaderRenderer: BrowseResponse.Header.MusicHeaderRenderer?,
-        val musicEditablePlaylistDetailHeaderRenderer: BrowseResponse.Header.MusicEditablePlaylistDetailHeaderRenderer?,
+        val musicResponsiveHeaderRenderer: MusicResponsiveHeaderRenderer?,
+        val musicEditablePlaylistDetailHeaderRenderer: MusicEditablePlaylistDetailHeaderRenderer?,
         val gridRenderer: GridRenderer?,
     )
 }
