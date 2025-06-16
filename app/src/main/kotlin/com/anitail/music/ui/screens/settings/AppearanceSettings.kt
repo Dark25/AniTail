@@ -51,6 +51,7 @@ import com.anitail.music.constants.GridItemSize
 import com.anitail.music.constants.GridItemsSizeKey
 import com.anitail.music.constants.LibraryFilter
 import com.anitail.music.constants.LyricsClickKey
+import com.anitail.music.constants.LyricsScrollKey
 import com.anitail.music.constants.LyricsTextPositionKey
 import com.anitail.music.constants.PlayerBackgroundStyle
 import com.anitail.music.constants.PlayerBackgroundStyleKey
@@ -112,6 +113,7 @@ fun AppearanceSettings(
         defaultValue = LyricsPosition.CENTER
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
+    val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
         SliderStyleKey,
         defaultValue = SliderStyle.DEFAULT
@@ -418,6 +420,13 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
             checked = lyricsClick,
             onCheckedChange = onLyricsClickChange,
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.lyrics_auto_scroll)) },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = lyricsScroll,
+            onCheckedChange = onLyricsScrollChange,
         )
 
         PreferenceGroupTitle(

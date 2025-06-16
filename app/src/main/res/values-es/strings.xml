@@ -167,6 +167,7 @@
     <string name="edit_lyrics">Editar letra</string>
     <string name="search_lyrics">Buscar letra</string>
     <string name="lyrics">Letra</string>
+    <string name="lyrics_auto_scroll">Auto scroll lyrics</string>
 
     <string name="edit_song">Editar canción</string>
     <string name="song_title">Título de la canción</string>
