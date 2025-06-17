@@ -238,8 +238,8 @@ enum class MixSortType {
 }
 
 enum class GridItemSize {
-    SMALL,
     BIG,
+    SMALL,
 }
 
 enum class MyTopFilter {
