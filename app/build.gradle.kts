@@ -1,11 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
-// Load local properties for sensitive data
-val localProperties = java.util.Properties()
-val localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(localPropertiesFile.inputStream())
-}
+import java.util.Properties
+
 
 plugins {
     id("com.android.application")
@@ -30,9 +26,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         
-        // Last.fm API credentials from local.properties
-        buildConfigField("String", "LASTFM_API_KEY", "\"${localProperties.getProperty("LASTFM_API_KEY", "PUT_YOUR_API_KEY_HERE")}\"")
-        buildConfigField("String", "LASTFM_API_SECRET", "\"${localProperties.getProperty("LASTFM_API_SECRET", "PUT_YOUR_API_SECRET_HERE")}\"")
+        // Last.fm API credentials from local.properties or environment variables
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { localProperties.load(it) }
+        }
+        
+        val lastfmApiKey = localProperties.getProperty("lastfm.api.key") 
+            ?: System.getenv("LASTFM_API_KEY") 
+            ?: "PUT_YOUR_API_KEY_HERE"
+        val lastfmApiSecret = localProperties.getProperty("lastfm.api.secret") 
+            ?: System.getenv("LASTFM_API_SECRET") 
+            ?: "PUT_YOUR_API_SECRET_HERE"
+            
+        buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
+        buildConfigField("String", "LASTFM_API_SECRET", "\"$lastfmApiSecret\"")
     }
 
     flavorDimensions += "abi"
@@ -218,8 +227,7 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.compose.icons.extended)
     implementation(libs.work.runtime.ktx)
-    implementation(libs.hilt.work)
-    // OneSignal Push Notifications
+    implementation(libs.hilt.work)    // OneSignal Push Notifications
     implementation(libs.onesignal)
     
     // Last.fm integration

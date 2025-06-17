@@ -6,5 +6,5 @@ sdk.dir=YOUR_SDK_PATH_HERE
 
 # Last.fm API credentials
 # Get your credentials from: https://www.last.fm/api/account/create
-LASTFM_API_KEY=your_lastfm_api_key_here
-LASTFM_API_SECRET=your_lastfm_api_secret_here
+LASTFM_API_KEY=PUT_YOUR_API_KEY_HERE
+LASTFM_API_SECRET=PUT_YOUR_API_SECRET_HERE

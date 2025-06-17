@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import com.anitail.music.BuildConfig
 import com.anitail.music.constants.LastFmEnabledKey
 import com.anitail.music.constants.LastFmLoveTracksKey
 import com.anitail.music.constants.LastFmScrobbleEnabledKey
@@ -14,32 +13,53 @@ import com.anitail.music.db.entities.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
 import de.umass.lastfm.Authenticator
 import de.umass.lastfm.Caller
-import de.umass.lastfm.scrobble.ScrobbleData
 import de.umass.lastfm.Session
 import de.umass.lastfm.Track
 import de.umass.lastfm.User
+import de.umass.lastfm.scrobble.ScrobbleData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import timber.log.Timber
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
+
+@Serializable
+data class PendingScrobble(
+    val artist: String,
+    val title: String,
+    val album: String? = null,
+    val timestamp: Long,
+    val duration: Int? = null,
+    val addedAt: Long = System.currentTimeMillis() / 1000 / 60 // Solo guardar una canción por minuto
+)
 
 @Singleton
 class LastFmService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dataStore: DataStore<Preferences>
-) {    companion object {
-        private val API_KEY = BuildConfig.LASTFM_API_KEY
-        private val API_SECRET = BuildConfig.LASTFM_API_SECRET
+) {
+    companion object {
+        private val API_KEY = LastFmKeyManager.getApiKey()
+        private val API_SECRET = LastFmKeyManager.getApiSecret()
         private const val USER_AGENT = "Anitail Music"
-    }private var session: Session? = null
+        private const val PENDING_SCROBBLES_KEY = "pending_scrobbles"
+    }
+
+    private var session: Session? = null
     private val scope = CoroutineScope(Dispatchers.IO)
-    
-    init {
+    private val json = Json { ignoreUnknownKeys = true }
+    private val sharedPrefs = context.getSharedPreferences("lastfm_offline", Context.MODE_PRIVATE)
+      init {
         // Configure Last.fm API to use HTTPS
         Caller.getInstance().userAgent = USER_AGENT
         // Force HTTPS by setting the cache to use secure URLs
@@ -48,6 +68,120 @@ class LastFmService @Inject constructor(
         } catch (e: Exception) {
             Timber.w("Could not set Last.fm API URL to HTTPS: ${e.message}")
         }
+        
+        // Intentar enviar scrobbles pendientes al inicializar
+        scope.launch {
+            if (isEnabled()) {
+                sendPendingScrobbles()
+            }
+        }
+    }
+
+    // === Métodos para manejo de scrobbles offline ===
+    
+    private fun addPendingScrobble(pendingScrobble: PendingScrobble) {
+        try {
+            val currentScrobbles = getPendingScrobbles().toMutableList()
+            
+            // Evitar duplicados
+            val isDuplicate = currentScrobbles.any { 
+                it.artist == pendingScrobble.artist && 
+                it.title == pendingScrobble.title && 
+                it.addedAt == pendingScrobble.addedAt 
+            }
+            
+            if (!isDuplicate) {
+                currentScrobbles.add(pendingScrobble)
+                val jsonString = json.encodeToString(currentScrobbles)
+                sharedPrefs.edit().putString(PENDING_SCROBBLES_KEY, jsonString).apply()
+                Timber.d("Scrobble guardado para envío posterior: ${pendingScrobble.artist} - ${pendingScrobble.title}")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error al guardar scrobble pendiente")
+        }
+    }
+    
+    private fun getPendingScrobbles(): List<PendingScrobble> {
+        return try {
+            val jsonString = sharedPrefs.getString(PENDING_SCROBBLES_KEY, null) ?: return emptyList()
+            json.decodeFromString<List<PendingScrobble>>(jsonString)
+        } catch (e: Exception) {
+            Timber.e(e, "Error al cargar scrobbles pendientes")
+            emptyList()
+        }
+    }
+    
+    private fun removePendingScrobble(pendingScrobble: PendingScrobble) {
+        try {
+            val currentScrobbles = getPendingScrobbles().toMutableList()
+            currentScrobbles.remove(pendingScrobble)
+            val jsonString = json.encodeToString(currentScrobbles)
+            sharedPrefs.edit().putString(PENDING_SCROBBLES_KEY, jsonString).apply()
+        } catch (e: Exception) {
+            Timber.e(e, "Error al remover scrobble pendiente")
+        }
+    }
+    
+    private fun clearPendingScrobbles() {
+        sharedPrefs.edit().remove(PENDING_SCROBBLES_KEY).apply()
+        Timber.d("Scrobbles pendientes limpiados")
+    }
+    
+    /**
+     * Envía todos los scrobbles pendientes
+     */
+    suspend fun sendPendingScrobbles() {
+        val pendingScrobbles = getPendingScrobbles()
+        if (pendingScrobbles.isEmpty()) return
+        
+        var successCount = 0
+        val failedScrobbles = mutableListOf<PendingScrobble>()
+        
+        for (pendingScrobble in pendingScrobbles) {
+            try {
+                val currentSession = getSession() ?: break
+                
+                val scrobbleData = ScrobbleData(
+                    pendingScrobble.artist, 
+                    pendingScrobble.title, 
+                    pendingScrobble.timestamp.toInt()
+                )
+                if (pendingScrobble.album != null) scrobbleData.album = pendingScrobble.album
+                if (pendingScrobble.duration != null) scrobbleData.duration = pendingScrobble.duration
+                
+                val result = Track.scrobble(scrobbleData, currentSession)
+                if (result.isSuccessful) {
+                    removePendingScrobble(pendingScrobble)
+                    successCount++
+                    Timber.d("Scrobble pendiente enviado exitosamente: ${pendingScrobble.artist} - ${pendingScrobble.title}")
+                } else {
+                    failedScrobbles.add(pendingScrobble)
+                    Timber.w("Falló envío de scrobble pendiente: ${pendingScrobble.artist} - ${pendingScrobble.title}")
+                }
+            } catch (e: Exception) {
+                failedScrobbles.add(pendingScrobble)
+                if (isNetworkError(e)) {
+                    Timber.d("Error de red al enviar scrobble pendiente, se mantendrá en cola")
+                    break // Salir del bucle si hay error de red
+                } else {
+                    // Error no relacionado con red, remover este scrobble
+                    removePendingScrobble(pendingScrobble)
+                    Timber.e(e, "Error no recuperable al enviar scrobble pendiente")
+                }
+            }
+        }
+        
+        if (successCount > 0) {
+            Timber.i("Enviados $successCount scrobbles pendientes exitosamente")
+        }
+    }
+    
+    private fun isNetworkError(exception: Exception): Boolean {
+        return exception is IOException || 
+               exception is ConnectException || 
+               exception is SocketTimeoutException || 
+               exception is UnknownHostException ||
+               exception.message?.contains("network", ignoreCase = true) == true
     }
 
     suspend fun isEnabled(): Boolean = dataStore.data.map { 
@@ -123,14 +257,46 @@ class LastFmService @Inject constructor(
                 val result = Track.scrobble(scrobbleData, currentSession)
                 if (result.isSuccessful) {
                     Timber.d("Successfully scrobbled: $artist - $title")
+                    
+                    // Después de un scrobble exitoso, intentar enviar pendientes
+                    sendPendingScrobbles()
                 } else {
                     Timber.w("Failed to scrobble: $artist - $title")
+                    
+                    // Guardar para envío posterior
+                    val pendingScrobble = PendingScrobble(
+                        artist = artist,
+                        title = title,
+                        album = album,
+                        timestamp = timestamp,
+                        duration = duration
+                    )
+                    addPendingScrobble(pendingScrobble)
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error scrobbling track")
+                
+                // Si es error de red, guardar para envío posterior
+                if (isNetworkError(e)) {
+                    val artist = song.song.artistName ?: song.artists.firstOrNull()?.name
+                    val title = song.song.title
+                    val album = song.album?.title
+                    val duration = if (song.song.duration > 0) song.song.duration else null
+                    
+                    if (artist != null) {
+                        val pendingScrobble = PendingScrobble(
+                            artist = artist,
+                            title = title,
+                            album = album,
+                            timestamp = timestamp,
+                            duration = duration
+                        )
+                        addPendingScrobble(pendingScrobble)
+                    }
+                }
             }
         }
-    }    fun updateNowPlaying(song: Song) {
+    }fun updateNowPlaying(song: Song) {
         scope.launch {
             try {
                 if (!isEnabled()) return@launch
@@ -234,11 +400,34 @@ class LastFmService @Inject constructor(
         dataStore.edit { preferences ->
             preferences[LastFmScrobbleEnabledKey] = enabled
         }
-    }
-
-    suspend fun enableLoveTracks(enabled: Boolean) {
+    }    suspend fun enableLoveTracks(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[LastFmLoveTracksKey] = enabled
         }
+    }
+
+    /**
+     * Fuerza el envío de scrobbles pendientes (útil cuando se restaura la conexión)
+     */
+    fun retryPendingScrobbles() {
+        scope.launch {
+            if (isEnabled()) {
+                sendPendingScrobbles()
+            }
+        }
+    }
+
+    /**
+     * Obtiene el número de scrobbles pendientes
+     */
+    fun getPendingScrobblesCount(): Int {
+        return getPendingScrobbles().size
+    }
+
+    /**
+     * Limpia todos los scrobbles pendientes (usar con cuidado)
+     */
+    fun clearAllPendingScrobbles() {
+        clearPendingScrobbles()
     }
 }
