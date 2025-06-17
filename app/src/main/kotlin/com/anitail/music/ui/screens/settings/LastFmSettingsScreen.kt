@@ -109,10 +109,12 @@ fun LastFmSettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
                     if (uiState.isLoggedIn && uiState.username != null) {
-                        Text(
-                            text = stringResource(R.string.logged_in_as_lastfm, uiState.username!!),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        uiState.username?.let { username ->
+                            Text(
+                                text = stringResource(R.string.logged_in_as_lastfm, username),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                           uiState.userInfo?.let { user ->
                             Text(
                                 text = stringResource(R.string.playcount, user.playcount),
