@@ -98,6 +98,13 @@ val DiscordTokenKey = stringPreferencesKey("discordToken")
 val DiscordInfoDismissedKey = booleanPreferencesKey("discordInfoDismissed")
 val DiscordUsernameKey = stringPreferencesKey("discordUsername")
 val DiscordNameKey = stringPreferencesKey("discordName")
+
+// Last.fm preferences
+val LastFmEnabledKey = booleanPreferencesKey("lastFmEnabled")
+val LastFmUsernameKey = stringPreferencesKey("lastFmUsername")
+val LastFmSessionKey = stringPreferencesKey("lastFmSessionKey")
+val LastFmScrobbleEnabledKey = booleanPreferencesKey("lastFmScrobbleEnabled")
+val LastFmLoveTracksKey = booleanPreferencesKey("lastFmLoveTracks")
 val EnableDiscordRPCKey = booleanPreferencesKey("discordRPCEnable")
 val PreferredAvatarSourceKey = stringPreferencesKey("preferredAvatarSource")
 

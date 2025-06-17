@@ -116,6 +116,7 @@ import com.anitail.music.utils.LanJamClient
 import com.anitail.music.utils.LanJamCommands
 import com.anitail.music.utils.LanJamQueueSync
 import com.anitail.music.utils.LanJamServer
+import com.anitail.music.utils.LastFmService
 import com.anitail.music.utils.SyncUtils
 import com.anitail.music.utils.YTPlayerUtils
 import com.anitail.music.utils.dataStore
@@ -167,9 +168,11 @@ class MusicService :
 
     @Inject
     lateinit var lyricsHelper: LyricsHelper
-
     @Inject
     lateinit var syncUtils: SyncUtils
+
+    @Inject
+    lateinit var lastFmService: LastFmService
 
     private var widgetUpdateJob: Job? = null
 
@@ -1495,6 +1498,12 @@ class MusicService :
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
+            
+            // Update Last.fm Now Playing
+            currentSong.value?.let { song ->
+                lastFmService.updateNowPlaying(song)
+            }
+            
             scope.launch(Dispatchers.Main) {
                 delay(100)
                 sendWidgetUpdateBroadcast()
@@ -1662,9 +1671,8 @@ class MusicService :
         playbackStats: PlaybackStats,
     ) {
         val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
-
         if (playbackStats.totalPlayTimeMs >= (
-                if ((dataStore[HistoryDuration] ?: 30f) == 0f) 0f else dataStore[HistoryDuration]?.times(1000f) ?: 30000f
+                if ((dataStore.get(HistoryDuration, 30f)) == 0f) 0f else dataStore.get(HistoryDuration, 30f).times(1000f)
             ) &&
             !dataStore.get(PauseListenHistoryKey, false)
         ) {
@@ -1679,6 +1687,17 @@ class MusicService :
                         ),
                     )
                 } catch (_: SQLException) {
+                }
+            }
+            
+            // Scrobble to Last.fm if playback time is sufficient
+            currentSong.value?.let { song ->
+                // Scrobble if played for at least 30 seconds or half the track duration
+                val minScrobbleTime = minOf(30000L, (song.song.duration * 1000L) / 2)
+                if (playbackStats.totalPlayTimeMs >= minScrobbleTime) {
+                    val scrobbleTimestamp = (System.currentTimeMillis() - playbackStats.totalPlayTimeMs) / 1000
+                    lastFmService.scrobble(song, scrobbleTimestamp)
+                }
             }
         }
 
@@ -1694,7 +1713,7 @@ class MusicService :
                 }
             }
         }
-    }
+    
 
     private fun saveQueueToDisk() {
         if (player.playbackState == STATE_IDLE) {

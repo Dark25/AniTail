@@ -1,0 +1,10 @@
+# Copy this file to local.properties and fill in your actual values
+# DO NOT commit this file to version control!
+
+# Android SDK location
+sdk.dir=YOUR_SDK_PATH_HERE
+
+# Last.fm API credentials
+# Get your credentials from: https://www.last.fm/api/account/create
+LASTFM_API_KEY=your_lastfm_api_key_here
+LASTFM_API_SECRET=your_lastfm_api_secret_here
