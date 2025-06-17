@@ -1693,7 +1693,7 @@ class MusicService :
             // Scrobble to Last.fm if playback time is sufficient
             currentSong.value?.let { song ->
                 // Scrobble if played for at least 30 seconds or half the track duration
-                val minScrobbleTime = minOf(30000L, (song.song.duration * 1000L) / 2)
+                val minScrobbleTime = maxOf(30000L, (song.song.duration * 1000L) / 2)
                 if (playbackStats.totalPlayTimeMs >= minScrobbleTime) {
                     val scrobbleTimestamp = (System.currentTimeMillis() - playbackStats.totalPlayTimeMs) / 1000
                     lastFmService.scrobble(song, scrobbleTimestamp)
