@@ -20,7 +20,8 @@ plugins {
 android {
     namespace = "com.anitail.music"
     compileSdk = 36
-    ndkVersion = "25.1.8937393"    defaultConfig {
+    ndkVersion = "25.1.8937393"
+    defaultConfig {
         applicationId = "com.anitail.music"
         minSdk = 21
         targetSdk = 36
