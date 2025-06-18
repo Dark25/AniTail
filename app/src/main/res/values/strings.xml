@@ -127,7 +127,8 @@
     <string name="add_to_playlist">Add to playlist</string>
     <string name="view_artist">View artist</string>
     <string name="view_album">View album</string>
-    <string name="refetch">Refetch</string>    <string name="share">Share</string>
+    <string name="refetch">Refetch</string>
+    <string name="share">Share</string>
     <string name="share_lyrics">Share lyrics</string>
     <string name="share_as_text">Share as text</string>
     <string name="share_as_image">Share as image</string>
@@ -597,7 +598,7 @@
     <string name="jam_recent_connections">Recent connections</string>
     <string name="jam_hide">Hide</string>
     <string name="jam_show">Show</string>
-    
+
     <!-- Auto Update -->
     <string name="update_settings">Update settings</string>
     <string name="auto_updates">Automatic Updates</string>
@@ -676,7 +677,7 @@
     <string name="about_lastfm_description">Learn more about Last.fm music discovery and recommendations</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
-    
+
     <!-- Last.fm Extended Settings -->
     <string name="profile_info">Profile Information</string>
     <string name="scrobble_progress">Scrobble Progress</string>
