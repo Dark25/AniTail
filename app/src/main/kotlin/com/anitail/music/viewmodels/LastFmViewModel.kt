@@ -208,6 +208,6 @@ data class LastFmUiState(
     val showLastFmAvatar: Boolean = false,
     val isSyncing: Boolean = false,
     val recentTracks: List<de.umass.lastfm.Track> = emptyList(),
-    val topTracks: List<Any> = emptyList(), // Can be Track or LocalTrack
-    val topArtists: List<Any> = emptyList() // Can be Artist or LocalArtist
+    val topTracks: List<TrackType> = emptyList(), // TrackType is a sealed interface
+    val topArtists: List<ArtistType> = emptyList() // ArtistType is a sealed interface
 )
