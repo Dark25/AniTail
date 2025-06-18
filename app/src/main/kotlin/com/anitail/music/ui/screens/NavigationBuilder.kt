@@ -42,7 +42,6 @@ import com.anitail.music.ui.screens.settings.StorageSettings
 import com.anitail.music.ui.screens.settings.UpdateSettings
 import com.anitail.music.ui.screens.settings.import_from_spotify.ImportFromSpotifyScreen
 
-@RequiresApi(Build.VERSION_CODES.M)
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
     navController: NavHostController,
