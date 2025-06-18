@@ -175,6 +175,12 @@ class MusicService :
     lateinit var lastFmService: LastFmService
 
     private var widgetUpdateJob: Job? = null
+    
+    // Last.fm scrobbling variables
+    private var scrobbleCheckJob: Job? = null
+    private var currentSongStartTime: Long = 0L
+    private var hasScrobbled = false
+    private var lastScrobbleCheckSongId: String? = null
 
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
@@ -474,6 +480,9 @@ class MusicService :
                 }
             }
         }
+
+        // Start periodic scrobble checking
+        startPeriodicScrobbleCheck()
     }
 
     /**
@@ -1485,19 +1494,27 @@ class MusicService :
             }
             val isPlayingNow = player.isPlaying
             val hasDuration = player.duration > 0
-            
-            scope.launch(Dispatchers.Main) {
+              scope.launch(Dispatchers.Main) {
                 delay(50)
                 sendWidgetUpdateBroadcast()
                 if (isPlayingNow && hasDuration) {
                     startPeriodicWidgetUpdates()
+                    startPeriodicScrobbleCheck()
                 } else {
                     stopPeriodicWidgetUpdates()
+                    stopPeriodicScrobbleCheck()
                 }
             }
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
+              // Reset scrobble state when song changes
+            if (events.containsAny(EVENT_TIMELINE_CHANGED)) {
+                hasScrobbled = false
+                currentSongStartTime = System.currentTimeMillis()
+                lastScrobbleCheckSongId = null
+                Timber.d("🔄 Song changed, resetting scrobble state")
+            }
             
             // Update Last.fm Now Playing
             currentSong.value?.let { song ->
@@ -1665,12 +1682,15 @@ class MusicService :
                     ),
                 ).build()
         }
-
     override fun onPlaybackStatsReady(
         eventTime: AnalyticsListener.EventTime,
         playbackStats: PlaybackStats,
     ) {
         val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
+        
+        Timber.d("📊 onPlaybackStatsReady called - mediaId: ${mediaItem.mediaId}, totalPlayTime: ${playbackStats.totalPlayTimeMs}ms")
+        
+        // History tracking (original logic)
         if (playbackStats.totalPlayTimeMs >= (
                 if ((dataStore.get(HistoryDuration, 30f)) == 0f) 0f else dataStore.get(HistoryDuration, 30f).times(1000f)
             ) &&
@@ -1689,17 +1709,10 @@ class MusicService :
                 } catch (_: SQLException) {
                 }
             }
-            
-            // Scrobble to Last.fm if playback time is sufficient
-            currentSong.value?.let { song ->
-                // Scrobble if played for at least 30 seconds or half the track duration
-                val minScrobbleTime = maxOf(30000L, (song.song.duration * 1000L) / 2)
-                if (playbackStats.totalPlayTimeMs >= minScrobbleTime) {
-                    val scrobbleTimestamp = (System.currentTimeMillis() - playbackStats.totalPlayTimeMs) / 1000
-                    lastFmService.scrobble(song, scrobbleTimestamp)
-                }
-            }
         }
+          // Last.fm scrobbling is now handled by the periodic checkAndScrobbleIfNeeded() function
+        // to avoid duplicate scrobbles. The periodic function is more reliable and can scrobble
+        // as soon as the minimum time is reached, rather than waiting for playback to end.
 
         CoroutineScope(Dispatchers.IO).launch {
             val playbackUrl = database.format(mediaItem.mediaId).first()?.playbackUrl
@@ -1751,6 +1764,7 @@ class MusicService :
     override fun onDestroy() {
         stopPeriodicWidgetUpdates()
         widgetUpdateJob?.cancel()
+        stopPeriodicScrobbleCheck()
         
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
@@ -2011,6 +2025,75 @@ class MusicService :
         }
         
         return result
+    }
+
+    /**
+     * Starts periodic scrobble checking during playback
+     */
+    private fun startPeriodicScrobbleCheck() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            scope.launch(Dispatchers.Main) {
+                startPeriodicScrobbleCheck()
+            }
+            return
+        }
+
+        scrobbleCheckJob?.cancel()
+
+        scrobbleCheckJob = scope.launch(Dispatchers.Main) {
+            try {
+                while (isActive) {
+                    if (player.isPlaying && player.playbackState == STATE_READY) {
+                        checkAndScrobbleIfNeeded()
+                    }
+                    delay(5000) // Check every 5 seconds
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error in scrobble check loop")
+            }
+        }
+    }
+
+    /**
+     * Stops periodic scrobble checking
+     */
+    private fun stopPeriodicScrobbleCheck() {
+        scrobbleCheckJob?.cancel()
+        scrobbleCheckJob = null
+    }
+      /**
+     * Checks if current song should be scrobbled and scrobbles if needed
+     */
+    private fun checkAndScrobbleIfNeeded() {
+        currentSong.value?.let { song ->
+            val currentPosition = player.currentPosition
+            val songId = song.song.id
+            
+            // Reset scrobble status if song changed
+            if (lastScrobbleCheckSongId != songId) {
+                lastScrobbleCheckSongId = songId
+                currentSongStartTime = System.currentTimeMillis()
+                hasScrobbled = false
+                Timber.d("🔄 New song detected for scrobble tracking: ${song.song.title}")
+            }
+            
+            // Calculate how long the song has been playing in real time
+            val realPlayedTime = System.currentTimeMillis() - currentSongStartTime
+            val songDuration = song.song.duration * 1000L // Convert to milliseconds
+            val minScrobbleTime = maxOf(30000L, songDuration / 2) // 30 seconds or half the track
+            
+            Timber.d("🎵 Scrobble check - realPlayedTime: ${realPlayedTime}ms, currentPosition: ${currentPosition}ms, minRequired: ${minScrobbleTime}ms, hasScrobbled: $hasScrobbled")
+            
+            // Only scrobble if we've played for at least 30 seconds AND the player position shows we're actually playing
+            if (!hasScrobbled && realPlayedTime >= 30000L && currentPosition >= 30000L) {
+                hasScrobbled = true
+                val scrobbleTimestamp = currentSongStartTime / 1000 // When the song started
+                Timber.d("✅ Scrobbling now! realPlayedTime: ${realPlayedTime}ms, currentPosition: ${currentPosition}ms")
+                lastFmService.scrobble(song, scrobbleTimestamp)
+            }
+        } ?: run {
+            Timber.w("⚠️ currentSong is null in scrobble check")
+        }
     }
 }
 

@@ -71,16 +71,16 @@ class LastFmService @Inject constructor(
     }
 
     // === Métodos para manejo de scrobbles offline ===
-    
-    private fun addPendingScrobble(pendingScrobble: PendingScrobble) {
+      private fun addPendingScrobble(pendingScrobble: PendingScrobble) {
         try {
             val currentScrobbles = getPendingScrobbles().toMutableList()
             
-            // Evitar duplicados
+            // Evitar duplicados: misma canción en los últimos 30 segundos
+            val now = System.currentTimeMillis()
             val isDuplicate = currentScrobbles.any { 
                 it.artist == pendingScrobble.artist && 
                 it.title == pendingScrobble.title && 
-                it.addedAt == pendingScrobble.addedAt 
+                (now - it.addedAt) < 30_000 // 30 segundos en milisegundos
             }
             
             if (!isDuplicate) {
@@ -88,6 +88,8 @@ class LastFmService @Inject constructor(
                 val jsonString = json.encodeToString(currentScrobbles)
                 sharedPrefs.edit().putString(PENDING_SCROBBLES_KEY, jsonString).apply()
                 Timber.d("Scrobble guardado para envío posterior: ${pendingScrobble.artist} - ${pendingScrobble.title}")
+            } else {
+                Timber.d("Scrobble duplicado ignorado: ${pendingScrobble.artist} - ${pendingScrobble.title}")
             }
         } catch (e: Exception) {
             Timber.e(e, "Error al guardar scrobble pendiente")
@@ -232,27 +234,83 @@ class LastFmService @Inject constructor(
     fun scrobble(song: Song, timestamp: Long = System.currentTimeMillis() / 1000) {
         scope.launch {
             try {
-                if (!isEnabled() || !isScrobbleEnabled()) return@launch
-                
-                val currentSession = getSession() ?: return@launch
-                val artist = song.song.artistName ?: song.artists.firstOrNull()?.name ?: return@launch
+                val artist = song.song.artistName ?: song.artists.firstOrNull()?.name
                 val title = song.song.title
+                
+                Timber.d("🎵 Attempting to scrobble: $artist - $title with timestamp: $timestamp")
+                
+                if (!isEnabled()) {
+                    Timber.d("❌ Last.fm not enabled, skipping scrobble")
+                    return@launch
+                }
+                
+                if (!isScrobbleEnabled()) {
+                    Timber.d("❌ Scrobbling disabled, skipping scrobble")
+                    return@launch
+                }
+                
+                val currentSession = getSession()
+                if (currentSession == null) {
+                    Timber.w("❌ No Last.fm session available, cannot scrobble")
+                    return@launch
+                }
+                
+                if (artist.isNullOrBlank()) {
+                    Timber.w("❌ No artist found for song, cannot scrobble: $title")
+                    return@launch
+                }
+                
+                if (title.isBlank()) {
+                    Timber.w("❌ No title found for song, cannot scrobble")
+                    return@launch
+                }
+                
                 val album = song.album?.title
                 val duration = if (song.song.duration > 0) song.song.duration else null
 
                 val scrobbleData = ScrobbleData(artist, title, timestamp.toInt())
                 if (album != null) scrobbleData.album = album
-                if (duration != null) scrobbleData.duration = duration
-
                 val result = Track.scrobble(scrobbleData, currentSession)
+                
+                // Log detailed response information
+                Timber.d("📊 Scrobble result - Success: ${result.isSuccessful}")
+                Timber.d("📊 Scrobble result - Status: ${result.status}")
+                
+                // Try to get more details from the response
+                try {
+                    val responseDoc = result.resultDocument
+                    if (responseDoc != null) {
+                        val scrobbles = responseDoc.getElementsByTagName("scrobbles")
+                        if (scrobbles.length > 0) {
+                            val scrobblesElement = scrobbles.item(0) as org.w3c.dom.Element
+                            val accepted = scrobblesElement.getAttribute("accepted")
+                            val ignored = scrobblesElement.getAttribute("ignored")
+                            Timber.d("📊 Scrobbles - Accepted: $accepted, Ignored: $ignored")
+                            
+                            // Check for ignored messages
+                            val scrobbleNodes = responseDoc.getElementsByTagName("scrobble")
+                            if (scrobbleNodes.length > 0) {
+                                val scrobbleElement = scrobbleNodes.item(0) as org.w3c.dom.Element
+                                val ignoredMessages = scrobbleElement.getElementsByTagName("ignoredmessage")
+                                if (ignoredMessages.length > 0) {
+                                    val ignoredElement = ignoredMessages.item(0) as org.w3c.dom.Element
+                                    val code = ignoredElement.getAttribute("code")
+                                    val message = ignoredElement.textContent
+                                    Timber.w("🚫 Scrobble ignored - Code: $code, Message: $message")
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "Could not parse scrobble response details")
+                }
+                
                 if (result.isSuccessful) {
-                    Timber.d("Successfully scrobbled: $artist - $title")
+                    Timber.d("✅ Successfully scrobbled: $artist - $title")
                     
                     // Después de un scrobble exitoso, intentar enviar pendientes
                     sendPendingScrobbles()
                 } else {
-                    Timber.w("Failed to scrobble: $artist - $title")
-                    
                     // Guardar para envío posterior
                     val pendingScrobble = PendingScrobble(
                         artist = artist,
@@ -264,7 +322,7 @@ class LastFmService @Inject constructor(
                     addPendingScrobble(pendingScrobble)
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Error scrobbling track")
+                Timber.e(e, "❌ Exception while scrobbling track")
                 
                 // Si es error de red, guardar para envío posterior
                 if (isNetworkError(e)) {
@@ -712,7 +770,7 @@ data class PendingScrobble(
     val album: String? = null,
     val timestamp: Long,
     val duration: Int? = null,
-    val addedAt: Long = System.currentTimeMillis() / 1000 / 60 // Solo guardar una canción por minuto
+    val addedAt: Long = System.currentTimeMillis() // Usar milisegundos completos para identificación única
 )
 
 // Modelos locales para usar cuando la librería Last.fm falla
