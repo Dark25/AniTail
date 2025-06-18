@@ -676,4 +676,32 @@
     <string name="about_lastfm_description">Learn more about Last.fm music discovery and recommendations</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
+    
+    <!-- Last.fm Extended Settings -->
+    <string name="profile_info">Profile Information</string>
+    <string name="scrobble_progress">Scrobble Progress</string>
+    <string name="user_country">Country: %s</string>
+    <string name="user_age">Age: %s</string>
+    <string name="user_friends">Friends: %d</string>
+    <string name="pending_scrobbles">Pending scrobbles: %d</string>
+    <string name="scrobbles_synced">All scrobbles synced</string>
+    <string name="lastfm_profile_picture">Last.fm Profile Picture</string>
+    <string name="show_lastfm_avatar">Show Last.fm avatar</string>
+    <string name="show_lastfm_avatar_description">Display your Last.fm profile picture in the app</string>
+    <string name="lastfm_theme">Last.fm Theme</string>
+    <string name="lastfm_theme_description">Use a Last.fm specific dark/light theme</string>
+    <string name="sync_progress_indicator">Sync Progress</string>
+    <string name="syncing_scrobbles">Syncing scrobbles…</string>
+    <string name="recent_tracks">Recent Tracks</string>
+    <string name="view_recent_tracks">View recent tracks</string>
+    <string name="top_tracks">Top Tracks</string>
+    <string name="view_top_tracks">View top tracks</string>
+    <string name="top_artists">Top Artists</string>
+    <string name="view_top_artists">View top artists</string>
+    <string name="no_top_tracks_data">No top tracks data available. Listen to more music to see your statistics!</string>
+    <string name="no_recent_tracks_data">No recent tracks data available.</string>
+    <string name="no_top_artists_data">No top artists data available. Listen to more music to see your statistics!</string>
+    <string name="retry_pending_scrobbles">Retry pending scrobbles</string>
+    <string name="clear_pending_scrobbles">Clear pending scrobbles</string>
+    <string name="scrobble_queue_management">Scrobble Queue</string>
 </resources>

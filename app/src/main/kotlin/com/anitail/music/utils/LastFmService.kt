@@ -8,6 +8,7 @@ import com.anitail.music.constants.LastFmEnabledKey
 import com.anitail.music.constants.LastFmLoveTracksKey
 import com.anitail.music.constants.LastFmScrobbleEnabledKey
 import com.anitail.music.constants.LastFmSessionKey
+import com.anitail.music.constants.LastFmShowAvatarKey
 import com.anitail.music.constants.LastFmUsernameKey
 import com.anitail.music.db.entities.Song
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,20 +26,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import timber.log.Timber
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
-
-@Serializable
-data class PendingScrobble(
-    val artist: String,
-    val title: String,
-    val album: String? = null,
-    val timestamp: Long,
-    val duration: Int? = null,
-    val addedAt: Long = System.currentTimeMillis() / 1000 / 60 // Solo guardar una canción por minuto
-)
 
 @Singleton
 class LastFmService @Inject constructor(
@@ -428,14 +424,236 @@ class LastFmService @Inject constructor(
             Result.failure(e)
         }
     }
-
-    suspend fun getTopTracks(period: de.umass.lastfm.Period = de.umass.lastfm.Period.OVERALL, limit: Int = 10): Result<List<Track>> = withContext(Dispatchers.IO) {
+    suspend fun getTopTracks(period: de.umass.lastfm.Period = de.umass.lastfm.Period.OVERALL, limit: Int = 10): Result<List<Any>> = withContext(Dispatchers.IO) {
         try {
             val username = getUsername() ?: return@withContext Result.failure(Exception("No username"))
-            val tracks = User.getTopTracks(username, period, API_KEY)
-            Result.success(tracks.take(limit))
+            
+            // Intentar con diferentes períodos si falla
+            val periods = listOf(
+                de.umass.lastfm.Period.ONE_MONTH,
+                de.umass.lastfm.Period.THREE_MONTHS,
+                de.umass.lastfm.Period.SIX_MONTHS,
+                de.umass.lastfm.Period.OVERALL
+            )
+            
+            for (periodToTry in periods) {
+                try {
+                    Timber.d("Trying to get top tracks for period: $periodToTry")
+                    val tracks = User.getTopTracks(username, periodToTry, API_KEY)
+                    Timber.d("API returned tracks collection: ${tracks != null}")
+                    
+                    if (tracks != null) {
+                        val tracksList = tracks.toList()
+                        Timber.d("Converted to list: ${tracksList.size} tracks")
+                        
+                        if (tracksList.isNotEmpty()) {
+                            Timber.d("Successfully loaded ${tracksList.size} top tracks with period: $periodToTry")
+                            tracksList.forEachIndexed { index, track ->
+                                Timber.d("Track $index: ${track.name} by ${track.artist} (${track.playcount} plays)")
+                            }
+                            return@withContext Result.success(tracksList.take(limit))
+                        } else {
+                            Timber.w("Track list is empty for period $periodToTry")
+                        }
+                    } else {
+                        Timber.w("API returned null for period $periodToTry")
+                    }
+                } catch (e: Exception) {
+                    Timber.w("Failed to get top tracks for period $periodToTry: ${e.message}", e)
+                    continue
+                }
+            }
+            
+            // Si la librería falla, intentar con HTTP directo
+            Timber.i("Library failed, trying direct HTTP fallback for top tracks")
+            val periodString = when (period) {
+                de.umass.lastfm.Period.ONE_MONTH -> "1month"
+                de.umass.lastfm.Period.THREE_MONTHS -> "3month"
+                de.umass.lastfm.Period.SIX_MONTHS -> "6month"
+                de.umass.lastfm.Period.TWELVE_MONTHS -> "12month"
+                else -> "overall"
+            }
+            
+            val fallbackResult = getTopTracksDirectly(periodString, limit)
+            if (fallbackResult.isSuccess) {
+                val tracks = fallbackResult.getOrNull()
+                if (!tracks.isNullOrEmpty()) {
+                    Timber.i("Fallback successful: loaded ${tracks.size} top tracks")
+                    return@withContext Result.success(tracks)
+                }
+            }
+            
+            // Si todos los períodos fallan, retornar lista vacía en lugar de error
+            Timber.i("No top tracks data available for any period")
+            Result.success(emptyList<Any>())
         } catch (e: Exception) {
             Timber.e(e, "Error getting top tracks")
+            Result.success(emptyList<Any>()) // Retornar lista vacía en lugar de fallo
+        }
+    }
+    suspend fun getTopArtists(period: de.umass.lastfm.Period = de.umass.lastfm.Period.OVERALL, limit: Int = 10): Result<List<Any>> = withContext(Dispatchers.IO) {
+        try {
+            val username = getUsername() ?: return@withContext Result.failure(Exception("No username"))
+            
+            // Intentar con diferentes períodos si falla
+            val periods = listOf(
+                de.umass.lastfm.Period.ONE_MONTH,
+                de.umass.lastfm.Period.THREE_MONTHS,
+                de.umass.lastfm.Period.SIX_MONTHS,
+                de.umass.lastfm.Period.OVERALL
+            )
+            
+            for (periodToTry in periods) {
+                try {
+                    Timber.d("Trying to get top artists for period: $periodToTry")
+                    val artists = User.getTopArtists(username, periodToTry, API_KEY)
+                    Timber.d("API returned artists collection: ${artists != null}")
+                    
+                    if (artists != null) {
+                        val artistsList = artists.toList()
+                        Timber.d("Converted to list: ${artistsList.size} artists")
+                        
+                        if (artistsList.isNotEmpty()) {
+                            Timber.d("Successfully loaded ${artistsList.size} top artists with period: $periodToTry")
+                            artistsList.forEachIndexed { index, artist ->
+                                Timber.d("Artist $index: ${artist.name} (${artist.playcount} plays)")
+                            }
+                            return@withContext Result.success(artistsList.take(limit))
+                        } else {
+                            Timber.w("Artist list is empty for period $periodToTry")
+                        }
+                    } else {
+                        Timber.w("API returned null for period $periodToTry")
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to get top artists for period $periodToTry: ${e.message}")
+                    continue
+                }
+            }
+            
+            // Si la librería falla, intentar con HTTP directo
+            Timber.i("Library failed, trying direct HTTP fallback for top artists")
+            val periodString = when (period) {
+                de.umass.lastfm.Period.ONE_MONTH -> "1month"
+                de.umass.lastfm.Period.THREE_MONTHS -> "3month"
+                de.umass.lastfm.Period.SIX_MONTHS -> "6month"
+                de.umass.lastfm.Period.TWELVE_MONTHS -> "12month"
+                else -> "overall"
+            }
+            
+            val fallbackResult = getTopArtistsDirectly(periodString, limit)
+            if (fallbackResult.isSuccess) {
+                val artists = fallbackResult.getOrNull()
+                if (!artists.isNullOrEmpty()) {
+                    Timber.i("Fallback successful: loaded ${artists.size} top artists")
+                    return@withContext Result.success(artists)
+                }
+            }
+            
+            // Si todos los períodos fallan, retornar lista vacía en lugar de error
+            Timber.i("No top artists data available for any period")
+            Result.success(emptyList<Any>())
+        } catch (e: Exception) {
+            Timber.e(e, "Error getting top artists")
+            Result.success(emptyList<Any>()) // Retornar lista vacía en lugar de fallo
+        }
+    }
+
+   private suspend fun getTopTracksDirectly(period: String = "overall", limit: Int = 10): Result<List<LocalTrack>> = withContext(Dispatchers.IO) {
+        try {
+            val username = getUsername() ?: return@withContext Result.failure(Exception("No username"))
+            
+            val client = OkHttpClient()
+            val url = "https://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=$username&period=$period&limit=$limit&api_key=$API_KEY&format=json"
+            
+            val request = Request.Builder()
+                .url(url)
+                .build()
+                
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(IOException("HTTP error: ${response.code}"))
+                }
+                
+                val jsonString = response.body?.string() ?: return@withContext Result.failure(Exception("Empty response"))
+                val json = Json.parseToJsonElement(jsonString).jsonObject
+                
+                val toptracks = json["toptracks"]?.jsonObject
+                val tracksArray = toptracks?.get("track")?.jsonArray
+                
+                if (tracksArray == null || tracksArray.isEmpty()) {
+                    Timber.i("No top tracks found in direct API response")
+                    return@withContext Result.success(emptyList())
+                }
+                
+                val tracks = tracksArray.map { trackElement ->
+                    val trackObj = trackElement.jsonObject
+                    val name = trackObj["name"]?.jsonPrimitive?.content ?: "Unknown"
+                    val artist = trackObj["artist"]?.jsonObject?.get("name")?.jsonPrimitive?.content ?: "Unknown Artist"
+                    val playcount = trackObj["playcount"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+                    val url = trackObj["url"]?.jsonPrimitive?.content
+                    
+                    LocalTrack(
+                        name = name,
+                        artist = artist,
+                        playcount = playcount,
+                        url = url
+                    )
+                }
+                
+                Timber.d("Successfully parsed ${tracks.size} top tracks from direct API")
+                Result.success(tracks)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error in direct top tracks API call")
+            Result.failure(e)
+        }
+    }
+      private suspend fun getTopArtistsDirectly(period: String = "overall", limit: Int = 10): Result<List<LocalArtist>> = withContext(Dispatchers.IO) {
+        try {
+            val username = getUsername() ?: return@withContext Result.failure(Exception("No username"))
+            
+            val client = OkHttpClient()
+            val url = "https://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=$username&period=$period&limit=$limit&api_key=$API_KEY&format=json"
+            
+            val request = Request.Builder()
+                .url(url)
+                .build()
+                
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(IOException("HTTP error: ${response.code}"))
+                }
+                
+                val jsonString = response.body?.string() ?: return@withContext Result.failure(Exception("Empty response"))
+                val json = Json.parseToJsonElement(jsonString).jsonObject
+                
+                val topartists = json["topartists"]?.jsonObject
+                val artistsArray = topartists?.get("artist")?.jsonArray
+                
+                if (artistsArray == null || artistsArray.isEmpty()) {
+                    Timber.i("No top artists found in direct API response")
+                    return@withContext Result.success(emptyList())
+                }
+                
+                val artists = artistsArray.map { artistElement ->
+                    val artistObj = artistElement.jsonObject
+                    val name = artistObj["name"]?.jsonPrimitive?.content ?: "Unknown"
+                    val playcount = artistObj["playcount"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0
+                    val url = artistObj["url"]?.jsonPrimitive?.content
+                    
+                    LocalArtist(
+                        name = name,
+                        playcount = playcount,
+                        url = url
+                    )
+                }
+                
+                Timber.d("Successfully parsed ${artists.size} top artists from direct API")
+                Result.success(artists)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error in direct top artists API call")
             Result.failure(e)
         }
     }
@@ -449,6 +667,16 @@ class LastFmService @Inject constructor(
             preferences[LastFmLoveTracksKey] = enabled
         }
     }
+
+    suspend fun enableShowAvatar(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[LastFmShowAvatarKey] = enabled
+        }
+    }
+
+    suspend fun isShowAvatarEnabled(): Boolean = dataStore.data.map { 
+        it[LastFmShowAvatarKey] ?: false 
+    }.first()
 
     /**
      * Fuerza el envío de scrobbles pendientes (útil cuando se restaura la conexión)
@@ -476,3 +704,29 @@ class LastFmService @Inject constructor(
     }
 
 }
+
+@Serializable
+data class PendingScrobble(
+    val artist: String,
+    val title: String,
+    val album: String? = null,
+    val timestamp: Long,
+    val duration: Int? = null,
+    val addedAt: Long = System.currentTimeMillis() / 1000 / 60 // Solo guardar una canción por minuto
+)
+
+// Modelos locales para usar cuando la librería Last.fm falla
+@Serializable
+data class LocalTrack(
+    val name: String,
+    val artist: String,
+    val playcount: Int = 0,
+    val url: String? = null
+)
+
+@Serializable
+data class LocalArtist(
+    val name: String,
+    val playcount: Int = 0,
+    val url: String? = null
+)

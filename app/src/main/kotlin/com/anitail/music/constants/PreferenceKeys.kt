@@ -105,6 +105,7 @@ val LastFmUsernameKey = stringPreferencesKey("lastFmUsername")
 val LastFmSessionKey = stringPreferencesKey("lastFmSessionKey")
 val LastFmScrobbleEnabledKey = booleanPreferencesKey("lastFmScrobbleEnabled")
 val LastFmLoveTracksKey = booleanPreferencesKey("lastFmLoveTracks")
+val LastFmShowAvatarKey = booleanPreferencesKey("lastFmShowAvatar")
 val EnableDiscordRPCKey = booleanPreferencesKey("discordRPCEnable")
 val PreferredAvatarSourceKey = stringPreferencesKey("preferredAvatarSource")
 

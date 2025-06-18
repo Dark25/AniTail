@@ -520,6 +520,50 @@
     <string name="authorization_code">Código de autorización</string>
     <string name="import_from_spotify">Importar desde Spotify</string>
     <string name="remove_from_cache">Eliminar de la caché</string>
+    
+    <!-- Last.fm -->
+    <string name="lastfm_settings">Configuración de Last.fm</string>
+    <string name="login_to_lastfm">Iniciar sesión en Last.fm</string>
+    <string name="lastfm_login_description">Ingresa tus credenciales de Last.fm para habilitar scrobbling y dar me gusta a tracks.</string>
+    <string name="playcount">Reproducciones: %d</string>
+    <string name="logout_confirmation">¿Estás seguro de que quieres cerrar sesión de Last.fm?</string>
+    <string name="enable_scrobbling">Habilitar scrobbling</string>
+    <string name="enable_scrobbling_description">Enviar automáticamente tracks a tu perfil de Last.fm</string>
+    <string name="love_tracks">Me gusta en tracks</string>
+    <string name="love_tracks_description">Automáticamente dar/quitar me gusta cuando des like/unlike</string>
+    <string name="about_lastfm">Acerca de Last.fm</string>
+    <string name="about_lastfm_description">Aprende más sobre descubrimiento musical y recomendaciones de Last.fm</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="password">Contraseña</string>
+    
+    <!-- Last.fm Extended Settings -->
+    <string name="profile_info">Información del Perfil</string>
+    <string name="scrobble_progress">Progreso de Scrobbling</string>
+    <string name="user_country">País: %s</string>
+    <string name="user_age">Edad: %s</string>
+    <string name="user_friends">Amigos: %d</string>
+    <string name="pending_scrobbles">Scrobbles pendientes: %d</string>
+    <string name="scrobbles_synced">Todos los scrobbles sincronizados</string>
+    <string name="lastfm_profile_picture">Foto de perfil de Last.fm</string>
+    <string name="show_lastfm_avatar">Mostrar avatar de Last.fm</string>
+    <string name="show_lastfm_avatar_description">Mostrar tu foto de perfil de Last.fm en la app</string>
+    <string name="lastfm_theme">Tema de Last.fm</string>
+    <string name="lastfm_theme_description">Usar un tema oscuro/claro específico para Last.fm</string>
+    <string name="sync_progress_indicator">Progreso de Sincronización</string>
+    <string name="syncing_scrobbles">Sincronizando scrobbles…</string>
+    <string name="recent_tracks">Tracks Recientes</string>
+    <string name="view_recent_tracks">Ver tracks recientes</string>
+    <string name="top_tracks">Top Tracks</string>
+    <string name="view_top_tracks">Ver top tracks</string>
+    <string name="top_artists">Top Artistas</string>
+    <string name="view_top_artists">Ver top artistas</string>
+    <string name="no_top_tracks_data">No hay datos de pistas principales. ¡Escucha más música para ver tus estadísticas!</string>
+    <string name="no_recent_tracks_data">No hay datos de pistas recientes.</string>
+    <string name="no_top_artists_data">No hay datos de artistas principales. ¡Escucha más música para ver tus estadísticas!</string>
+    <string name="retry_pending_scrobbles">Reintentar scrobbles pendientes</string>
+    <string name="clear_pending_scrobbles">Limpiar scrobbles pendientes</string>
+    <string name="scrobble_queue_management">Cola de Scrobbles</string>
+
     <!-- Welcome -->
     <string name="good_morning">Buenos días</string>
     <string name="good_afternoon">Buenas tardes</string>
