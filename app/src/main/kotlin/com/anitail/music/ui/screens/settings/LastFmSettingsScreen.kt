@@ -141,7 +141,6 @@ fun LastFmSettingsScreen(
                           color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-
                     if (user.country.isNotBlank()) {
                       Text(
                           text = stringResource(R.string.user_country, user.country),
@@ -289,11 +288,13 @@ fun LastFmSettingsScreen(
                 fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             if (uiState.topTracks.isNotEmpty()) {
-              uiState.topTracks.forEachIndexed { index, track ->
-                val trackName = getTrackName(track)
-                val trackArtist = getTrackArtist(track)
-                val trackPlaycount = getTrackPlaycount(track)
-                Text(text = "${index + 1}. $trackArtist - $trackName ($trackPlaycount plays)")
+              Column {
+                uiState.topTracks.forEachIndexed { index: Int, track: Any ->
+                  val trackName = getTrackName(track)
+                  val trackArtist = getTrackArtist(track)
+                  val trackPlaycount = getTrackPlaycount(track)
+                  Text(text = "${index + 1}. $trackArtist - $trackName ($trackPlaycount plays)")
+                }
               }
             } else {
               Text(
@@ -315,10 +316,12 @@ fun LastFmSettingsScreen(
                 fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             if (uiState.topArtists.isNotEmpty()) {
-              uiState.topArtists.forEachIndexed { index, artist ->
-                val artistName = getArtistName(artist)
-                val artistPlaycount = getArtistPlaycount(artist)
-                Text(text = "${index + 1}. $artistName ($artistPlaycount plays)")
+              Column {
+                uiState.topArtists.forEachIndexed { index: Int, artist: Any ->
+                  val artistName = getArtistName(artist)
+                  val artistPlaycount = getArtistPlaycount(artist)
+                  Text(text = "${index + 1}. $artistName ($artistPlaycount plays)")
+                }
               }
             } else {
               Text(
