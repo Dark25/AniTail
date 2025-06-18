@@ -33,10 +33,10 @@ android {
             localPropertiesFile.inputStream().use { localProperties.load(it) }
         }
         
-        val lastfmApiKey = localProperties.getProperty("lastfm.api.key") 
+        val lastfmApiKey = localProperties.getProperty("LASTFM_API_KEY") 
             ?: System.getenv("LASTFM_API_KEY") 
             ?: "PUT_YOUR_API_KEY_HERE"
-        val lastfmApiSecret = localProperties.getProperty("lastfm.api.secret") 
+        val lastfmApiSecret = localProperties.getProperty("LASTFM_API_SECRET") 
             ?: System.getenv("LASTFM_API_SECRET") 
             ?: "PUT_YOUR_API_SECRET_HERE"
             
