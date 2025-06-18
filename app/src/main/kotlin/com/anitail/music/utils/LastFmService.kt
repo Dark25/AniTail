@@ -27,9 +27,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.IOException
-import java.net.ConnectException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -177,11 +174,7 @@ class LastFmService @Inject constructor(
     }
     
     private fun isNetworkError(exception: Exception): Boolean {
-        return exception is IOException || 
-               exception is ConnectException || 
-               exception is SocketTimeoutException || 
-               exception is UnknownHostException ||
-               exception.message?.contains("network", ignoreCase = true) == true
+        return exception is IOException || exception.message?.contains("network", ignoreCase = true) == true
     }
 
     suspend fun isEnabled(): Boolean = dataStore.data.map { 
@@ -239,7 +232,8 @@ class LastFmService @Inject constructor(
             preferences[LastFmEnabledKey] = false
         }
         session = null
-    }    fun scrobble(song: Song, timestamp: Long = System.currentTimeMillis() / 1000) {
+    }
+    fun scrobble(song: Song, timestamp: Long = System.currentTimeMillis() / 1000) {
         scope.launch {
             try {
                 if (!isEnabled() || !isScrobbleEnabled()) return@launch
@@ -296,7 +290,8 @@ class LastFmService @Inject constructor(
                 }
             }
         }
-    }fun updateNowPlaying(song: Song) {
+    }
+    fun updateNowPlaying(song: Song) {
         scope.launch {
             try {
                 if (!isEnabled()) return@launch
@@ -321,44 +316,93 @@ class LastFmService @Inject constructor(
                 Timber.e(e, "Error updating now playing")
             }
         }
-    }    fun loveTrack(song: Song) {
+    }
+    fun loveTrack(song: Song) {
         scope.launch {
             try {
-                if (!isEnabled() || !isLoveTracksEnabled()) return@launch
+                if (!isEnabled()) {
+                    Timber.d("Last.fm not enabled, skipping love track")
+                    return@launch
+                }
                 
-                val currentSession = getSession() ?: return@launch
-                val artist = song.song.artistName ?: song.artists.firstOrNull()?.name ?: return@launch
+                if (!isLoveTracksEnabled()) {
+                    Timber.d("Love tracks not enabled, skipping love track")
+                    return@launch
+                }
+                
+                val currentSession = getSession()
+                if (currentSession == null) {
+                    Timber.w("No Last.fm session available, cannot love track")
+                    return@launch
+                }
+                
+                val artist = song.song.artistName ?: song.artists.firstOrNull()?.name
+                if (artist == null) {
+                    Timber.w("No artist found for song, cannot love track")
+                    return@launch
+                }
+                
                 val title = song.song.title
 
+                Timber.d("Attempting to love track: $artist - $title")
                 val result = Track.love(artist, title, currentSession)
                 if (result.isSuccessful) {
-                    Timber.d("Successfully loved track: $artist - $title")
+                    Timber.i("✅ Successfully loved track: $artist - $title")
                 } else {
-                    Timber.w("Failed to love track: $artist - $title")
+                    Timber.w("❌ Failed to love track: $artist - $title")
+                    Timber.w("Last.fm API response: ${result.status}")
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Error loving track")
+                Timber.e(e, "Error loving track: ${song.song.title}")
+                
+                // Si es error de red, podríamos implementar cola de "loves" pendientes
+                if (isNetworkError(e)) {
+                    Timber.d("Network error detected, consider implementing pending loves queue")
+                }
             }
         }
-    }
-
-    fun unloveTrack(song: Song) {
+    }    fun unloveTrack(song: Song) {
         scope.launch {
             try {
-                if (!isEnabled() || !isLoveTracksEnabled()) return@launch
+                if (!isEnabled()) {
+                    Timber.d("Last.fm not enabled, skipping unlove track")
+                    return@launch
+                }
                 
-                val currentSession = getSession() ?: return@launch
-                val artist = song.song.artistName ?: song.artists.firstOrNull()?.name ?: return@launch
+                if (!isLoveTracksEnabled()) {
+                    Timber.d("Love tracks not enabled, skipping unlove track")
+                    return@launch
+                }
+                
+                val currentSession = getSession()
+                if (currentSession == null) {
+                    Timber.w("No Last.fm session available, cannot unlove track")
+                    return@launch
+                }
+                
+                val artist = song.song.artistName ?: song.artists.firstOrNull()?.name
+                if (artist == null) {
+                    Timber.w("No artist found for song, cannot unlove track")
+                    return@launch
+                }
+                
                 val title = song.song.title
 
+                Timber.d("Attempting to unlove track: $artist - $title")
                 val result = Track.unlove(artist, title, currentSession)
                 if (result.isSuccessful) {
-                    Timber.d("Successfully unloved track: $artist - $title")
+                    Timber.i("✅ Successfully unloved track: $artist - $title")
                 } else {
-                    Timber.w("Failed to unlove track: $artist - $title")
+                    Timber.w("❌ Failed to unlove track: $artist - $title")
+                    Timber.w("Last.fm API response: ${result.status}")
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Error unloving track")
+                Timber.e(e, "Error unloving track: ${song.song.title}")
+                
+                // Si es error de red, podríamos implementar cola de "unloves" pendientes
+                if (isNetworkError(e)) {
+                    Timber.d("Network error detected, consider implementing pending unloves queue")
+                }
             }
         }
     }
@@ -423,11 +467,12 @@ class LastFmService @Inject constructor(
     fun getPendingScrobblesCount(): Int {
         return getPendingScrobbles().size
     }
-
     /**
      * Limpia todos los scrobbles pendientes (usar con cuidado)
      */
+    
     fun clearAllPendingScrobbles() {
         clearPendingScrobbles()
     }
+
 }

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,12 +27,29 @@ import javax.inject.Singleton
 @Singleton
 class SyncUtils @Inject constructor(
     private val database: MusicDatabase,
+    private val lastFmService: LastFmService,
 ) {
     private val syncScope = CoroutineScope(Dispatchers.IO)
 
     fun likeSong(s: SongEntity) {
         syncScope.launch {
+            // Sincronizar con YouTube
             YouTube.likeVideo(s.id, s.liked)
+            
+            // Sincronizar con Last.fm
+            try {
+                val song = database.song(s.id).firstOrNull()
+                if (song != null) {
+                    if (s.liked) {
+                        lastFmService.loveTrack(song)
+                    } else {
+                        lastFmService.unloveTrack(song)
+                    }
+                }
+            } catch (e: Exception) {
+                // Log pero no fallar la operación completa si Last.fm falla
+                Timber.e(e, "Error syncing like to Last.fm for song: ${s.title}")
+            }
         }
     }
 
