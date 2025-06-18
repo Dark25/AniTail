@@ -187,13 +187,6 @@ class LastFmViewModel @Inject constructor(private val lastFmService: LastFmServi
       _uiState.value = _uiState.value.copy(pendingScrobblesCount = 0)
     }
   }
-
-  fun setShowLastFmAvatar(show: Boolean) {
-    viewModelScope.launch {
-      lastFmService.enableShowAvatar(show)
-      _uiState.value = _uiState.value.copy(showLastFmAvatar = show)
-    }
-  }
 }
 
 data class LastFmUiState(
