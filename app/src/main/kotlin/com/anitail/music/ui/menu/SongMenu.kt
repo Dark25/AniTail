@@ -57,6 +57,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
@@ -86,6 +88,7 @@ import com.anitail.music.ui.component.SongListItem
 import com.anitail.music.ui.component.TextFieldDialog
 import com.anitail.music.ui.utils.ShowMediaInfo
 import com.anitail.music.viewmodels.CachePlaylistViewModel
+import com.anitail.music.viewmodels.LastFmViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -113,6 +116,8 @@ fun SongMenu(
     var refetchIconDegree by remember { mutableFloatStateOf(0f) }
 
     val cacheViewModel = viewModel<CachePlaylistViewModel>()
+    val lastFmViewModel: LastFmViewModel = hiltViewModel()
+    val lastFmUiState by lastFmViewModel.uiState.collectAsStateWithLifecycle()
 
     val rotationAnimation by animateFloatAsState(
         targetValue = refetchIconDegree,
@@ -332,7 +337,16 @@ fun SongMenu(
                         update(s)
                      }
 
-                        syncUtils.likeSong(s)
+                    syncUtils.likeSong(s)
+                    
+                    // Last.fm integration
+                    if (lastFmUiState.isLoggedIn && lastFmUiState.isLoveTracksEnabled) {
+                        if (s.liked) {
+                            lastFmViewModel.loveTrack(song)
+                        } else {
+                            lastFmViewModel.unloveTrack(song)
+                        }
+                    }
                 },
             ) {
                 Icon(

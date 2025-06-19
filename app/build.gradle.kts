@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+import java.util.Properties
+
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -14,7 +17,6 @@ android {
     namespace = "com.anitail.music"
     compileSdk = 36
     ndkVersion = "25.1.8937393"
-
     defaultConfig {
         applicationId = "com.anitail.music"
         minSdk = 21
@@ -23,6 +25,23 @@ android {
         versionName = "1.7.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        
+        // Last.fm API credentials from local.properties or environment variables
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { localProperties.load(it) }
+        }
+        
+        val lastfmApiKey = localProperties.getProperty("LASTFM_API_KEY") 
+            ?: System.getenv("LASTFM_API_KEY") 
+            ?: "PUT_YOUR_API_KEY_HERE"
+        val lastfmApiSecret = localProperties.getProperty("LASTFM_API_SECRET") 
+            ?: System.getenv("LASTFM_API_SECRET") 
+            ?: "PUT_YOUR_API_SECRET_HERE"
+            
+        buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
+        buildConfigField("String", "LASTFM_API_SECRET", "\"$lastfmApiSecret\"")
     }
 
     flavorDimensions += "abi"
@@ -208,7 +227,10 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.compose.icons.extended)
     implementation(libs.work.runtime.ktx)
-    implementation(libs.hilt.work)
-    // OneSignal Push Notifications
+    implementation(libs.hilt.work)    // OneSignal Push Notifications
     implementation(libs.onesignal)
+    
+    // Last.fm integration
+    implementation(libs.lastfm.java)
+    implementation(libs.commons.codec)
 }

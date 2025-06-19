@@ -1,5 +1,7 @@
 package com.anitail.music.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -32,6 +34,7 @@ import com.anitail.music.ui.screens.settings.ContentSettings
 import com.anitail.music.ui.screens.settings.DiscordLoginScreen
 import com.anitail.music.ui.screens.settings.DiscordSettings
 import com.anitail.music.ui.screens.settings.JamSettingsScreen
+import com.anitail.music.ui.screens.settings.LastFmSettingsScreen
 import com.anitail.music.ui.screens.settings.PlayerSettings
 import com.anitail.music.ui.screens.settings.PrivacySettings
 import com.anitail.music.ui.screens.settings.SettingsScreen
@@ -260,6 +263,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable("settings/account") {
         AccountSettings(navController, scrollBehavior)
+    }
+    composable("settings/lastfm") {
+        LastFmSettingsScreen(navController)
     }
     composable("settings/content") {
         ContentSettings(navController, scrollBehavior)
