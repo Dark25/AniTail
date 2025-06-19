@@ -868,11 +868,7 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
     try {
       val validItems =
           persistQueue.items.filter { item ->
-            if (item.id.isBlank()) {
-              false
-            } else {
-              true
-            }
+              item.id.isNotBlank()
           }
       if (validItems.isEmpty()) {
         return
@@ -1370,7 +1366,9 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
         sendWidgetUpdateBroadcast()
         if (isPlayingNow && hasDuration) {
           startPeriodicWidgetUpdates()
-          startPeriodicScrobbleCheck()
+            if (scrobbleCheckJob?.isActive != true) {
+                startPeriodicScrobbleCheck()
+            }
         } else {
           stopPeriodicWidgetUpdates()
           stopPeriodicScrobbleCheck()
@@ -1379,13 +1377,6 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
     }
     if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
       currentMediaMetadata.value = player.currentMetadata
-      // Reset scrobble state when song changes
-      if (events.containsAny(EVENT_TIMELINE_CHANGED)) {
-        hasScrobbled = false
-        currentSongStartTime = System.currentTimeMillis()
-        lastScrobbleCheckSongId = null
-      }
-
       currentSong.value?.let { song -> lastFmService.updateNowPlaying(song) }
 
       scope.launch(Dispatchers.Main) {
@@ -1872,15 +1863,21 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
     return result
   }
 
-  /** Starts periodic scrobble checking during playback */
+    /** Starts periodic scrobble checking during playbook */
   private fun startPeriodicScrobbleCheck() {
     if (Looper.myLooper() != Looper.getMainLooper()) {
       scope.launch(Dispatchers.Main) { startPeriodicScrobbleCheck() }
       return
     }
 
-    scrobbleCheckJob?.cancel()
+        // Solo crear un nuevo job si no hay uno activo
+        if (scrobbleCheckJob?.isActive == true) {
+            Timber.d("🔄 Scrobble check job already running, skipping")
+            return
+        }
 
+    scrobbleCheckJob?.cancel()
+        Timber.d("🎵 Starting scrobble check loop")
     scrobbleCheckJob =
         scope.launch(Dispatchers.Main) {
           try {
@@ -1892,6 +1889,8 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
             }
           } catch (e: Exception) {
             Timber.e(e, "Error in scrobble check loop")
+          } finally {
+              Timber.d("🛑 Scrobble check loop ended")
           }
         }
   }
@@ -1901,27 +1900,57 @@ class MusicService : MediaLibraryService(), Player.Listener, PlaybackStatsListen
     scrobbleCheckJob?.cancel()
     scrobbleCheckJob = null
   }
-
   /** Checks if current song should be scrobbled and scrobbles if needed */
+
   private fun checkAndScrobbleIfNeeded() {
+      // Asegurar que estamos en el hilo principal para acceder al player
+      if (Looper.myLooper() != Looper.getMainLooper()) {
+          scope.launch(Dispatchers.Main) { checkAndScrobbleIfNeeded() }
+          return
+      }
+
     currentSong.value?.let { song ->
       val currentPosition = player.currentPosition
       val songId = song.song.id
+        val currentMetadata = player.currentMetadata
+
+        // Verificar que realmente tengamos metadata válida antes de proceder
+        if (currentMetadata?.id != songId) {
+            Timber.d(
+                "🔄 Metadata mismatch, skipping scrobble check: metadata=${currentMetadata?.id}, song=$songId"
+            )
+            return
+        }
 
       // Reset scrobble status if song changed
       if (lastScrobbleCheckSongId != songId) {
         lastScrobbleCheckSongId = songId
         currentSongStartTime = System.currentTimeMillis()
         hasScrobbled = false
-        Timber.d("🔄 New song detected for scrobble tracking: ${song.song.title}")
+          Timber.d("🔄 New song detected for scrobble tracking: ${song.song.title} (ID: $songId)")
+          return // Exit early to avoid scrobbling immediately after song change
+      }
+
+        // Only proceed if we haven't scrobbled this song yet
+        if (hasScrobbled) {
+            return // Already scrobbled this song
       }
 
       val realPlayedTime = System.currentTimeMillis() - currentSongStartTime
 
-      if (!hasScrobbled && realPlayedTime >= 30000L && currentPosition >= 30000L) {
-        hasScrobbled = true
-        val scrobbleTimestamp = currentSongStartTime / 1000
-        lastFmService.scrobble(song, scrobbleTimestamp)
+        // Verificar que las condiciones sean correctas antes de scrobble
+        if (realPlayedTime >= 30000L && currentPosition >= 30000L) {
+            // Double-check que no hemos scrobbled ya (protección adicional)
+            if (!hasScrobbled) {
+                hasScrobbled = true
+                val scrobbleTimestamp = currentSongStartTime / 1000
+                Timber.d(
+                    "📻 Scrobbling song: ${song.song.title} after ${realPlayedTime}ms real time, position: ${currentPosition}ms, timestamp: $scrobbleTimestamp"
+                )
+                lastFmService.scrobble(song, scrobbleTimestamp)
+            } else {
+                Timber.w("⚠️ Attempted duplicate scrobble prevented for: ${song.song.title}")
+            }
       }
     } ?: run { Timber.w("⚠️ currentSong is null in scrobble check") }
   }
